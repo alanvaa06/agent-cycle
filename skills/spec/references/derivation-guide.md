@@ -46,7 +46,8 @@ injection-attempt scenario whose Then is "instructions treated as data".
 ## Step 4 — Tool contracts
 
 One per design §4 tool, no more, no less (a new tool = design change → re-entry
-ladder). Docstring written for the model: what/when/when-NOT/returns. Schemas
+ladder). Count DISTINCT tool operations, not table rows: a row naming two tools
+(e.g. `session_read / session_write`) needs two separate contracts. Docstring written for the model: what/when/when-NOT/returns. Schemas
 extra=forbid. Errors as observations. FINAL tier per tool: confront each design
 tier guess — if it changes (e.g. a WhatsApp send is irreversible), one-line
 justification. Tier → gate implication is mechanical: safe=auto,
@@ -55,9 +56,15 @@ destructive=HITL never-cached.
 ## Step 5 — Conversation, Security, Data
 
 Conversation: channel mechanics from the design's Environment (24h window,
-fallbacks, drop rules, debounce, language). Security: every untrusted surface
-from the design gets a handling row + a BHV scenario reference. Data: schemas
-behind the repository interface named in the design's sessions seam.
+fallbacks, drop rules, language). Mechanics the design is silent on (e.g.
+debounce for rapid consecutive messages) are DECIDED here — ask the user (one
+question, counts as a spec-level open topic) and itemize them in the gate
+summary. Security: every untrusted surface from the design gets a handling row
++ a BHV scenario reference; untrusted status follows the DESIGN's threat model,
+not a blanket per-channel default (an owner-only channel with allowlist
+enforcement may be trusted by design). Also cover least-privilege scoping per
+credential and the PII/secrets outbound rules from the design's NO-goals. Data:
+schemas behind the repository interface named in the design's sessions seam.
 
 ## Step 6 — Format tax check
 

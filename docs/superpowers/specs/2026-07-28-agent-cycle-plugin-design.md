@@ -88,7 +88,7 @@ Every artifact carries frontmatter: `agent_name, version, status: draft|approved
 1. **Behavior** — Gherkin scenarios per capability, each with ID `BHV-NNN`; happy + wrong + edge.
 2. **Tools** — per-tool contract: docstring-for-LLM (the docstring IS the interface), Pydantic I/O schema `extra="forbid"`, errors-as-observations, and **action tier** (safe / reversible / destructive) mapping directly to HITL gates.
 3. **Conversation (WhatsApp)** — templates vs 24h window, fallbacks, human handoff, message debounce. Forces these decisions before build.
-4. **Security** — inbound WhatsApp messages are **always untrusted**: injection surface, least privilege per tool, action gating, PII.
+4. **Security** — inbound messages are untrusted **by default**; a design whose threat model restricts the channel (e.g. owner-only with allowlist enforcement) may downgrade that surface explicitly. Injection surface, least privilege per tool, action gating, PII.
 5. **Data** — session/dedupe/profile schemas behind a repository interface (the design's seams landed).
 
 **Format tax rule (Google Day 5):** clean Markdown headers; YAML only for schemas nested >3 deep.

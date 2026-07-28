@@ -17,9 +17,14 @@ Case-specific setup:
 
 Scoring anchors for SPC-E01: for the capability-coverage checks, anchor on the
 human-confirmed capability list in the session transcript (derivation guide
-step 1) — do not re-derive your own list. For the tool-contract check, the
-design's harness section states the authoritative tool COUNT (the table may
-bundle two tools in one row).
+step 1) — do not re-derive your own list. For the tool-contract check, count
+DISTINCT tool operations, not table rows: a row naming two tools (x / y) means
+two contracts. (The real design's harness line says "6" counting rows; the
+correct contract count there is 7.)
+
+Run SPC-E02 twice: once with design.md at status: draft, once with no
+docs/agent/ directory at all — both hard-fail branches must refuse and write
+nothing.
 
 Presence checks require judgment on substance — a Gherkin scenario that cannot
 fail, or a docstring that just restates the tool name, does NOT pass. For

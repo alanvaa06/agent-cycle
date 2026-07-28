@@ -49,6 +49,18 @@
           "Sections that don't apply (e.g. channel-specific conversation rules) are collapsed to a one-line 'not applicable because X', never padded with invented content"
         ]
       }
+    },
+    {
+      "id": "SPC-E04",
+      "type": "trigger-negative",
+      "input": "How do I write good Gherkin scenarios for my e-commerce checkout tests? Given/When/Then examples please.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:spec does NOT fire — generic BDD/Gherkin help is outside the pipeline",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
     }
   ]
 }

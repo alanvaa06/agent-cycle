@@ -43,7 +43,8 @@ security rules. REFERENCE it — never copy content into artifacts or this skill
 3. Fill `references/spec-template.md`. Write `docs/agent/spec.md`
    (`status: draft`, `design_version` pinned).
 4. Present summary: capability list, BHV count per capability, tier changes vs
-   design (with justifications), untrusted-surface table, open questions.
+   design (with justifications), conversation mechanics decided at spec level
+   (e.g. debounce), untrusted-surface table, open questions.
 5. Explicit approval → `status: approved`. Feedback → edit, re-present.
 6. Hand off: "Next phase: `agent-cycle:evals` reads this artifact."
 
