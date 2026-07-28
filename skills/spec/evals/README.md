@@ -15,6 +15,12 @@ Case-specific setup:
   capabilities. Write it by hand in a scratch repo (5 minutes); do NOT use the
   design skill for it.
 
+Scoring anchors for SPC-E01: for the capability-coverage checks, anchor on the
+human-confirmed capability list in the session transcript (derivation guide
+step 1) — do not re-derive your own list. For the tool-contract check, the
+design's harness section states the authoritative tool COUNT (the table may
+bundle two tools in one row).
+
 Presence checks require judgment on substance — a Gherkin scenario that cannot
 fail, or a docstring that just restates the tool name, does NOT pass. For
 SPC-E02, always check the filesystem afterward.
