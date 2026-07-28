@@ -9,6 +9,9 @@ Per case in `cases.json`:
 3. Observe whether the skill fires (`fires` check) and follow the interview to
    completion for positive/edge cases (answer as a plausible dental-clinic owner).
 4. Score every item in `expected.checks` as PASS / FAIL with one line of evidence.
+   Presence checks require judgment on substance — a vacuous Goodhart note or a
+   factually wrong architectural implication does NOT pass. For negative cases,
+   also check the scratch project's filesystem afterward (e.g. no docs/agent/design.md).
 5. Record the run in `results.md` (date, case id, per-check verdict, notes).
 
 Gate: all checks PASS on all 3 cases before the skill graduates. A FAIL means

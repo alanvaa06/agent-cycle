@@ -16,7 +16,7 @@
           "Harness decision defaults to single-agent with written justification",
           "Deployment intent = AWS, with all 3 portability seams declared: sessions (framework-native store), model (LiteLLM config), telemetry (OTel)",
           "NO-goals section is non-empty",
-          "Open questions section exists (input to /spec)",
+          "Open questions section exists and is non-empty (input to /spec)",
           "Artifact written to docs/agent/design.md with frontmatter: agent_name, version, status: draft, date",
           "Skill stops at the human gate — status becomes approved only after explicit user approval"
         ]
@@ -25,7 +25,7 @@
     {
       "id": "DES-E02",
       "type": "trigger-negative",
-      "input": "Review this orchestration code for agent best practices: [any pasted LangGraph/ADK pipeline code]",
+      "input": "Review this orchestration code for agent best practices: `graph = StateGraph(State); graph.add_node('extract', extract_fn); graph.add_node('validate', validate_fn); graph.add_edge('extract', 'validate'); app = graph.compile()`",
       "expected": {
         "fires": false,
         "checks": [
@@ -43,7 +43,7 @@
         "checks": [
           "Does NOT re-ask Performance or Environment",
           "Starts the interview at Actuators/Sensors",
-          "Still runs the Goodhart stress-test on the user-provided Performance metric",
+          "Still runs the Goodhart stress-test on the user-provided Performance metric — may ask ONE follow-up probing how the metric could be gamed, but must NOT re-ask what the metric is",
           "Completes classification, harness, deployment intent, NO-goals normally"
         ]
       }
