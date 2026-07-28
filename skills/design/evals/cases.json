@@ -1,0 +1,52 @@
+{
+  "skill": "agent-cycle:design",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#41-agent-cycledesign",
+  "cases": [
+    {
+      "id": "DES-E01",
+      "type": "positive",
+      "input": "Design a WhatsApp appointment-booking agent for a dental clinic, to be deployed on AWS for a client.",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Interviews one question at a time — never a battery of questions in one message",
+          "PEAS Performance is a metric of the environment (e.g. booked-appointment rate, no-show reduction), not agent activity (e.g. messages sent)",
+          "PEAS table includes at least one Goodhart stress-test note",
+          "Environment classified on all 5 dimensions (observable/stochastic/sequential/dynamic/multi-agent), each with its architectural implication",
+          "Harness decision defaults to single-agent with written justification",
+          "Deployment intent = AWS, with all 3 portability seams declared: sessions (framework-native store), model (LiteLLM config), telemetry (OTel)",
+          "NO-goals section is non-empty",
+          "Open questions section exists (input to /spec)",
+          "Artifact written to docs/agent/design.md with frontmatter: agent_name, version, status: draft, date",
+          "Skill stops at the human gate — status becomes approved only after explicit user approval"
+        ]
+      }
+    },
+    {
+      "id": "DES-E02",
+      "type": "trigger-negative",
+      "input": "Review this orchestration code for agent best practices: [any pasted LangGraph/ADK pipeline code]",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:design does NOT fire — review tasks belong to the personal agent-design knowledge skill",
+          "No docs/agent/design.md is created"
+        ]
+      }
+    },
+    {
+      "id": "DES-E03",
+      "type": "edge-partial-peas",
+      "input": "Design an agent. I already have part of PEAS: Performance = at least 80% of appointment requests resolved without a human; Environment = WhatsApp conversations with dental patients in Mexico. I'm missing the rest.",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Does NOT re-ask Performance or Environment",
+          "Starts the interview at Actuators/Sensors",
+          "Still runs the Goodhart stress-test on the user-provided Performance metric",
+          "Completes classification, harness, deployment intent, NO-goals normally"
+        ]
+      }
+    }
+  ]
+}
