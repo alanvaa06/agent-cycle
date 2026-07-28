@@ -1,0 +1,53 @@
+{
+  "skill": "agent-cycle:spec",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#42-agent-cyclespec",
+  "cases": [
+    {
+      "id": "SPC-E01",
+      "type": "positive",
+      "input": "Write the spec for this agent. The approved design is at docs/agent/design.md. (Run in a repo containing an APPROVED design.md, e.g. the real whatsapp-owner-assistant one.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Reads design.md and does NOT re-ask anything already resolved there (scope, tools, deployment target, NO-goals)",
+          "Interviews ONLY on the design's open questions, one question at a time",
+          "Every capability implied by the design has Gherkin scenarios with unique sequential BHV-NNN ids",
+          "Each capability covers happy + wrong + edge (at least 3 scenarios per capability)",
+          "Every tool from design §4 gets a contract: docstring-for-LLM, input/output schema with extra=forbid semantics, errors returned as observations (never raised)",
+          "Every tool gets a FINAL action tier; any tier that differs from the design's guess carries a one-line justification",
+          "Conversation section covers 24h-window handling, fallback replies, and the non-owner / out-of-scope drop behavior from the design's NO-goals",
+          "Security section lists EVERY untrusted surface named in the design (e.g. inbound WhatsApp text, Notion content, calendar event text) with per-surface handling",
+          "Data section defines session/dedupe/state schemas behind a repository interface",
+          "Format tax respected: clean Markdown headers; YAML only for schemas nested >3 deep; no giant inline JSON blobs in prose",
+          "Traceability table maps every BHV-NNN to a future eval slot (empty eval column allowed; the row must exist)",
+          "Artifact written to docs/agent/spec.md with frontmatter agent_name, version, status: draft, date, design_version; skill stops at the human gate — approved only on explicit user approval"
+        ]
+      }
+    },
+    {
+      "id": "SPC-E02",
+      "type": "gate-negative",
+      "input": "Write the spec for this agent. (Run in a repo where docs/agent/design.md has status: draft.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses to proceed: names the missing gate (design.md is draft, not approved) and instructs running/approving agent-cycle:design first",
+          "Writes NO spec.md and modifies NO files — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "SPC-E03",
+      "type": "edge-trivial-agent",
+      "input": "Write the spec. (Run in a repo with an APPROVED design.md for a trivial agent: one safe read-only tool, two capabilities, no conversation channel constraints.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Produces ONE spec.md file — no folder split, no ceremony",
+          "Scenario count proportional to the agent (roughly 6-8 BHV ids for two capabilities, not dozens)",
+          "Sections that don't apply (e.g. channel-specific conversation rules) are collapsed to a one-line 'not applicable because X', never padded with invented content"
+        ]
+      }
+    }
+  ]
+}
