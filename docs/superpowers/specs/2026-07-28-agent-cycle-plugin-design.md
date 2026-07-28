@@ -8,7 +8,7 @@
 
 A Claude Code plugin that runs the **complete construction cycle of an AI agent** — from idea to shipped, evaluated, observable production agent — as a gated, disk-backed pipeline of skills. Built skill-by-skill with maximum depth per skill, each one dogfooded on a real project before the next begins.
 
-**First real agent (dogfood):** a WhatsApp Business agent deployed on AWS for a client.
+**First real agent (dogfood):** `whatsapp-owner-assistant` — a personal WhatsApp assistant over Google Calendar + Notion (read-only v1), self-hosted on a VPS. (Originally scoped as a client agent on AWS; the real design interview on 2026-07-28 landed on VPS — adapter order updated accordingly. AWS remains the second target.)
 
 ## 2. Foundational decisions (settled during brainstorming)
 
@@ -134,9 +134,10 @@ src/
   agent/        ADK 2.0 loop (pinned + constraints), tools from spec contracts,
                 repository interfaces (state), LiteLLM (model = config), native OTel
   adapters/
-    aws/        Lambda ingress (HMAC + dedupe), SQS FIFO binding, DynamoDB repo,
-                Secrets Manager, SAM/CDK recipe            ← v0.1 (dogfood)
-    gcp/ vps/   ← later, same adapter interface
+    vps/        Caddy/FastAPI ingress (HMAC + dedupe), Redis/Valkey queue,
+                Postgres repo (Supabase), SOPS+age secrets, Compose recipe
+                                                           ← v0.1 (dogfood)
+    aws/ gcp/   ← later, same adapter interface (AWS second target)
 tests/          unit + eval-runner integration
 ```
 
@@ -239,12 +240,12 @@ Self-contained HTML rendering of the agent — architecture, state, tools, nodes
 2. `/spec` → dogfood: WhatsApp agent spec.md
 3. `/economics` → dogfood: quote the WhatsApp agent to the client (small skill, data ready, immediate value)
 4. `/evals` → dogfood: suite running red
-5. `/build` (aws adapter) → dogfood: agent green on AWS dev
+5. `/build` (vps adapter) → dogfood: agent green on VPS dev
 6. `/blueprint` → dogfood: client-facing HTML of the real agent
 7. `/skills` → dogfood: likely "no skills needed" — validates the entry test
 8. `/interop` → dogfood: skip with justification — validates the entry test
 9. `/ship` → dogfood: WhatsApp agent shipped
-10. Later: gcp/ and vps/ adapters; plugin marketplace packaging.
+10. Later: aws/ and gcp/ adapters; plugin marketplace packaging.
 
 Each skill: research from vault → EDD (3+ eval cases for the skill itself) → SKILL.md → dogfood → iterate → next.
 
