@@ -3,6 +3,24 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.3.0] — 2026-07-28
+
+### Added
+- **`evals` skill** (phase 3 of 7): approved spec.md → framework-agnostic eval
+  suite BEFORE any code. Golden cases pin BHV-NNN@spec_version; method mix
+  (deterministic / llm_judge with anchored rubrics / adversarial per untrusted
+  surface, >=2 realistic payloads incl. end-user language); per-tier thresholds
+  (pass^k destructive); release blockers lifted from the spec's hard
+  constraints; red-by-design rule; suite is pure data — the runner belongs to
+  /build. Sanctioned external write: exactly the spec §6 Eval column.
+- EDD eval suite (`skills/evals/evals/`): EVL-E01 positive (11-check contract),
+  EVL-E02 gate-negative (two branches), EVL-E03 non-automatable edge,
+  EVL-E04 trigger-negative.
+
+### Pending graduation
+- `evals` skill runs against the real agent — tag `evals-v0.1` when the dogfood
+  passes.
+
 ## [0.2.0] — 2026-07-28
 
 ### Added
