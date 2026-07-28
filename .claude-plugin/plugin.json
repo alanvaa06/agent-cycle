@@ -1,0 +1,8 @@
+{
+  "name": "agent-cycle",
+  "description": "Complete construction cycle for AI agents: design, spec, evals-first, build (multi-cloud adapters), skills, interop, ship — plus economics and blueprint transversals. Gated, disk-backed pipeline.",
+  "version": "0.1.0",
+  "author": {
+    "name": "Alan Vazquez"
+  }
+}
