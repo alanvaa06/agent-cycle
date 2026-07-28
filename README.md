@@ -24,5 +24,28 @@ contains agent artifacts.
 Every phase fails hard if its upstream artifact is missing, `draft`, or stale.
 Human gate between every phase. See `docs/superpowers/specs/` for the full design.
 
-**Status:** v0.1 — `design` skill only. Built skill-by-skill, each dogfooded on
+**Status:** v0.1.0 — `design` skill only. Built skill-by-skill, each dogfooded on
 a real agent before the next begins.
+
+## Install
+
+From an interactive Claude Code session:
+
+```
+/plugin marketplace add alanvaa06/agent-cycle
+/plugin install agent-cycle@agent-cycle
+```
+
+Update later with `/plugin marketplace update agent-cycle` and reinstall to pick
+up new versions.
+
+## Versioning
+
+Semver, driven by `.claude-plugin/plugin.json`:
+
+- **minor** — a new pipeline skill lands (e.g. 0.2.0 = `spec` skill).
+- **patch** — fixes to existing skills or docs.
+- Each skill also graduates via its own eval gate (see `skills/*/evals/`);
+  graduation is tagged (`design-v0.1`) independently of plugin releases.
+
+See `CHANGELOG.md` for release history.
