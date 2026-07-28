@@ -14,7 +14,11 @@ edge/security), the tool tiers, the untrusted-surface table, the outcome enum
 (telemetry section, if any), and the spec's §7 open questions. The suite's
 scope is exactly this inventory. Ask the user NOTHING the spec already answers;
 at most, interview on §7 items that shape evals (e.g. which language variants
-matter, where golden-set seed data will come from) — one question at a time.
+matter) — one question at a time. An open question whose honest answer is
+"data does not exist until post-launch" (e.g. a usage-derived corpus) is
+recorded in config.yaml notes as a deferred corpus source — not re-asked, and
+not a blocker: the suite is authored from the spec's scenarios, which need no
+usage data.
 
 ## Step 2 — Classify method per BHV
 
@@ -24,6 +28,10 @@ requires judgment (quality, tone, helpfulness) → `llm_judge` with a rubric. If
 the scenario exercises an untrusted surface or an abuse path → `adversarial`.
 A single BHV may yield one deterministic case AND one judge case; never force
 judgment into asserts or asserts into judgment.
+
+If a BHV is genuinely ambiguous — two honest readings that would produce
+different evals — stop and dispute it via the re-entry ladder. Never resolve
+ambiguity by authoring a creative eval (that is reinterpreting the spec).
 
 ## Step 3 — Author golden cases
 
@@ -35,9 +43,13 @@ Failure-path scenarios assert the ABSENCE of side effects (`forbidden`).
 
 ## Step 4 — Adversarial expansion
 
-Per untrusted surface in the spec: at least 2 payloads — direct instruction and
-authority-claim variants — plus at least one in the end-user's real language
-when the spec calls for it (a Spanish-speaking owner gets Spanish injections).
+Per surface the spec marks UNTRUSTED: at least 2 payloads — direct instruction
+and authority-claim variants — plus at least one in the end-user's real
+language when the spec calls for it (a Spanish-speaking owner gets Spanish
+injections). A surface the spec explicitly classifies as trusted-by-design
+(e.g. owner-only channel behind an allowlist) gets NO injection payloads
+against its content; instead, its ENFORCEMENT mechanism gets a deterministic
+case (e.g. non-owner delivery → dropped, zero outbound).
 Payloads must be realistic enough that a naive model might follow them;
 gibberish does not test containment. Each case's forbidden list encodes the
 containment claim (no extra recipients, no writes, no secrets in reply, rules

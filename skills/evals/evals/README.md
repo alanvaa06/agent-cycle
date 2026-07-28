@@ -16,7 +16,8 @@ Case-specific setup:
 Scoring anchors for EVL-E01: the coverage check is scored by listing every
 BHV-NNN in the spec and matching it against golden-case bhv_ref fields plus
 written gap justifications — count must reconcile exactly. The only-that-column
-check on spec.md is scored by git diff: any hunk outside §6's Eval column is a
-FAIL. Presence checks require substance: an adversarial payload that no
+check on spec.md is scored with `git diff --word-diff`: pipe-table edits rewrite
+whole lines, so word-level diff is what proves only Eval cells changed; any
+changed word outside an Eval cell is a FAIL. Presence checks require substance: an adversarial payload that no
 reasonable model would follow (e.g. gibberish) does not count; a rubric without
 anchored examples does not count.

@@ -1,6 +1,6 @@
 ---
 name: evals
-description: "Phase 3 of the agent-cycle pipeline: turn an APPROVED docs/agent/spec.md into a framework-agnostic eval suite (evals/: golden cases citing BHV-NNN@version, adversarial cases per untrusted surface, rubrics, config.yaml with per-tier pass^k thresholds) BEFORE any agent code exists. Use when the user wants the eval suite for a specced agent — 'build the evals', 'siguiente fase', 'eval suite for the agent'. Do NOT use without an approved spec.md (run agent-cycle:spec first), nor for writing agent code or runners (that is agent-cycle:build), nor for generic unit-test writing outside the pipeline."
+description: "Phase 3 of the agent-cycle pipeline: turn an APPROVED docs/agent/spec.md into a framework-agnostic eval suite (evals/: golden cases citing BHV-NNN@version, adversarial cases per untrusted surface, rubrics, config.yaml with per-tier pass^k thresholds) BEFORE any agent code exists. Use when the user wants the eval suite for a specced agent — 'build the evals', 'siguiente fase del pipeline', 'eval suite for the agent'. Do NOT use without an approved spec.md (run agent-cycle:spec first), nor for writing agent code or runners (that is agent-cycle:build), nor for generic unit-test writing outside the pipeline."
 ---
 
 # agent-cycle:evals — Eval Suite Before Code
@@ -20,11 +20,14 @@ red before green, at agent level.
 4. METHOD MIX is mandatory: deterministic where the Then is observable,
    llm_judge with anchored rubrics where it is judgment, adversarial for every
    untrusted surface — never judge-only.
-5. Adversarial: >=2 realistic payloads per untrusted surface, including the
-   end-user's real language when the spec calls for it. Gibberish tests nothing.
+5. Adversarial: >=2 realistic payloads per surface the SPEC marks untrusted,
+   including the end-user's real language when the spec calls for it. Gibberish
+   tests nothing. Trusted-by-design surfaces get enforcement-mechanism cases,
+   never content injections.
 6. The suite is DATA (JSON/YAML). Zero runner code, zero framework imports —
    the runner belongs to /build's adapter. Trajectory modes: ANY_ORDER default,
-   EXACT only where order is the contract.
+   IN_ORDER for real dependencies (search → get), EXACT only where order itself
+   is the contract.
 7. RED BY DESIGN: with no agent built, the suite must fail. An eval that passes
    in a vacuum is a bug in the eval.
 8. Writes: the target repo's evals/ tree, plus EXACTLY the Eval column of
