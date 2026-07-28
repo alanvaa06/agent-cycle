@@ -35,8 +35,9 @@ REFERENCE it — never copy its content into artifacts or this skill.
 2. Fill `references/artifact-template.md` with the answers.
 3. Write to `docs/agent/design.md` (target repo), frontmatter:
    `agent_name, version: 1, status: draft, date`.
-4. Present the summary in chat: PEAS table, classification, harness, deployment
-   intent, NO-goals, open questions. Ask for approval.
+4. Present the summary in chat: PEAS table, classification, harness, tool
+   inventory (with tier guesses), deployment intent, NO-goals, open questions.
+   Ask for approval.
 5. On explicit approval → set `status: approved` and report done. On feedback →
    edit, re-present (stay at gate).
 6. Hand off: "Next phase: `agent-cycle:spec` reads this artifact."

@@ -14,6 +14,7 @@
           "PEAS table includes at least one Goodhart stress-test note",
           "Environment classified on all 5 dimensions (observable/stochastic/sequential/dynamic/multi-agent), each with its architectural implication",
           "Harness decision defaults to single-agent with written justification",
+          "Gate summary presented in chat includes the preliminary tool inventory with tier guesses (safe/reversible/destructive)",
           "Deployment intent = AWS, with all 3 portability seams declared: sessions (framework-native store), model (LiteLLM config), telemetry (OTel)",
           "NO-goals section is non-empty",
           "Open questions section exists and is non-empty (input to /spec)",
