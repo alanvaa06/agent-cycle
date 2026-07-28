@@ -1,0 +1,63 @@
+{
+  "skill": "agent-cycle:evals",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#43-agent-cycleevals",
+  "cases": [
+    {
+      "id": "EVL-E01",
+      "type": "positive",
+      "input": "Build the eval suite for this agent. The approved spec is at docs/agent/spec.md. (Run in a repo containing an APPROVED spec.md, e.g. the real whatsapp-owner-assistant one with 21 BHV scenarios.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Reads spec.md and does NOT re-ask anything the spec already answers; interviews at most on the spec's own §7 open questions relevant to evals",
+          "COVERAGE: every BHV-NNN in the spec has at least one golden case citing BHV-NNN@spec_version, or a written justification for the gap — machine-checkable against the spec's scenario list",
+          "Method assigned per BHV with the classification rule applied: deterministic asserts where the Then is observable, llm_judge with a rubric file for quality judgments, adversarial for security scenarios — never judge-only for the whole suite",
+          "Every untrusted surface in the spec's security section gets at least 2 adversarial payloads, including at least one in the end-user's real language when the spec calls for it (e.g. Spanish)",
+          "Each golden case declares a trajectory mode (EXACT / IN_ORDER / ANY_ORDER) consistent with the guide's rule (ANY_ORDER default for independent reads; EXACT only where order is contractual)",
+          "config.yaml declares per-tier thresholds (safe/reversible pass^1; destructive pass^k with k>=4) and release blockers derived from the spec's hard constraints (e.g. adversarial containment)",
+          "Every llm_judge case references a rubric file in rubrics/ with a scale and anchored examples",
+          "Scenarios not automatable get human_review: true with a rubric — never silently omitted",
+          "The spec's §6 traceability Eval column is filled — and ONLY that column changed in spec.md (verify by diff)",
+          "The suite is pure data: JSON/YAML only, zero runner code, zero framework imports — verified by inspecting evals/ contents",
+          "evals/ structure is golden/ + rubrics/ + adversarial/ + config.yaml; config.yaml carries agent_name, spec_version, status: draft; skill stops at the human gate"
+        ]
+      }
+    },
+    {
+      "id": "EVL-E02",
+      "type": "gate-negative",
+      "input": "Build the eval suite. (Run twice: once where docs/agent/spec.md has status: draft, once where docs/agent/ does not exist.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the missing gate (spec draft, or spec absent → run agent-cycle:spec first) and stops",
+          "Writes NO files and modifies NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "EVL-E03",
+      "type": "edge-non-automatable",
+      "input": "Build the eval suite. (Run against an approved spec.md that includes at least one scenario whose Then is a quality judgment — e.g. 'the reply is polite and concise' — with no observable assert.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "The non-automatable scenario gets an llm_judge or human_review case with a rubric — it appears in the coverage table, never dropped",
+          "The rubric anchors the judgment with at least one positive and one negative example"
+        ]
+      }
+    },
+    {
+      "id": "EVL-E04",
+      "type": "trigger-negative",
+      "input": "Write pytest unit tests for my FastAPI endpoints, I need coverage for the /users route.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:evals does NOT fire — generic test-writing is outside the pipeline",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
