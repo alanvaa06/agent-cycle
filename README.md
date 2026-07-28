@@ -18,6 +18,9 @@ disk-backed pipeline of skills.
 | — | `agent-cycle:economics` (transversal) | `docs/agent/<name>-economics.md` |
 | — | `agent-cycle:blueprint` (transversal) | `docs/agent/blueprint.html` |
 
+Phase artifacts land in the TARGET AGENT'S repo — this plugin repo never
+contains agent artifacts.
+
 Every phase fails hard if its upstream artifact is missing, `draft`, or stale.
 Human gate between every phase. See `docs/superpowers/specs/` for the full design.
 
