@@ -36,6 +36,7 @@ agent-cycle/
     ship/       SKILL.md + checklist       # phase 7
     economics/  SKILL.md + references/     # transversal — invokable any time
     blueprint/  SKILL.md + template.html   # transversal — invokable any time
+    review/     SKILL.md + references/     # transversal — reviews ANY agent (added 2026-07-29)
   docs/superpowers/specs/                  # this design doc + future specs
 ```
 
@@ -51,6 +52,7 @@ agent-cycle/
 /ship      → DoD report                           mechanical audit + sign-off
 /economics → docs/agent/<name>-economics.md       transversal analysis
 /blueprint → docs/agent/blueprint.html            transversal view (renders whatever exists)
+/review    → docs/agent/review.md                  transversal audit of ANY agent (pipeline or foreign)
 ```
 
 Every artifact carries frontmatter: `agent_name, version, status: draft|approved, date`. Each phase **fails hard** if its upstream artifact is missing, `draft`, or version-stale. Human gate between every phase.
@@ -200,6 +202,27 @@ Self-contained HTML rendering of the agent — architecture, state, tools, nodes
 - **Form:** single self-contained HTML (inline SVG/mermaid, no external deps) — a capture, not an app. Fixed template + injected data = low maintenance. Publishable as a Claude Artifact for client sharing.
 - **Artifact:** `docs/agent/blueprint.html`.
 - Dual value: client-facing sales deliverable (agency) + at-a-glance architecture review. The HTML-as-agent-output thesis operationalized.
+
+### 5.3 `/agent-cycle:review` (added 2026-07-29 — explicit owner decision)
+
+Assessment of ANY existing agent — pipeline-born or foreign — against the
+pipeline's practice frame. The distilled, self-contained successor of the
+owner's personal `agent-design` knowledge skill (which the plugin no longer
+references and the owner may retire).
+
+- **The only skill with no chain gate**: the target is an arbitrary agent
+  (repo/code/docs); the gate is merely that a readable target exists.
+- **Eight dimensions**, each mapped to the phase that would fix its findings:
+  specification (design), contracts & tools (spec), security (spec/build),
+  loop & harness (build), evals (evals), observability (build/ship),
+  economics (economics), ops (ship). All eight always — n/a requires a reason.
+- **Findings = severity + pipeline route**: the review doubles as the entry
+  funnel to the cycle (agency front door: a client arrives with an existing
+  bot; the review's remediation map is the proposal).
+- Read-only on the reviewed agent; the only write is `docs/agent/review.md`.
+  Evidence is file:line or an explicit "not found" — architecture is never
+  invented. Does NOT replace `/ship` (release audit with live re-run) nor
+  generic code review; for pipeline-born agents findings route via re-entry.
 
 ## 6. Re-entry ladder (what happens when evals fail)
 
