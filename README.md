@@ -25,33 +25,39 @@ they read whatever artifacts exist and never block the chain.
 
 ```mermaid
 flowchart TB
-    subgraph V["VERTICAL — 7 gated phases (each consumes the previous artifact)"]
-        direction TB
-        D["1 · design<br/><i>design.md</i>"]
-        S["2 · spec<br/><i>spec.md</i>"]
-        E["3 · evals<br/><i>evals/ (red by design)</i>"]
-        B["4 · build<br/><i>src/ + runner → suite green</i>"]
-        K["5 · skills — conditional<br/><i>skills.md (none = success)</i>"]
-        I["6 · interop — conditional<br/><i>interop.md (skip = success)</i>"]
-        H["7 · ship<br/><i>ship-report.md → SHIP / NO-SHIP</i>"]
-        D --> S --> E --> B --> K --> I --> H
-    end
+    REV["review · HORIZONTAL<br/><i>any existing agent in →<br/>findings + fix-route per phase out</i>"]
+    REV -.->|"entry point:<br/>adopt the cycle"| D
 
-    subgraph T["HORIZONTAL — transversals (invokable any time, never block the chain)"]
-        direction TB
-        ECO["economics<br/><i>&lt;name&gt;-economics.md</i>"]
-        BLP["blueprint<br/><i>blueprint.html</i>"]
-        REV["review<br/><i>review.md — works on ANY agent</i>"]
-    end
+    D["1 · design<br/><i>design.md — what the agent is,<br/>how success is measured</i>"]
+    S["2 · spec<br/><i>spec.md — exact behavior,<br/>tools + tiers, security</i>"]
+    E["3 · evals<br/><i>evals/ — the exams,<br/>written before code, red by design</i>"]
+    B["4 · build<br/><i>src/ + runner —<br/>code until the suite is green</i>"]
+    K["5 · skills — conditional<br/><i>skills.md (none = success)</i>"]
+    I["6 · interop — conditional<br/><i>interop.md (skip = success)</i>"]
+    H["7 · ship<br/><i>ship-report.md →<br/>SHIP / NO-SHIP</i>"]
 
-    ECO -. "estimate after spec ·<br/>calibrate after build" .- S
-    ECO -. "alarm threshold feeds ship" .- H
-    BLP -. "renders whatever exists" .- V
-    REV -. "remediation map =<br/>entry proposal into the cycle" .- D
+    D --> S --> E --> B --> K --> I --> H
 
-    H -- "findings" --> RL(("re-entry<br/>ladder"))
-    RL -. "re-opens the owning phase" .- V
+    ECO["economics · HORIZONTAL<br/><i>monthly cost, break-even,<br/>token-spend alarm</i>"]
+    S -.->|"run #1 after spec:<br/>estimate — worth building?<br/>quote the client"| ECO
+    B -.->|"run #2 after build:<br/>recalibrate with real usage"| ECO
+    ECO -.->|"alarm threshold"| H
+
+    BLP["blueprint · HORIZONTAL<br/><i>one-page client-shareable HTML,<br/>renders whatever exists</i>"]
+    S -.->|"typical: after spec<br/>(sell it)"| BLP
+    B -.->|"typical: after build<br/>(show the real thing)"| BLP
+
+    H -->|"findings"| RL(("re-entry<br/>ladder"))
+    RL -.->|"re-opens the<br/>owning phase"| D
 ```
+
+**When to run the horizontals:** `review` BEFORE the cycle (an existing agent
+is the input; its remediation map is the adoption plan). `economics` twice —
+right after `spec` (you now know what it does and on which model: decide
+whether it is worth building / quote the client, before paying for a build)
+and again after `build` (recalibrate the estimate with real usage; its alarm
+threshold feeds `ship`). `blueprint` any time after `design` — typically after
+`spec` to sell and after `build` to show the real thing.
 
 **The re-entry ladder:** when anything downstream finds a defect in an
 upstream artifact, the fix goes back to the *lowest phase whose artifact is
