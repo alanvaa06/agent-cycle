@@ -30,7 +30,7 @@
       "expected": {
         "fires": false,
         "checks": [
-          "agent-cycle:design does NOT fire — reviewing existing agent code/architectures is outside the pipeline",
+          "agent-cycle:design does NOT fire — reviewing existing agents belongs to agent-cycle:review, not to design",
           "No docs/agent/design.md is created"
         ]
       }

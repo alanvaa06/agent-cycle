@@ -3,6 +3,29 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.10.0] — 2026-07-29
+
+### Added
+- **`review` skill** (transversal 3 of 3 — added to the plan by explicit
+  owner decision 2026-07-29): assess ANY existing agent, pipeline-born or
+  foreign, against the pipeline's practice frame. Eight dimensions with
+  concrete probes (specification/Goodhart, contracts & tiers, security
+  surfaces from REAL inputs, loop caps, evals-or-hope, observability,
+  economics, ops), evidence discipline (file:line or explicit not-found —
+  invented architecture banned), findings with severity + the pipeline phase
+  that fixes each, and a remediation map grouped by phase that doubles as
+  the pipeline entry proposal. The one chain-gate-free skill; read-only on
+  the target; only write: docs/agent/review.md. Distilled, self-contained
+  successor of the author's personal agent-design knowledge skill.
+- EDD eval suite (`skills/review/evals/`): REV-E01 positive-foreign (8-check
+  contract with seeded-defect ground truth), REV-E02 pipeline-born
+  (artifact-vs-code divergence), REV-E03 gate-negative, REV-E04
+  trigger-negative (non-agent code must not fire).
+
+### Pending graduation
+- `review` run against a real foreign agent — tag `review-v0.1` when the
+  dogfood passes.
+
 ## [0.9.0] — 2026-07-29
 
 ### Added

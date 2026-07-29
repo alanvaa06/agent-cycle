@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Phase 1 of the agent-cycle pipeline: interview the user and produce an approvable docs/agent/design.md (PEAS + environment classification + harness decision + deployment intent + NO-goals) for a NEW agent. Use when the user wants to design, start, or scope a new AI agent from an idea — 'design an agent for X', 'quiero un agente que...', 'new agent for client Y'. Do NOT use for reviewing existing agent code or architectures (outside the pipeline), nor for writing specs/evals/code (later phases)."
+description: "Phase 1 of the agent-cycle pipeline: interview the user and produce an approvable docs/agent/design.md (PEAS + environment classification + harness decision + deployment intent + NO-goals) for a NEW agent. Use when the user wants to design, start, or scope a new AI agent from an idea — 'design an agent for X', 'quiero un agente que...', 'new agent for client Y'. Do NOT use for reviewing existing agent code or architectures (that is agent-cycle:review), nor for writing specs/evals/code (later phases)."
 ---
 
 # agent-cycle:design — Agent Design Interview

@@ -17,6 +17,7 @@ disk-backed pipeline of skills.
 | 7 Ship | `agent-cycle:ship` | DoD report |
 | — | `agent-cycle:economics` (transversal) | `docs/agent/<name>-economics.md` |
 | — | `agent-cycle:blueprint` (transversal) | `docs/agent/blueprint.html` |
+| — | `agent-cycle:review` (transversal) | `docs/agent/review.md` |
 
 Phase artifacts land in the TARGET AGENT'S repo — this plugin repo never
 contains agent artifacts.
@@ -24,9 +25,8 @@ contains agent artifacts.
 Every phase fails hard if its upstream artifact is missing, `draft`, or stale.
 Human gate between every phase. See `docs/superpowers/specs/` for the full design.
 
-**Status:** v0.9.0 — all 7 phases + both transversals (`economics`, `blueprint`).
-The original 9-skill pipeline is complete. Built skill-by-skill, each dogfooded
-on a real agent.
+**Status:** v0.10.0 — all 7 phases + 3 transversals (`economics`, `blueprint`, `review`).
+10 skills. Built skill-by-skill, each dogfooded on a real agent.
 
 ## Install
 
