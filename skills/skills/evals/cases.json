@@ -1,0 +1,62 @@
+{
+  "skill": "agent-cycle:skills",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#45-agent-cycleskills-conditional",
+  "cases": [
+    {
+      "id": "SKL-E01",
+      "type": "positive-none",
+      "input": "Does this agent need skills? Run the skills phase. (Run in a repo with approved design+spec+build where every capability is covered by tools + static instructions, e.g. the real whatsapp-owner-assistant.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: design.md, spec.md AND docs/agent/build.md all approved; version chain consistent (spec.design_version, build's spec_version links)",
+          "Entry test applied PER CAPABILITY: a table mapping each capability to its verdict (tool+static suffices / skill warranted) with a one-line reason each — never a global gut call",
+          "Verdict 'none' is delivered as a successful outcome: zero ceremony skills authored, and the record says WHY none qualifies (no on-demand procedural variants, no per-client policies, static instructions within budget)",
+          "Re-visit triggers documented: the concrete changes that would reopen this phase (e.g. a second client with different policies, process variants exceeding N, static instruction bloat past a stated token budget)",
+          "Artifact docs/agent/skills.md written with frontmatter (agent_name, version, status: draft, date, spec_version, build_version) and decision: none; skill stops at the human gate"
+        ]
+      }
+    },
+    {
+      "id": "SKL-E02",
+      "type": "positive-authored",
+      "input": "Run the skills phase. (Run against a scratch agent whose approved spec includes genuine on-demand procedural variants — e.g. 12 per-client return policies that cannot live in static instructions.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Entry test identifies the skill-warranted capabilities and ONLY those become skills — capabilities covered by tools/static instructions are left alone",
+          "Per authored skill, eval cases exist BEFORE its SKILL.md: at least trigger-positive, trigger-negative, and one execution case",
+          "Every description is a routing algorithm: what it does + when to use + when NOT to use; no 'helpful skill for...' phrasing; one skill = one job",
+          "Trigger accuracy target >=90% declared AND measured: routing runs with paraphrased/variant trigger phrases recorded per skill",
+          "Regression is co-loaded: the trigger/execution runs happen with ALL the agent's skills loaded together, never in isolation",
+          "Authority ladder enforced: every new skill enters at draft; action-allowed requires pass^k evidence plus explicit human approval, recorded in skills.md",
+          "Runtime binding declared in skills.md: HOW this agent loads skills (harness-native discovery or the build's loader mechanism) — not assumed"
+        ]
+      }
+    },
+    {
+      "id": "SKL-E03",
+      "type": "gate-negative",
+      "input": "Run the skills phase. (Run twice: once with no docs/agent/build.md, once where spec.md was version-bumped after build.md was approved — stale chain.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the missing/stale gate (no build → run agent-cycle:build first; stale chain → re-entry ladder) and stops",
+          "Writes NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "SKL-E04",
+      "type": "trigger-negative",
+      "input": "Help me write a Claude Code skill that formats my git commit messages nicely.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:skills does NOT fire — generic skill authoring outside the pipeline belongs to skill-creator-type tooling",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
