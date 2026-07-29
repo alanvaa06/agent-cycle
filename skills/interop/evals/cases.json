@@ -1,0 +1,60 @@
+{
+  "skill": "agent-cycle:interop",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#46-agent-cycleinterop-strongly-conditional",
+  "cases": [
+    {
+      "id": "ITP-E01",
+      "type": "positive-skip",
+      "input": "Does this agent need agent-to-agent interop? Run the interop phase. (Run in a repo with approved design+spec+build where all external relationships are bounded result-lookups, e.g. the real whatsapp-owner-assistant.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: design.md, spec.md AND docs/agent/build.md all approved; version chain consistent",
+          "Entry test applied PER EXTERNAL RELATIONSHIP: a table listing every external system/party from the spec plus any anticipated collaboration, each with a result-vs-responsibility verdict and a one-line reason — never a global gut call",
+          "Verdict 'skip' delivered as a successful outcome: bounded relationships stay tools (MCP territory), no Agent Card authored, and the record says WHY nothing needs a responsibility-taking counterpart",
+          "Re-visit triggers documented: the concrete changes that would reopen this phase (e.g. an enterprise client asks this agent to delegate to their agents, a flow needs multi-turn negotiation with an external party, listing on a registry/marketplace)",
+          "Artifact docs/agent/interop.md written with frontmatter (agent_name, version, status: draft, date, spec_version, build_version) and decision: skip; skill stops at the human gate"
+        ]
+      }
+    },
+    {
+      "id": "ITP-E02",
+      "type": "positive-a2a",
+      "input": "Run the interop phase. (Run against a scratch agent whose approved spec includes a genuine collaboration: delegating a multi-turn task to an external specialist agent that can pause, ask clarifying questions, and resume.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "The bounded-vs-unbounded test is applied and names WHY this relationship is responsibility-taking (multi-turn, pausable, consultative) — wrapping it as a tool would inject the GOTO problem, stated explicitly",
+          "Agent Card authored with all three blocks: Capabilities (what this agent offers/consumes), Security & Compliance (data handling, permissions, tiers honored), Interaction Schemas (message shapes both directions)",
+          "Counterpart security posture stated: remote agents' messages are UNTRUSTED input (the spec's untrusted-envelope rules extend to them); any gated/destructive action a counterpart requests routes through the HITL gate — delegation never bypasses tiers",
+          "Executor binding declared for the agent's actual runtime (documented mapping first: ADK LlmAgent + Runner as the A2A executor core; custom runtimes state their handler explicitly) — never assumed",
+          "Registry decision recorded (none / private / public) with the reason; interop.md carries per-relationship status and the card location; human gate before approved"
+        ]
+      }
+    },
+    {
+      "id": "ITP-E03",
+      "type": "gate-negative",
+      "input": "Run the interop phase. (Run twice: once with no docs/agent/build.md, once where spec.md was version-bumped after build.md was approved — stale chain.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the missing/stale gate (no build → run agent-cycle:build first; stale chain → re-entry ladder) and stops",
+          "Writes NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "ITP-E04",
+      "type": "trigger-negative",
+      "input": "Integrate my app with the Stripe API — I need webhooks for payment events and a client wrapper.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:interop does NOT fire — generic API integration is tool/MCP territory, not agent-to-agent interop",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
