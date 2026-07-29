@@ -1,0 +1,63 @@
+{
+  "skill": "agent-cycle:build",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#44-agent-cyclebuild",
+  "cases": [
+    {
+      "id": "BLD-E01",
+      "type": "positive",
+      "input": "Build the agent. (Run in a repo with approved design.md + spec.md + evals/config.yaml, e.g. the real whatsapp-owner-assistant.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: all three upstream artifacts approved AND version chain consistent (spec.design_version == design.version; evals config.spec_version == spec.version); economics artifact read when present — its alarm threshold and telemetry requirements carried into the build",
+          "The scaffold's runtime is the one the SPEC fixed — not a plugin default, not a model preference; deviation is a re-entry dispute, never a silent swap",
+          "Core/adapter split: agent code (loop, tools, contracts) imports no infra SDKs; the adapter implements the 5 bindings (ingress, queue, state, secrets, deploy recipe); state behind the spec's repository interfaces",
+          "Every tool implements its spec contract exactly: schemas with extra=forbid semantics, errors returned as observations, docstrings taken from the spec verbatim; no tool added, none dropped",
+          "Loop caps from design/spec enforced in code (max steps, max tool calls, wall clock) with the spec's explicit exit conditions and failure-reply behavior",
+          "Eval RUNNER built: consumes evals/ as immutable data (golden/adversarial JSON, rubrics, config.yaml), materializes fixtures incl. messages[] sequences and harness_condition, verifies trajectory modes + asserts + forbidden + outcome, applies per-tier thresholds (pass^k), exits non-zero on any failure — the exit code is the pipeline's green",
+          "Telemetry: OTel GenAI conventions emitted per turn INCLUDING token counters (gen_ai.usage.input_tokens / output_tokens) — the economics calibration gap is closed by the build",
+          "Anti-gaming enforced mechanically BEFORE code is written: a PreToolUse hook (or equivalent) in the target repo blocks edits to evals/ and docs/agent/ (except docs/agent/build.md and the spec §6 Test column) for the build's duration; its presence is verifiable on disk",
+          "Delegation decision explicit: non-trivial build → forge-master PRD derived mechanically (BHV-NNN scenarios as ACs verbatim, eval-runner command as the test runner) and the forge plan presented for HUMAN approval before any forge-run; trivial all-safe build → direct TDD with a one-line justification",
+          "Secrets hygiene: zero secrets in code or commits; the adapter's secret pattern implemented and .env.example updated to match; dependencies pinned (exact versions or lockfile + constraints)",
+          "DoD recorded in docs/agent/build.md (runner command, suite result with pass^k, adapter smoke result, versions consumed, deviations); spec §6 Test column filled — and ONLY that column changed in spec.md; skill stops at the human gate"
+        ]
+      }
+    },
+    {
+      "id": "BLD-E02",
+      "type": "gate-negative",
+      "input": "Build the agent. (Run twice: once in a repo with no evals/ directory, once where spec.md was version-bumped AFTER evals/config.yaml was approved — stale chain.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the missing/stale gate (no evals → run agent-cycle:evals first; stale chain → re-entry ladder) and stops",
+          "Writes NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "BLD-E03",
+      "type": "edge-trivial-direct",
+      "input": "Build the agent. (Run against an approved trivial agent: one safe read-only tool, no queue/channel, evals with 6 cases all pass^1.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Chooses direct TDD over forge delegation, with the one-line justification recorded in build.md",
+          "Still builds the runner, still enforces the anti-gaming hook, still records DoD — no ceremony skipped on the safety rails, only on orchestration"
+        ]
+      }
+    },
+    {
+      "id": "BLD-E04",
+      "type": "trigger-negative",
+      "input": "Build me a REST API in FastAPI with a /users CRUD and JWT auth.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:build does NOT fire — generic app development is outside the pipeline",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
