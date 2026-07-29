@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{AGENT_NAME}} — Agent Blueprint</title>
+<style>
+  :root{
+    --bg:#ffffff; --ink:#1a1d21; --muted:#5b6470; --line:#e3e6ea;
+    --safe:#1a7f4b; --rev:#b07d0f; --destr:#b3261e;
+    --chip:#eef1f4; --accent:#274b8f; --pending:#9aa3ad;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --bg:#14161a; --ink:#e8eaed; --muted:#9aa3ad; --line:#2a2e34;
+           --chip:#22262c; --accent:#7ea2e6; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:2rem;background:var(--bg);color:var(--ink);
+       font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+       max-width:960px;margin-inline:auto}
+  h1{font-size:1.6rem;margin:0 0 .25rem}
+  h2{font-size:1.15rem;border-bottom:1px solid var(--line);
+     padding-bottom:.35rem;margin-top:2.2rem}
+  .stamp{color:var(--muted);font-size:.8rem;margin-bottom:1.5rem}
+  .stamp code{background:var(--chip);padding:.1rem .4rem;border-radius:4px}
+  .progress{display:flex;flex-wrap:wrap;gap:.4rem;margin:1rem 0}
+  .phase{padding:.25rem .65rem;border-radius:999px;font-size:.78rem;
+         background:var(--chip);color:var(--pending)}
+  .phase.done{background:var(--accent);color:#fff}
+  table{border-collapse:collapse;width:100%;font-size:.88rem;margin:.6rem 0}
+  th,td{border:1px solid var(--line);padding:.45rem .6rem;text-align:left;
+        vertical-align:top}
+  th{background:var(--chip)}
+  .tier-safe{color:var(--safe);font-weight:600}
+  .tier-reversible{color:var(--rev);font-weight:600}
+  .tier-destructive{color:var(--destr);font-weight:600}
+  .band{font-variant-numeric:tabular-nums;font-weight:600}
+  details{border:1px solid var(--line);border-radius:8px;padding:.6rem .9rem;
+          margin:.5rem 0}
+  summary{cursor:pointer;font-weight:600}
+  figure{margin:1rem 0;overflow-x:auto}
+  .pending-note{color:var(--pending);font-style:italic}
+  .verdict{display:inline-block;padding:.3rem .8rem;border-radius:6px;
+           font-weight:700}
+  .verdict.ship{background:var(--safe);color:#fff}
+  .verdict.noship{background:var(--destr);color:#fff}
+  @media print{
+    body{padding:0;max-width:none} details{page-break-inside:avoid}
+    .phase{border:1px solid var(--line)}
+  }
+</style>
+</head>
+<body>
+
+<h1>{{AGENT_NAME}} — Agent Blueprint</h1>
+<div class="stamp">
+  Snapshot generated {{GEN_DATE}} from:
+  design <code>v{{DESIGN_V}}</code> · spec <code>v{{SPEC_V}}</code> ·
+  evals <code>{{EVALS_DATE}}</code> · build <code>{{BUILD_STATE}}</code> ·
+  economics <code>{{ECO_STATE}}</code>. Regenerate after any phase completes —
+  the artifacts are the truth, this page is a photo.
+</div>
+
+<div class="progress">
+  <!-- one .phase per pipeline step; add class="done" when its artifact is approved -->
+  <span class="phase">design</span><span class="phase">spec</span>
+  <span class="phase">evals</span><span class="phase">build</span>
+  <span class="phase">skills</span><span class="phase">interop</span>
+  <span class="phase">ship</span><span class="phase">economics</span>
+</div>
+
+<h2>1 · What this agent is (design)</h2>
+<!-- PEAS table, environment classification, harness decision, NO-goals list.
+     Data verbatim from design.md. -->
+
+<h2>2 · Architecture</h2>
+<figure>
+  <!-- Inline SVG here. Pre-build: spec's intended flow, caption
+       "intended (spec vN)". Post-build: built topology, caption
+       "built ({{BUILD_STATE}})". Tool nodes colored by tier via the
+       tier- classes. <15 nodes. NO external images, NO scripts. -->
+</figure>
+
+<h2>3 · Tools &amp; tiers (spec)</h2>
+<!-- table: tool | purpose | tier (class tier-safe / tier-reversible /
+     tier-destructive) | untrusted output? -->
+
+<h2>4 · Conversation &amp; security (spec)</h2>
+<!-- conversation mechanics table + untrusted-surface table inside
+     <details> blocks -->
+
+<h2>5 · Evals &amp; coverage</h2>
+<!-- counts by method, coverage N/N, thresholds incl. pass^k, release
+     blockers. Post-build: suite status from build.md labeled with its date. -->
+
+<h2>6 · Economics</h2>
+<!-- scenario table + total bands (class band) + dominant-line sentence +
+     alarm threshold — VERBATIM from the economics artifact. If absent:
+     <p class="pending-note">Economics pending — run agent-cycle:economics.</p> -->
+
+<h2>7 · Status</h2>
+<!-- skills decision · interop decision · ship verdict when present:
+     <span class="verdict ship">SHIP</span> / <span class="verdict noship">NO-SHIP</span>
+     with date. Pending phases named honestly. -->
+
+</body>
+</html>
