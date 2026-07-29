@@ -1,0 +1,62 @@
+{
+  "skill": "agent-cycle:ship",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#47-agent-cycleship",
+  "cases": [
+    {
+      "id": "SHP-E01",
+      "type": "positive",
+      "input": "Run the ship audit. (Run in a repo with the full chain approved: design, spec, evals, build, plus skills.md and interop.md decisions recorded — e.g. the real whatsapp-owner-assistant post-build.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: the FULL chain is approved and version-consistent — design.md, spec.md, evals/config.yaml, docs/agent/build.md, plus skills.md and interop.md with their decisions recorded (none/skip count); economics artifact read when present",
+          "The eval suite is RE-RUN during the audit via the build's runner — exit code cited from this run, pass^k tiers and every release blocker verified from this run's output; build.md's own claim is treated as claim, not evidence",
+          "End-to-end traceability table verified: every BHV → eval id(s) → test/phase → status in the audit's own run — complete, or gaps justified in writing",
+          "Security re-verified with evidence per command: adversarial cases green in the audit run; least-privilege diff (the adapter's REAL scopes/credentials vs the spec's security table); secret scan over the repo and git history; ingress spot-checks (signature-over-raw-body, allowlist, dedupe present in code)",
+          "Anti-gaming audit executed mechanically: git diff --word-diff over the build's commit range for evals/** and docs/agent/** (minus the sanctioned allow-list) — zero unsanctioned changes, command cited; hook-restore verification noted when the hook was bypassed for the Test column",
+          "Observability verified with evidence: traces arriving at the adapter's backend (or exporter log), token counters present on spans, token-spend alarm configured at the economics threshold when an economics artifact exists",
+          "Runbook verified against the minimums (queue/DLQ drain, rollback, kill switch, weekly ritual scheduled); a missing or thin runbook is a FINDING with the template referenced — never silence, never auditor-authored",
+          "Explicit verdict: SHIP or NO-SHIP; every finding carries a severity and its re-entry route (which phase re-opens); NO-SHIP framed as the pipeline working, not as failure",
+          "Artifact docs/agent/ship-report.md with frontmatter (agent_name, version, status: draft, date, and the versions of every chain artifact audited); the auditor modified NOTHING else in the repo; human sign-off at the gate = shipped"
+        ]
+      }
+    },
+    {
+      "id": "SHP-E02",
+      "type": "gate-negative",
+      "input": "Run the ship audit. (Run twice: once with no docs/agent/build.md, once where skills.md and interop.md are absent — conditional-phase decisions never recorded.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the missing gate (no build → run agent-cycle:build first; missing conditional decisions → run agent-cycle:skills / agent-cycle:interop, a recorded none/skip is required) and stops",
+          "Writes NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "SHP-E03",
+      "type": "edge-no-ship",
+      "input": "Run the ship audit. (Run against a fixture where one release blocker is red — e.g. an adversarial case fails in the audit's own suite run.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Verdict is NO-SHIP with the failing blocker cited from the audit's own run output — the audit completes all sections rather than stopping at the first red",
+          "The finding carries its re-entry route (e.g. containment failure → build re-entry; ambiguous scenario → spec dispute) and the auditor attempts NO fix of any kind",
+          "The report's framing treats NO-SHIP as the pipeline catching what it was built to catch — no apology, no soft-pedaling the red"
+        ]
+      }
+    },
+    {
+      "id": "SHP-E04",
+      "type": "trigger-negative",
+      "input": "Deploy my Next.js app to Vercel — set up the project and push it live.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:ship does NOT fire — generic app deployment is outside the pipeline",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
