@@ -13,11 +13,11 @@ estimate (post-design/spec) and calibrated (post-build, with real telemetry).
 
 1. GATE: approved design.md minimum — nothing to cost without one. Consume
    spec.md when present; never re-ask what design/spec answer.
-2. EVERY unit price carries a source and an as-of date. Workspace-compiled
-   sources first (vault/pricing docs — ask WHERE they live, or invoke the
-   user's vault-query skill, rather than guessing paths), then provider pages
-   with retrieval date. Check free tiers and pricing conditions before quoting
-   headline rates. A price with no dated source does not enter the model. Never quote prices
+2. EVERY unit price carries a source and an as-of date. Priority: figures the
+   user gave ("user-provided, <date>") → provider pricing pages via web (URL +
+   retrieval date, the default) → UNKNOWN row. Use a user's own compiled
+   sources only if they offer them — never ask where such sources live. Check
+   free tiers and pricing conditions before quoting headline rates. A price with no dated source does not enter the model. Never quote prices
    from model memory.
 3. Tokens first — they usually dominate (70–90% in multi-user agents), but at
    very low volume flat infra can win. Model tokens first, then STATE which

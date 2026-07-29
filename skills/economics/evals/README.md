@@ -7,9 +7,10 @@ dispute — never silently edit — if a case is wrong).
 Case-specific setup:
 
 - **ECO-E01** needs approved design.md + spec.md; the real dogfood repo is the
-  canonical run. If the workspace has compiled pricing sources (e.g. vault
-  articles on cloud/agent deployment costs), the run should cite them — scoring
-  covers that they were found and used.
+  canonical run. Prices come from the web (provider pages, URL + retrieval
+  date) or from figures the user gives in-session; scoring covers dating and
+  sourcing, and FAILS the run if the skill proactively asks where compiled
+  sources live.
 - **ECO-E02** runs twice: design at draft, and no docs/agent/ at all.
 - **ECO-E03** needs an existing economics artifact with basis: estimate plus
   real numbers (paste plausible actuals in the session if no metrics export

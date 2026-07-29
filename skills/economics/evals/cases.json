@@ -11,7 +11,7 @@
         "checks": [
           "Gate: requires an approved design.md; consumes spec.md when present and does NOT re-ask anything design/spec already answer (model choice, deployment target, tool set, telemetry fields)",
           "Volume scenarios (low/medium/high) defined with explicit, auditable assumptions — conversations/month, turns/conversation, tool calls and tokens in/out per turn — each with a stated basis, and the arithmetic shown as formulas",
-          "EVERY unit price row carries a source and an as-of date; compiled workspace sources (e.g. a vault article) are used and cited first when present; a price with no source does not appear",
+          "EVERY unit price row carries a source and an as-of date — user-provided figures marked as such, or provider pages with URL + retrieval date; free tiers/conditions checked before headline rates; a price with no source does not appear; the skill never proactively asks where compiled sources live",
           "Monthly cost model: scenario x component table (model tokens, infra for the design's target, channel fees, third-party tools) with totals expressed as bands — no cent-precision totals",
           "The design's deployment target is the base case; other targets appear only if the design names them or the user asks",
           "Sensitivity section covers at least: model-tier swap and volume swing; prompt-caching effect when the provider supports it",

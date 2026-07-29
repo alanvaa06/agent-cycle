@@ -3,6 +3,16 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.4.1] — 2026-07-28
+
+### Fixed
+- **`economics`**: price-source discovery no longer assumes or asks about
+  user-maintained vaults/knowledge bases (over-fit to one workspace). New
+  priority: user-provided figures → provider pricing pages via web (URL +
+  retrieval date, the default) → UNKNOWN. Compiled sources are used only when
+  the user offers them spontaneously; proactively asking where they live is now
+  an eval FAIL (ECO-E01 check 3 + scoring anchor updated).
+
 ## [0.4.0] — 2026-07-28
 
 ### Added

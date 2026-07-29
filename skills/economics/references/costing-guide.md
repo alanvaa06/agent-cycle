@@ -26,13 +26,14 @@ burst). Scenarios scale the agent's real unit, not a multi-tenant template.
 
 ## Step 2 — Unit prices, dated
 
-Priority order: (1) compiled sources the user maintains — a knowledge vault,
-pricing docs. These often live OUTSIDE the agent's repo: if their location is
-not evident, ask WHERE they live (one question), and if the user has a
-vault-query skill or similar, invoke it rather than guessing paths. Cite
-article + date. (2) provider pricing pages via web, cite URL + retrieval date;
-(3) nothing found → the row enters as UNKNOWN with a note, and totals become
-conditional. Fees with FREE TIERS or conditional pricing (e.g. messaging
+Priority order: (1) figures the user has already given (in the session or in
+docs they point to) — cite as "user-provided, <date>"; (2) provider pricing
+pages via web — the DEFAULT path — cite URL + retrieval date; (3) nothing
+found and user has no figure → the row enters as UNKNOWN with a note, and
+totals become conditional. If the user spontaneously offers a compiled source
+(their own pricing docs, a knowledge base), use it and cite article + date —
+but NEVER proactively ask where such sources live; do not add a discovery
+interview for them. Fees with FREE TIERS or conditional pricing (e.g. messaging
 service windows, monthly allowances): state the condition and whether this
 agent's volume sits inside it — a $0 line with its condition beats a headline
 rate that ignores the carve-out. NEVER quote a price from model memory without a dated source. Tokens first: model input/
