@@ -47,7 +47,7 @@ vocabulary, tighten when-NOT), re-run fresh.
 ## Step 6 — Co-loaded regression
 
 Never evaluate in isolation. Production loads every skill's metadata every
-turn: run the full trigger suite and the agent's OWN eval suite (the phase-3
+turn: run the full trigger suite and the agent's OWN eval suite (via /build's
 runner) with all skills present. A skill that degrades unrelated turns
 (token budget, routing collisions) fails regression even if it works alone.
 
