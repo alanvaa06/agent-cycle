@@ -3,6 +3,26 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.7.0] — 2026-07-28
+
+### Added
+- **`interop` skill** (phase 6 of 7, strongly conditional): per-relationship
+  entry test (result → tool/MCP vs responsibility → A2A; the GOTO problem
+  named); skip as a recorded successful outcome with re-visit triggers; when
+  warranted: Agent Card (capabilities / security & compliance / interaction
+  schemas), counterpart-security posture (remote agents are untrusted; tiers
+  travel; delegation never bypasses HITL), executor binding per runtime (ADK
+  documented first, custom handlers via build re-entry), registry decision.
+  Artifact: docs/agent/interop.md (+ agent-card.json when authored).
+- EDD eval suite (`skills/interop/evals/`): ITP-E01 positive-skip (real
+  dogfood expectation), ITP-E02 positive-a2a (5-check contract), ITP-E03
+  gate-negative (two branches), ITP-E04 trigger-negative (generic API
+  integration must not fire).
+
+### Pending graduation
+- `interop` skill run against the real agent — tag `interop-v0.1` when the
+  dogfood passes (expected outcome: decision skip, justified).
+
 ## [0.6.0] — 2026-07-28
 
 ### Added
