@@ -3,6 +3,29 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.5.0] — 2026-07-28
+
+### Added
+- **`build` skill** (phase 4 of 7 — the only code-producing phase): approved
+  design+spec+evals → running agent. Rails before code (anti-gaming PreToolUse
+  hook installed and verified before the first source file); the spec's
+  runtime is law (no plugin-favorite framework at runtime); core/adapter split
+  over 5 bindings (self-contained reference for VPS/AWS/GCP); eval RUNNER as
+  the pipeline's definition of green (immutable evals/, fixtures incl.
+  messages[] and harness_condition, pass^k thresholds, exit-code contract);
+  OTel telemetry incl. gen_ai.usage token counters (closes the economics
+  calibration gap); mechanical forge-master PRD derivation (BHV ACs verbatim,
+  human-approved plan) with a direct-TDD path for trivial builds; secrets/
+  pinning/slopsquatting hygiene; build.md DoD record + spec §6 Test column as
+  the only sanctioned spec write.
+- EDD eval suite (`skills/build/evals/`): BLD-E01 positive (11-check
+  contract), BLD-E02 gate-negative (missing evals + stale chain), BLD-E03
+  trivial-direct edge, BLD-E04 trigger-negative.
+
+### Pending graduation
+- `build` skill run against the real agent — tag `build-v0.1` when the dogfood
+  goes green.
+
 ## [0.4.1] — 2026-07-28
 
 ### Fixed

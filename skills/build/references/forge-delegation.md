@@ -122,10 +122,6 @@ layer, not the only one: /ship's git-diff audit over the build's commit range
 (evals/ and docs/agent/ minus the allow-list must show zero diffs) is the
 standing second layer on every build, hook or no hook.
 
-Fallback when no hook mechanism exists: declare in build.md that the git-diff
-audit is the rail — /ship verifies `evals/` and `docs/agent/` (minus
-allow-list) have zero diffs across the build's commit range.
-
 ## Disputes
 
 The builder believing an eval or scenario is wrong is NOT a license to edit
