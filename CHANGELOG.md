@@ -3,6 +3,25 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.6.0] — 2026-07-28
+
+### Added
+- **`skills` skill** (phase 5 of 7, conditional): entry test per capability
+  (procedural on-demand vs tool+static), "none" as a recorded successful
+  outcome with re-visit triggers, EDD-first authoring for warranted skills
+  (routing-grade descriptions, >=90% measured trigger accuracy, co-loaded
+  regression against the agent's own eval suite), draft→action authority
+  ladder (pass^k + human approval), declared runtime binding (harness-native
+  or build's loader — never improvised). Artifact: docs/agent/skills.md.
+- EDD eval suite (`skills/skills/evals/`): SKL-E01 positive-none (real
+  dogfood expectation), SKL-E02 positive-authored (7-check contract),
+  SKL-E03 gate-negative (two branches), SKL-E04 trigger-negative (generic
+  skill authoring must not fire).
+
+### Pending graduation
+- `skills` skill run against the real agent — tag `skills-v0.1` when the
+  dogfood passes (expected outcome: decision none, justified).
+
 ## [0.5.0] — 2026-07-28
 
 ### Added
