@@ -11,6 +11,7 @@ date: <YYYY-MM-DD>
 basis: estimate          # estimate | calibrated
 prices_as_of: <YYYY-MM-DD>
 spec_version: <version, when a spec exists>
+design_version: <version of the design.md consumed>
 ---
 
 # <Agent Name> — Economics
@@ -48,7 +49,9 @@ Prices are dated inputs, not truths — stale rows invalidate totals, not the me
 | Third-party | ... | ... | ... |
 | **Total (band)** | **$X–Y** | ... | ... |
 
-Tokens are modeled FIRST — they are 70–90% of any agent bill; infra follows.
+Tokens are modeled FIRST — they usually dominate (70–90% in multi-user
+agents). At very low volume, flat infra can rival or exceed them: the model
+STATES which line dominates and why, rather than assuming.
 
 ## 4. Sensitivity
 
@@ -77,6 +80,9 @@ against.
 | turns/conv | <e.g. session turn count> | ... |
 | tool calls/turn | tool_call_count | ... |
 
-On calibration: bump version, set basis: calibrated, keep a delta table
-(assumption → estimated → actual → delta) — estimates are preserved, never
-silently overwritten.
+On calibration: bump version, set basis: calibrated, and fill the delta table —
+estimates are preserved, never silently overwritten:
+
+| Assumption | Estimated | Actual | Delta | Verdict (confirmed / recomputed) |
+|---|---|---|---|---|
+| tokens/turn | ... | ... | ... | ... |

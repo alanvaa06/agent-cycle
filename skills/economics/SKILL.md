@@ -14,11 +14,14 @@ estimate (post-design/spec) and calibrated (post-build, with real telemetry).
 1. GATE: approved design.md minimum — nothing to cost without one. Consume
    spec.md when present; never re-ask what design/spec answer.
 2. EVERY unit price carries a source and an as-of date. Workspace-compiled
-   sources first (vault/pricing docs), then provider pages with retrieval date.
-   A price with no dated source does not enter the model. Never quote prices
+   sources first (vault/pricing docs — ask WHERE they live, or invoke the
+   user's vault-query skill, rather than guessing paths), then provider pages
+   with retrieval date. Check free tiers and pricing conditions before quoting
+   headline rates. A price with no dated source does not enter the model. Never quote prices
    from model memory.
-3. Tokens first — they are 70–90% of any agent bill. Model the dominant line
-   before infra.
+3. Tokens first — they usually dominate (70–90% in multi-user agents), but at
+   very low volume flat infra can win. Model tokens first, then STATE which
+   line dominates and why.
 4. Formulas explicit and auditable: a reader recomputes any total from stated
    assumptions. Guesses are labeled "guess".
 5. Totals are BANDS. Cent-precision in a monthly estimate is false precision.
