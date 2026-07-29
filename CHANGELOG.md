@@ -26,6 +26,16 @@ skill, patch = fixes.
 - `review` run against a real foreign agent — tag `review-v0.1` when the
   dogfood passes.
 
+### Fixed
+- Boundary routing across the audit family: `design`'s review exclusion now
+  routes to `agent-cycle:review` (was "outside the pipeline" — stale once
+  review joined); `ship` excludes arbitrary-agent assessment (review's job);
+  `review`'s audit frame gained the absent-metric probe and the walkable
+  artifact-vs-code baseline mechanics for pipeline-born targets.
+- README rewritten: per-skill descriptions with use / do-NOT-use guidance,
+  full-cycle mermaid diagram (vertical phases vs horizontal transversals,
+  re-entry ladder), core contracts section.
+
 ## [0.9.0] — 2026-07-29
 
 ### Added
