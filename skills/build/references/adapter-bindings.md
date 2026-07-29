@@ -41,13 +41,21 @@ The eval suite is data; the runner binds it to a framework:
   harness_condition via callback-injected step caps / erroring tool doubles.
 - **Any Python framework (Pydantic AI, LangGraph, custom):** a pytest harness:
   one parametrized test per case file; fixtures build fake tool backends from
-  `input.fixture`; `messages[]` replayed through the debounce path with its
-  offsets; `harness_condition.force_step_cap` monkeypatches the cap,
-  `tool_always_errors` swaps the named tool for an erroring double;
-  trajectory captured from the loop's tool-call log and compared per mode;
-  `forbidden` checked against outbound calls AND reply text; llm_judge cases
-  call the judge model named in the rubric and enforce the rubric's pass
-  threshold; config.yaml `thresholds` drive pytest reruns for pass^k tiers.
+  `input.fixture`. Pydantic AI concretely: `FunctionModel`/`TestModel` as the
+  model double to force tool-call sequences; `capture_run_messages()` for the
+  trajectory log; `UsageLimits(request_limit=...)` for cap enforcement;
+  `harness_condition.force_step_cap` = a `FunctionModel` that keeps requesting
+  tools and never final-answers, so the cap fires at the configured limit;
+  `tool_always_errors` swaps the named tool for an erroring double. Since
+  "step" and "tool call" are distinct caps in most specs, the loop must count
+  them separately and expose both — do not rely on a framework's single
+  request limit to mean both. `messages[]` (debounce) replay requires the
+  debounce mechanism to be built against an INJECTABLE clock/scheduler seam
+  (build-guide Step 6) so offsets replay instantly in tests; trajectory
+  captured from the loop's tool-call log and compared per mode; `forbidden`
+  checked against outbound calls AND reply text; llm_judge cases call the
+  judge model named in the rubric and enforce the rubric's pass threshold;
+  config.yaml `thresholds` drive pytest reruns for pass^k tiers.
 - Exit code contract is identical everywhere: 0 = every case at threshold.
 
 ## Telemetry binding

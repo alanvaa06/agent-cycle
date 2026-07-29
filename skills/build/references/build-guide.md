@@ -70,6 +70,10 @@ GenAI spans per turn — attributes from the spec PLUS
 `gen_ai.usage.input_tokens` / `gen_ai.usage.output_tokens` (economics'
 calibration depends on them; emit even if the spec's telemetry list predates
 them and note it in build.md as an addition for the next spec bump).
+Debounce/timing mechanics are built against an injectable clock/scheduler
+seam from the start — the eval runner replays messages[] offsets through it
+instantly. Step and tool-call caps are counted SEPARATELY in the loop (they
+are distinct limits in the spec), even if the framework offers only one.
 
 ## Step 7 — Adapter
 
@@ -107,7 +111,7 @@ Either way the finish line is identical:
 2. Adapter smoke test: service starts, health endpoint answers, one simulated
    end-to-end webhook roundtrip locally — record the commands + results.
 3. Write `docs/agent/build.md`: frontmatter (agent_name, version, status:
-   draft, date, design_version, spec_version, evals_version, runtime, target),
+   draft, date, design_version, spec_version, evals_config_date, runtime, target),
    runner command, suite summary, smoke results, delegation decision,
    deviations/additions (e.g. telemetry fields added).
 4. Fill spec §6 Test column (ONLY that column).
