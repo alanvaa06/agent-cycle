@@ -16,8 +16,12 @@ does it need another participant to take RESPONSIBILITY?
 
 ## The test, per relationship
 
-Inventory every external system/party from the spec (tools section, security
-section, integrations) PLUS any collaboration the design/spec anticipates.
+Inventory = the UNION of every external system/party across the spec's tools,
+security/credential, and conversation/channel sections (the channel counts:
+it is an external party even when it only carries the human), PLUS any
+collaboration the design/spec anticipates. Internal-but-credentialed stores
+(e.g. the session DB) get a row too — their verdict is trivially "tool", but
+the row proves they were considered.
 For each, in order; first "yes" decides:
 
 1. **Single request → single result, semantics fixed?** → tool (already in
