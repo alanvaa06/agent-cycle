@@ -3,6 +3,28 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.8.0] — 2026-07-29
+
+### Added
+- **`ship` skill** (phase 7 of 7 — the closing mechanical audit): full-chain
+  gate (conditional-phase decisions required, none/skip valid), live suite
+  re-run as the only accepted green (build.md is claim, not evidence),
+  end-to-end traceability, security re-verification (adversarial /
+  least-privilege diff / secret scan incl. history / ingress spot-checks),
+  anti-gaming word-diff audit over the build's commit range, observability +
+  token-counter + economics-threshold alarm checks, runbook verification
+  against a shipped template (auditor never writes it), explicit SHIP /
+  NO-SHIP verdict with per-finding severity + re-entry routes. The auditor's
+  only write: docs/agent/ship-report.md.
+- EDD eval suite (`skills/ship/evals/`): SHP-E01 positive (9-check contract),
+  SHP-E02 gate-negative (missing build / missing conditional decisions),
+  SHP-E03 no-ship edge (red blocker → complete audit, NO-SHIP, no fixing),
+  SHP-E04 trigger-negative (generic deployment must not fire).
+
+### Pending graduation
+- `ship` skill run against the real agent — tag `ship-v0.1` when the dogfood
+  audit completes.
+
 ## [0.7.0] — 2026-07-28
 
 ### Added
