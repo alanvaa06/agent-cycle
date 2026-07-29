@@ -1,0 +1,63 @@
+{
+  "skill": "agent-cycle:economics",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#51-agent-cycleeconomics",
+  "cases": [
+    {
+      "id": "ECO-E01",
+      "type": "positive",
+      "input": "What will it cost to run this agent monthly? (Run in a repo with approved design.md + spec.md, e.g. the real whatsapp-owner-assistant.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: requires an approved design.md; consumes spec.md when present and does NOT re-ask anything design/spec already answer (model choice, deployment target, tool set, telemetry fields)",
+          "Volume scenarios (low/medium/high) defined with explicit, auditable assumptions — conversations/month, turns/conversation, tool calls and tokens in/out per turn — each with a stated basis, and the arithmetic shown as formulas",
+          "EVERY unit price row carries a source and an as-of date; compiled workspace sources (e.g. a vault article) are used and cited first when present; a price with no source does not appear",
+          "Monthly cost model: scenario x component table (model tokens, infra for the design's target, channel fees, third-party tools) with totals expressed as bands — no cent-precision totals",
+          "The design's deployment target is the base case; other targets appear only if the design names them or the user asks",
+          "Sensitivity section covers at least: model-tier swap and volume swing; prompt-caching effect when the provider supports it",
+          "Break-even section present: against a client price when the agent is client-facing, or against internal value (the design's own Performance metric, e.g. owner hours saved) when internal",
+          "Cost controls are actionable and include an explicit token-spend alarm threshold derived from the estimate (stated as the input /ship will calibrate against)",
+          "Calibration plan: names which spec telemetry fields (e.g. tool_call_count, token counters) recalibrate which assumption post-build",
+          "Artifact at docs/agent/<agent_name>-economics.md with frontmatter agent_name, version, status: draft, date, basis: estimate, prices_as_of (+ spec_version when a spec exists); skill stops at the human gate"
+        ]
+      }
+    },
+    {
+      "id": "ECO-E02",
+      "type": "gate-negative",
+      "input": "What will this agent cost to run? (Run twice: once in a repo where docs/agent/design.md has status: draft, once with no docs/agent/ at all.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the missing gate (design draft, or design absent → run agent-cycle:design first) and stops",
+          "Writes NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "ECO-E03",
+      "type": "edge-calibration",
+      "input": "Recalibrate the economics with real usage data. (Run in a repo that has an existing <agent_name>-economics.md with basis: estimate AND real telemetry numbers available — e.g. a metrics export or the user pastes real tokens/turn and turns/day.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Produces basis: calibrated with version bumped — the estimate is preserved in a delta table (assumption -> estimated -> actual -> delta), never silently overwritten",
+          "Assumptions that survived are marked confirmed; those off by a stated threshold are recomputed and the cost model re-derived",
+          "The token-spend alarm threshold is recomputed from actuals and flagged if the original alarm would have been wrong"
+        ]
+      }
+    },
+    {
+      "id": "ECO-E04",
+      "type": "trigger-negative",
+      "input": "How much does the Claude API cost per million tokens? What's the price difference between Sonnet and Haiku?",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:economics does NOT fire — generic API pricing questions are outside the pipeline",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
