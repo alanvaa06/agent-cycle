@@ -3,6 +3,24 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.4.0] — 2026-07-28
+
+### Added
+- **`economics` skill** (transversal 1 of 2): monthly cost analysis for a
+  designed agent. Dated unit prices (workspace sources first, never from model
+  memory), tokens-first scenario model with auditable formulas and band totals,
+  mandatory sensitivity (tier swap + volume) and break-even (client price or
+  monetized internal metric), token-spend alarm threshold as the /ship
+  contract, calibration mode with delta tables (estimates never silently
+  overwritten). Artifact: docs/agent/<agent_name>-economics.md.
+- EDD eval suite (`skills/economics/evals/`): ECO-E01 positive (10-check
+  contract), ECO-E02 gate-negative (two branches), ECO-E03 calibration edge,
+  ECO-E04 trigger-negative (generic API pricing must not fire).
+
+### Pending graduation
+- `economics` skill runs against the real agent — tag `economics-v0.1` when
+  the dogfood passes.
+
 ## [0.3.0] — 2026-07-28
 
 ### Added
