@@ -10,8 +10,9 @@ literally. If the brain gets a vibe instead of a blueprint, it guesses.
 
 ## Knowledge base
 
-Load the user's `agent-design` skill as knowledge base for tool-contract and
-security rules. REFERENCE it — never copy content into artifacts or this skill.
+This skill's references are self-contained: tool-contract and security rules
+live in the template and derivation guide. Operator-loaded knowledge skills may
+inform judgment; none is required.
 
 ## Hard rules
 

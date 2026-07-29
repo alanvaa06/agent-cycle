@@ -30,7 +30,7 @@
       "expected": {
         "fires": false,
         "checks": [
-          "agent-cycle:design does NOT fire — review tasks belong to the personal agent-design knowledge skill",
+          "agent-cycle:design does NOT fire — reviewing existing agent code/architectures is outside the pipeline",
           "No docs/agent/design.md is created"
         ]
       }

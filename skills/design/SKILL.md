@@ -1,6 +1,6 @@
 ---
 name: design
-description: "Phase 1 of the agent-cycle pipeline: interview the user and produce an approvable docs/agent/design.md (PEAS + environment classification + harness decision + deployment intent + NO-goals) for a NEW agent. Use when the user wants to design, start, or scope a new AI agent from an idea — 'design an agent for X', 'quiero un agente que...', 'new agent for client Y'. Do NOT use for reviewing existing agent code or architectures (that is the agent-design knowledge skill), nor for writing specs/evals/code (later phases)."
+description: "Phase 1 of the agent-cycle pipeline: interview the user and produce an approvable docs/agent/design.md (PEAS + environment classification + harness decision + deployment intent + NO-goals) for a NEW agent. Use when the user wants to design, start, or scope a new AI agent from an idea — 'design an agent for X', 'quiero un agente que...', 'new agent for client Y'. Do NOT use for reviewing existing agent code or architectures (outside the pipeline), nor for writing specs/evals/code (later phases)."
 ---
 
 # agent-cycle:design — Agent Design Interview
@@ -10,9 +10,10 @@ where errors are cheapest — everything downstream inherits this artifact.
 
 ## Knowledge base
 
-Load the user's `agent-design` skill (personal skills) as the knowledge base
-for PEAS rules, environment→architecture mapping, and harness principles.
-REFERENCE it — never copy its content into artifacts or this skill.
+This skill's references are self-contained: PEAS rules, Goodhart testing, and
+the environment→architecture mapping live in `references/`. Any agent-
+architecture knowledge skills the operator has loaded may inform judgment;
+none is required.
 
 ## Hard rules
 

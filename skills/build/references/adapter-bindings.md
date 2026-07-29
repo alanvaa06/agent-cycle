@@ -56,6 +56,14 @@ The eval suite is data; the runner binds it to a framework:
   checked against outbound calls AND reply text; llm_judge cases call the
   judge model named in the rubric and enforce the rubric's pass threshold;
   config.yaml `thresholds` drive pytest reruns for pass^k tiers.
+- **LangGraph specifically:** state behind the Postgres checkpointer (never
+  SQLite with concurrent writers) wrapped by the spec's repository interface;
+  `thread_id` = the per-user session key; `interrupt()` is the natural HITL
+  gate binding for gated-tier actions (approval resumes the graph); trajectory
+  captured from the graph's event stream; caps enforced via `recursion_limit`
+  PLUS an own tool-call counter (they measure different things — keep the
+  spec's two caps distinct); `harness_condition` via injected erroring nodes /
+  a model double that never converges.
 - Exit code contract is identical everywhere: 0 = every case at threshold.
 
 ## Telemetry binding

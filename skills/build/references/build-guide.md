@@ -46,6 +46,11 @@ registries only — hallucinated package names are an attack surface
 (slopsquatting): verify every dependency exists and is the canonical name
 before installing.
 
+Coding standards: if the operator has coding-standards skills loaded (user or
+org), they govern style and idiom. The pipeline's own hard floor, always:
+typed contracts with extra=forbid, TDD, pinned deps, errors-as-observations,
+no secrets in code.
+
 ## Step 4 — State and contracts first
 
 Implement the spec §Data schemas behind the repository interfaces (the

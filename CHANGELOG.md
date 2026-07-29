@@ -3,6 +3,24 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.8.1] — 2026-07-29
+
+### Fixed
+- **`design`/`spec`**: removed the hard reference to a user-workspace
+  `agent-design` skill (v0.4.1 lesson applied retroactively) — both skills'
+  references are self-contained; operator-loaded knowledge skills may inform
+  judgment but none is required. DES-E02 check text updated accordingly.
+- **`build`**: coding-standards clause — operator-loaded standards skills
+  govern style when present; the pipeline's own hard floor (extra=forbid,
+  TDD, pinned deps, errors-as-observations, no secrets) always applies.
+
+### Added
+- **`build`**: concrete LangGraph runner/binding mechanics in
+  adapter-bindings.md (Postgres checkpointer behind the repository interface,
+  thread_id per user, interrupt() as the HITL gate binding, event-stream
+  trajectory capture, recursion_limit + own tool-call counter for the spec's
+  two distinct caps).
+
 ## [0.8.0] — 2026-07-29
 
 ### Added
