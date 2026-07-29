@@ -28,8 +28,10 @@ skills subtract capability; a clean "none" is a success.
    its execution cases + explicit human approval, recorded per skill.
 8. Runtime binding declared (harness-native or the build's loader). A missing
    loader is a build re-entry, never improvised here.
-9. Writes: the target agent's skill folders + docs/agent/skills.md. status:
-   draft until the explicit human gate. Never self-approve.
+9. Writes: the target agent's skill folders + docs/agent/skills.md — BOTH
+   paths (none/author) with frontmatter: agent_name, version, status: draft,
+   date, spec_version, build_version. Approved only at the explicit human
+   gate. Never self-approve.
 
 ## Workflow
 

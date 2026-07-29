@@ -25,6 +25,9 @@ decides:
 
 Record the table: capability → verdict → one-line reason. The table IS the
 deliverable of the test — a bare conclusion fails the phase's own eval.
+Mechanisms enforced entirely in code — webhook drops, caps, tool-internal
+sanitizers — are out of scope for this frame by definition: their row reads
+"enforced in code (pre-/post-loop), not model know-how", never "static".
 
 ## Decision: none
 
