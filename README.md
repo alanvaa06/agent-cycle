@@ -64,27 +64,78 @@ upstream artifact, the fix goes back to the *lowest phase whose artifact is
 wrong* (version bump → surgical staleness → re-approve). The builder never
 edits evals or specs — that path is mechanically blocked.
 
-## The 10 skills
+## The 10 skills, in plain words
 
-### Vertical phases
+### The 7 phases — in order, each needs the previous one approved
 
-| # | Skill | What it does | Use when | Do NOT use for |
-|---|---|---|---|---|
-| 1 | **`design`** | Interviews you (one question at a time) into an approvable `design.md`: PEAS with a Goodhart-tested environment metric, environment classification → architecture implications, single-agent-default harness, deployment intent + 3 portability seams, NO-goals. | Starting a NEW agent from an idea — "design an agent for X". | Reviewing existing agents (that is `review`); writing specs/evals/code (later phases). |
-| 2 | **`spec`** | Turns the approved design into an executable spec: Gherkin scenarios with `BHV-NNN` ids (happy/wrong/edge per capability), final tool contracts (docstring-as-interface, `extra="forbid"`, action tiers), conversation rules, per-surface security with mandatory injection scenarios, data schemas, traceability table. Interviews ONLY on the design's open questions — the design is settled law. | The design is approved and you want the blueprint — "write the spec". | Running without an approved design; generic BDD/Gherkin help; evals or code. |
-| 3 | **`evals`** | Builds the eval suite BEFORE any code exists: golden cases pinning `BHV-NNN@version`, method mix (deterministic / LLM-judge with anchored rubrics / adversarial per untrusted surface incl. the end-user's language), per-tier thresholds (pass^k for destructive), release blockers lifted verbatim from the spec. The suite is pure data — red by design until build. | The spec is approved — "build the evals". | Running without an approved spec; writing runners or agent code (build's job); generic unit-test writing. |
-| 4 | **`build`** | The only code-producing phase: scaffolds the SPEC's runtime (the plugin has no favorite framework), core/adapter split over 5 bindings, installs the anti-gaming hook BEFORE the first source file, builds the eval RUNNER whose exit code is the pipeline's definition of green, emits OTel telemetry incl. token counters, delegates non-trivial builds to forge-master via a mechanically derived PRD (two human gates). | Design+spec+evals all approved — "build the agent". | Running on a stale chain; generic app development; modifying evals or specs (frozen; re-entry ladder). |
-| 5 | **`skills`** *(conditional)* | Entry test per capability: does anything need on-demand procedural know-how, or do tools + static instructions suffice? "None" is a recorded successful outcome with re-visit triggers. When warranted: EDD-first authoring, routing-grade descriptions, ≥90% measured trigger accuracy co-loaded, draft→action authority ladder. | Post-build — "does the agent need skills?" | Running without an approved build; authoring Claude Code skills outside the pipeline; the agent's TOOLS (spec's domain). |
-| 6 | **`interop`** *(strongly conditional)* | Per-relationship entry test: does the counterpart return a RESULT (tool/MCP — phase does not apply) or take RESPONSIBILITY (A2A)? Skip is the expected, recorded outcome. When warranted: Agent Card, counterpart-security (remote agents are untrusted; tiers travel; delegation never bypasses HITL), executor binding, registry decision. | Post-build — "does the agent need A2A?" | Generic API/webhook integrations (tool territory); MCP server authoring. |
-| 7 | **`ship`** | The closing mechanical audit: full-chain gate, the suite RE-RUN live (build.md is claim, not evidence), traceability, security re-verification (least-privilege diff, secret scan incl. git history, ingress spot-checks), anti-gaming word-diff over the build's commit range, observability + economics-threshold alarm checks, runbook verification, explicit SHIP / NO-SHIP verdict with re-entry routes. The auditor writes ONE file and fixes nothing. | The full chain is approved — "run the ship audit". | Generic deployment (Vercel/hosting); arbitrary-agent assessment (that is `review`); fixing anything. |
+**1 · `design` — decide WHAT you want and how you'll know it works.**
+It interviews you, one question at a time, and writes the blueprint. Like the
+floor plan of a house before laying a single brick. Example: "an assistant
+that saves me half the time I spend checking my calendar and Notion."
+*Use it when:* starting a new agent from an idea. *Skip it when:* you want to
+examine an agent that already exists — that's `review`.
 
-### Horizontal transversals
+**2 · `spec` — turn the idea into exact instructions.**
+What the agent does in every situation (with concrete "if I say X, it does Y"
+examples), which tools it has and how dangerous each one is, and what it must
+NEVER do. *Use it when:* the design is approved. *Skip it when:* there's no
+approved design yet.
 
-| Skill | What it does | Use when | Do NOT use for |
-|---|---|---|---|
-| **`economics`** | Monthly cost analysis: dated unit prices (user figures → provider pages via web → UNKNOWN; free tiers checked before headline rates), tokens-first scenario model with auditable formulas and band totals, sensitivity (tier swap + volume + caching), break-even (client price or the design's own metric monetized), token-spend alarm threshold as the contract with `ship`, calibration mode with delta tables. | Design approved, any time after — "what will this agent cost?"; recalibrate with real usage post-build. | Generic API pricing questions; billing questions about existing accounts. |
-| **`blueprint`** | One self-contained, client-shareable HTML snapshot rendered progressively from whatever artifacts exist: PEAS/harness, tier-colored tools, security surfaces, eval coverage, economics embedded verbatim, pipeline progress bar, ship verdict when present. Zero external references, zero required JS, print-ready, sanitized (env names yes, values never). A dated photo — regenerable, no approval status of its own. | Design approved, any time — "generate the blueprint" / the client one-pager. | Generic diagramming; recomputing economics or re-running evals (it renders artifacts verbatim). |
-| **`review`** | Assesses ANY existing agent — pipeline-born or foreign — across 8 dimensions (specification/Goodhart, contracts & tiers, security from REAL inputs, loop caps, evals-or-hope, observability, economics, ops). Evidence is file:line or explicit "not found" — invented architecture is banned. Every finding: severity + the pipeline phase that fixes it; the remediation map doubles as the entry proposal into the cycle. The ONE chain-gate-free skill; read-only on the target. | Any existing agent/bot/orchestration code — "review this agent". The agency front door. | Non-agent code review; the release audit of a pipeline-born agent (that is `ship`); fixing anything. |
+**3 · `evals` — write the exams BEFORE building.**
+Every behavior gets a test, including trap questions (like injection attempts
+hidden in a calendar invite). All exams FAIL at first — of course they do,
+the agent doesn't exist yet. An exam that passes against nothing is a broken
+exam. *Use it when:* the spec is approved. *Skip it when:* you want generic
+unit tests for normal code.
+
+**4 · `build` — write the code until every exam passes.**
+The only phase that produces code. "It's done" is never an opinion — it's the
+exam runner saying every test passed. It also installs a lock so the builder
+can't cheat by editing the exams. *Use it when:* design + spec + evals are
+all approved. *Skip it when:* any of those is missing or outdated.
+
+**5 · `skills` — does the agent need loadable "procedure manuals"?**
+Think: 12 different return policies, one per client, loaded only when needed.
+Most agents don't need this — and "no, here's why" is a perfectly good
+outcome that gets written down. *Use it when:* the build is done. *Skip it
+when:* you're writing Claude Code skills outside this pipeline.
+
+**6 · `interop` — does the agent need to TALK to other agents?**
+Real conversation: negotiating, delegating, waiting for answers. Asking an
+API for data does NOT count — that's just a tool. Most agents don't need
+this either; "skip, here's why" gets written down. *Use it when:* the build
+is done. *Skip it when:* you just need an API integration.
+
+**7 · `ship` — the final inspection before it goes live.**
+Like a vehicle inspection: re-runs ALL the exams live (doesn't trust old
+paperwork), checks security, verifies there's an off switch and a way to roll
+back. Verdict: SHIP or NO-SHIP. A NO-SHIP means the system worked — it
+caught something before your client did. *Use it when:* the whole chain is
+approved. *Skip it when:* you want to deploy a normal app, or fix things —
+this skill only inspects.
+
+### The 3 horizontals — they never block anything, run them when it helps
+
+**`economics` — what does it cost per month to keep it on?**
+Run it TWICE. First right after `spec`: you now know what it does and which
+model it uses — decide if it's worth building, or quote the client, BEFORE
+paying for a build. Again after `build`: correct the estimate with real
+usage. Example verdict: "$13–19/month — pays for itself if it saves you 12
+minutes a month." *Skip it when:* you just want generic API price info.
+
+**`blueprint` — the pretty one-pager.**
+A single HTML page showing what the agent is, what it does, what it costs and
+how far along it is. Works offline, safe to share with a client, prints
+cleanly. Typical moments: after `spec` (to sell it) and after `build` (to
+show the real thing). *Skip it when:* you want a generic diagram.
+
+**`review` — the front door.**
+Point it at ANY existing agent — yours or someone else's, built with this
+pipeline or not — and it tells you what's missing, with file-and-line
+evidence, and WHICH phase of this cycle would fix each gap. A client walks in
+with their bot; walks out with a diagnosis that doubles as the proposal.
+*Skip it when:* the code has no agent in it (that's normal code review), or
+you want the release inspection of a pipeline agent (that's `ship`).
 
 ## Core contracts
 
