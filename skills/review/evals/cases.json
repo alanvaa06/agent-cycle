@@ -1,0 +1,61 @@
+{
+  "skill": "agent-cycle:review",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#53-agent-cyclereview-added-2026-07-29--explicit-owner-decision",
+  "cases": [
+    {
+      "id": "REV-E01",
+      "type": "positive-foreign",
+      "input": "Review this agent — here's the repo. (Run against a FOREIGN agent codebase with no pipeline artifacts: e.g. any open-source bot/orchestration repo, or a hand-written scratch agent with a main loop, a couple of tools, and a README.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: a readable target exists (repo/paths/docs identified); no pipeline artifacts are required — this is the one chain-gate-free skill",
+          "ALL EIGHT dimensions assessed — specification, contracts & tools, security, loop & harness, evals, observability, economics, ops — each with a verdict (ok / findings / n-a with a stated reason); never a silent subset",
+          "Every code-level claim carries file:line evidence; every absence is an explicit 'not found' — architecture is never invented or assumed from genre conventions",
+          "Every finding carries a severity (critical / important / minor) AND its pipeline route — which agent-cycle phase would fix it — so the review doubles as a remediation map / entry funnel",
+          "The performance-metric dimension applies the environment-not-activity standard and runs a Goodhart probe when any metric exists; 'no success metric found' is itself a finding routed to design",
+          "Untrusted surfaces are enumerated from the agent's REAL inputs (its actual channels, retrieved content, third-party text) — not a generic checklist pasted in",
+          "Read-only on the reviewed agent: nothing in the target is modified; the only write is the review report (docs/agent/review.md or the user-directed path)",
+          "Report carries frontmatter (agent_name or target id, version, status: draft, date, reviewed_commit when git is available) plus an executive summary with the top findings; skill stops at the human gate"
+        ]
+      }
+    },
+    {
+      "id": "REV-E02",
+      "type": "positive-pipeline-born",
+      "input": "Review this agent. (Run in a repo that HAS pipeline artifacts — approved design/spec/evals — plus agent source, e.g. the real whatsapp-owner-assistant post-build or a fixture.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Artifact-vs-code consistency is assessed: where the code diverges from the approved spec (tool present in code but not in spec, cap value drifted, tier not enforced) each divergence is a finding routed via the re-entry ladder",
+          "The review states explicitly that it does NOT re-run the eval suite and does NOT replace agent-cycle:ship — the release audit belongs to ship",
+          "Pipeline artifacts are used as the comparison baseline, not re-derived; the eight dimensions still all appear (many will be 'ok — covered by <artifact>')"
+        ]
+      }
+    },
+    {
+      "id": "REV-E03",
+      "type": "gate-negative",
+      "input": "Review this agent. (Run with no identifiable target: an empty directory, or no repo/path/docs given and none findable.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses: states that no readable target was found and asks for the repo/path — writes nothing",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "REV-E04",
+      "type": "trigger-negative",
+      "input": "Review my REST API code for best practices — it's a FastAPI service with a Postgres repository layer, no LLM anywhere.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:review does NOT fire — non-agent code review is generic code-review territory",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
