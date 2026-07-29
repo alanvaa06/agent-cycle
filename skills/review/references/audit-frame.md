@@ -7,9 +7,11 @@ does not. Never infer architecture from genre conventions.
 
 ## 1. Specification → fixes route: agent-cycle:design
 
-- Is there a stated purpose and a SUCCESS METRIC? Is the metric a property of
-  the ENVIRONMENT (booked appointments, resolved requests) or of agent
-  ACTIVITY (messages sent, tool calls)? Activity metrics are a finding.
+- Is there a stated purpose and a SUCCESS METRIC? NO metric found at all is
+  itself a finding (critical for write-capable agents) — route design. When
+  one exists: is it a property of the ENVIRONMENT (booked appointments,
+  resolved requests) or of agent ACTIVITY (messages sent, tool calls)?
+  Activity metrics are a finding.
 - Goodhart probe on any metric found: if the agent optimized ONLY this, what
   is the worst way to hit the number? No counterweight → finding.
 - Scope boundaries / NO-goals stated anywhere? Unbounded scope ("handle my
@@ -77,6 +79,16 @@ does not. Never infer architecture from genre conventions.
 - Kill switch: can the owner stop the agent NOW, documented? Rollback path?
 - Queue/backlog handling documented? Any alarm wired to a human?
 - Post-launch loop: does anything feed real failures back into tests/evals?
+
+## Pipeline-born targets (artifact-vs-code baseline)
+
+When the target carries pipeline artifacts (design.md / spec.md / evals/),
+they are the comparison BASELINE, not something to re-derive: per dimension,
+check the code against the artifact's claims — tools in code vs spec's
+inventory, cap values in code vs design's limits, tiers enforced vs spec's
+table, telemetry emitted vs spec's list. Each divergence is a finding routed
+via the re-entry ladder (the owning phase re-opens). Do NOT re-run the eval
+suite — that is agent-cycle:ship's job; note its existence and coverage only.
 
 ## Verdict discipline
 
