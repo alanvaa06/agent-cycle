@@ -8,8 +8,9 @@ Case-specific setup:
 
 - **BLP-E01** is the real dogfood run (pre-build state of the real repo
   qualifies today). Score self-containment by actually grepping the produced
-  HTML for `http://`, `https://`, `src=`, `href=`, `url(`, `fetch(`,
-  `XMLHttpRequest` — any external reference is a FAIL. Open the file from
+  HTML for `http://`, `https://`, `src=`, `url(`, `fetch(`,
+  `XMLHttpRequest`, and `href=` values that are not same-page anchors
+  (`href="#..."` is fine) — any EXTERNAL reference is a FAIL. Open the file from
   disk with networking off (or devtools network tab empty) — it must render
   fully.
 - **BLP-E02**: scratch repos; filesystem check afterward.

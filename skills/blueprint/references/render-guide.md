@@ -33,8 +33,10 @@ architecture, numbers, or status. Per artifact:
 
 Inline SVG (preferred) or pure HTML/CSS boxes. Pre-build: the spec's flow
 (ingress → dedupe/allowlist → extract/route → loop+tools → reply) labeled
-"intended (spec vN)". Post-build: the built topology from build.md labeled
-"built (build vN)". Keep it under ~15 nodes; tiers color the tool nodes
+"intended (spec vN)". Post-build: the built topology — build.md's recorded runtime/target bound
+onto the pipeline's invariant 5-binding shape (ingress → queue → worker →
+state → egress, per the build skill's adapter-bindings) plus the spec's
+tools — labeled "built (build vN)". Keep it under ~15 nodes; tiers color the tool nodes
 (safe green / reversible amber / destructive red). No JavaScript — ever.
 Collapsible detail uses native <details><summary>.
 
