@@ -1,0 +1,60 @@
+{
+  "skill": "agent-cycle:blueprint",
+  "spec_ref": "docs/superpowers/specs/2026-07-28-agent-cycle-plugin-design.md#52-agent-cycleblueprint",
+  "cases": [
+    {
+      "id": "BLP-E01",
+      "type": "positive-progressive",
+      "input": "Generate the agent blueprint. (Run in a repo with approved design+spec+evals+economics but NO build yet, e.g. the real whatsapp-owner-assistant pre-build.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Gate: design.md approved is the only hard requirement; every other artifact renders when present and absent phases appear as honest 'pending' states in a visible pipeline progress indicator",
+          "STRICT self-containment verified: zero external URLs anywhere in the HTML (no CDN, no web fonts, no fetch/XHR, no external images) — checkable by grep for http:// and https:// (only harmless inert mentions inside visible text may remain, no src/href/url() references); one single .html file that opens offline",
+          "Sections present per available artifact: PEAS + environment + harness (design); tools with color-coded tiers, conversation mechanics, untrusted-surface table (spec); BHV→eval coverage from spec §6 + evals config (evals); the economics table embedded with bands and the alarm threshold, taken verbatim from the economics artifact — never recomputed",
+          "Architecture/graph rendered as inline SVG or pure HTML/CSS (no JavaScript required for any content; native details/summary for collapsibles); pre-build the diagram shows the spec's intended flow, marked as intended",
+          "Source versions visible in the rendered page: design vN, spec vN, evals config date, economics version, plus the generation date — the blueprint is a dated snapshot, regenerable, carrying no draft/approved status of its own",
+          "Sanitized for client sharing: zero secrets, tokens, credential values, internal IDs, or env values anywhere in the HTML — env var NAMES are acceptable, values never",
+          "The only write is docs/agent/blueprint.html; the skill presents the result and offers regeneration guidance (re-run after any phase completes)"
+        ]
+      }
+    },
+    {
+      "id": "BLP-E02",
+      "type": "gate-negative",
+      "input": "Generate the agent blueprint. (Run twice: once with no docs/agent/design.md, once where design.md has status: draft.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Refuses in both branches: names the gate (no design / design draft → run agent-cycle:design first) and stops",
+          "Writes NO files in either branch — verified on the filesystem afterward"
+        ]
+      }
+    },
+    {
+      "id": "BLP-E03",
+      "type": "edge-post-build",
+      "input": "Generate the agent blueprint. (Run against a fixture repo where build.md exists approved with runner results, and a ship-report.md exists.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "The runtime graph section renders the REAL built topology (loop, tools, adapter bindings from build.md's recorded runtime/target) instead of the intended-flow placeholder, and is labeled as built",
+          "Traceability shows the Test column populated and the suite status from build.md's recorded DoD (labeled as of that build's date — the blueprint does not re-run anything)",
+          "The ship verdict (SHIP/NO-SHIP + date) appears when ship-report.md exists"
+        ]
+      }
+    },
+    {
+      "id": "BLP-E04",
+      "type": "trigger-negative",
+      "input": "Make me an architecture diagram for my REST API — boxes for the services and the database.",
+      "expected": {
+        "fires": false,
+        "checks": [
+          "agent-cycle:blueprint does NOT fire — generic diagramming outside the pipeline",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
+    }
+  ]
+}
