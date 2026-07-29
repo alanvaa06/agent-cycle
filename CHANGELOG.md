@@ -3,6 +3,27 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.9.0] — 2026-07-29
+
+### Added
+- **`blueprint` skill** (transversal 2 of 2 — completes the original 9-skill
+  pipeline): one self-contained, client-shareable HTML snapshot of the agent
+  rendered progressively from whatever artifacts exist (design gate only) —
+  PEAS/harness, tier-colored tools, security surfaces, eval coverage,
+  economics embedded verbatim (never recomputed), pipeline progress bar,
+  ship verdict when present. Zero external references, zero required
+  JavaScript, print-ready, sanitized by default (env names yes, values
+  never). Dated snapshot carrying its source versions — regenerable, no
+  approval status of its own. Only write: docs/agent/blueprint.html.
+- EDD eval suite (`skills/blueprint/evals/`): BLP-E01 positive-progressive
+  (7-check contract incl. grep-verified self-containment), BLP-E02
+  gate-negative, BLP-E03 post-build edge (real topology, ship verdict),
+  BLP-E04 trigger-negative (generic diagramming must not fire).
+
+### Pending graduation
+- `blueprint` run against the real agent — tag `blueprint-v0.1` when the
+  dogfood passes (runnable TODAY: pre-build progressive render qualifies).
+
 ## [0.8.1] — 2026-07-29
 
 ### Fixed

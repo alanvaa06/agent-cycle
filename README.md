@@ -24,8 +24,9 @@ contains agent artifacts.
 Every phase fails hard if its upstream artifact is missing, `draft`, or stale.
 Human gate between every phase. See `docs/superpowers/specs/` for the full design.
 
-**Status:** v0.8.0 — all 7 phases (`design` → `ship`) + `economics`. Only
-`blueprint` remains. Built skill-by-skill, each dogfooded on a real agent.
+**Status:** v0.9.0 — all 7 phases + both transversals (`economics`, `blueprint`).
+The original 9-skill pipeline is complete. Built skill-by-skill, each dogfooded
+on a real agent.
 
 ## Install
 
