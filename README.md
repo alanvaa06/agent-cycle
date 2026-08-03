@@ -162,3 +162,7 @@ See `CHANGELOG.md` for release history.
 
 **Status:** v0.10.0 — all 7 phases + 3 transversals. 10 skills. Built
 skill-by-skill, each dogfooded on a real agent.
+
+## License
+
+MIT — see `LICENSE`.
