@@ -55,8 +55,10 @@ of those artifacts first entering git inside the range
 (`git log --diff-filter=A --format=%h <build_start>..HEAD -- evals/ docs/agent/design.md docs/agent/spec.md`
 prints something) → there is no baseline to compare against: blocker, routed
 to build. Zero unsanctioned changes. Cite the commit range and the diff
-summary. If the hook was bypassed for the Test column, build.md must record
-the restore-verification; confirm it.
+summary. The Test column is filled with the hook on: build.md must record the
+post-fill check (a dummy edit to `evals/config.yaml`, blocked); confirm it.
+Evidence that the builder disabled, renamed or moved the hook during the
+build is a blocker routed to build, even with a clean diff.
 
 ## Section 5 — Observability + alarm
 

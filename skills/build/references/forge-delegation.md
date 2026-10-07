@@ -281,9 +281,10 @@ line records both. The builder never disables or moves the hook (Claude
 Code's auto mode can refuse that as weakening security anyway); re-entry
 under the hook is the human's: they rename the script to
 `guard_artifacts.py.off` and back from their own terminal. Additionally, the
-hook is a first layer, not the only one: /ship's git-diff audit over the
-build's commit range (evals/ and docs/agent/ minus the allow-list must show
-zero diffs) is the standing second layer on every build, hook or no hook.
+hook is a first layer, not the only one: /ship's git-diff audit from
+build.md's `build_start` to HEAD (evals/, design.md and spec.md minus the
+allow-list must show zero diffs) is the standing second layer on every build,
+hook or no hook.
 
 ## Disputes
 

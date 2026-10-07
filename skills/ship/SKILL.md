@@ -30,7 +30,8 @@ NO-SHIP is the pipeline working.
 7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
    (the baseline committed before the hook) to HEAD on evals/, design.md and
    spec.md minus the sanctioned allow-list; no recorded baseline is a
-   blocker; hook-restore verification confirmed when bypassed.
+   blocker; build.md's post-fill hook check (dummy evals edit blocked after
+   the Test column fill) confirmed.
 8. Observability: spans with token counters evidenced; token-spend alarm
    matches the economics threshold when economics exists. Runbook verified
    against the template minimums — missing runbook is a finding referencing

@@ -25,6 +25,11 @@ skill, patch = fixes.
   and a missing baseline (or the artifacts first entering git inside the
   range) is a blocker routed to build. Previously the audit could compare
   the build against itself when the artifacts were never committed.
+- Ship wording aligned with both fixes: rule 7, audit-guide Section 4 and
+  SHP-E01 now confirm build.md's post-fill hook check instead of a
+  "hook-restore when bypassed" step that no longer exists; a builder that
+  disabled or moved the hook is a blocker. forge-delegation's second-layer
+  sentence names the `build_start..HEAD` range.
 
 ## [0.10.0] — 2026-07-29
 
