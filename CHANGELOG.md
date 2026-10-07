@@ -3,6 +3,29 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.10.1] — 2026-10-07
+
+### Fixed
+- **Anti-gaming hook hardened** (`build/references/forge-delegation.md`,
+  contributed by Eduardo Ramos): the hook runs through
+  `$CLAUDE_PROJECT_DIR` and resolves paths from the payload's `cwd`, so one
+  `cd` no longer locks every call out; folder-level shell writes
+  (`rm -rf evals`, `mv docs old`, `rm -rf *`, `cd evals && rm ...`) and
+  writes to `.claude/hooks/` are blocked; stdin read as UTF-8 (Windows
+  cp1252 broke the em-dash match); an unparseable call fails closed. The
+  spec §6 Test column is now filled WITH THE HOOK ON — the hook admits an
+  Edit/MultiEdit/Write of spec.md only when the sole change is the Test cell
+  of `BHV-NNN` rows in §6; the builder never renames or disables the hook.
+  Known follow-up: a writing command that merely reads from a frozen folder
+  (`pytest evals | tee run.log`) is blocked too — fails closed, to narrow.
+- **Build baseline for /ship's diff audit** (`build`, `ship`, contributed by
+  Eduardo Ramos): build Step 2 commits the approved design, spec and evals
+  before the hook and records `build_start` in build.md's frontmatter; ship
+  Section 4 diffs `build_start..HEAD` over `evals/`, design.md and spec.md,
+  and a missing baseline (or the artifacts first entering git inside the
+  range) is a blocker routed to build. Previously the audit could compare
+  the build against itself when the artifacts were never committed.
+
 ## [0.10.0] — 2026-07-29
 
 ### Added
