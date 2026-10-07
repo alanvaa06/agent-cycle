@@ -27,9 +27,10 @@ NO-SHIP is the pipeline working.
 6. Security re-verify is mandatory: adversarial status, least-privilege diff
    (real scopes vs spec), secret scan incl. git history, ingress spot-checks
    with file:line.
-7. Anti-gaming audit is mandatory: word-diff over the build's commit range on
-   evals/ and docs/agent/ minus the sanctioned allow-list; hook-restore
-   verification confirmed when bypassed.
+7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
+   (the baseline committed before the hook) to HEAD on evals/, design.md and
+   spec.md minus the sanctioned allow-list; no recorded baseline is a
+   blocker; hook-restore verification confirmed when bypassed.
 8. Observability: spans with token counters evidenced; token-spend alarm
    matches the economics threshold when economics exists. Runbook verified
    against the template minimums — missing runbook is a finding referencing

@@ -44,11 +44,19 @@ coverage map.
 
 ## Section 4 — Anti-gaming audit
 
-`git diff --word-diff <build-start>..<build-end> -- evals/ docs/agent/` minus
-the sanctioned allow-list (docs/agent/build.md; the spec §6 Test column).
-Zero unsanctioned changes. Cite the commit range and the diff summary. If the
-hook was bypassed for the Test column, build.md must record the
-restore-verification; confirm it.
+`git diff --word-diff <build_start>..HEAD -- evals/ docs/agent/design.md docs/agent/spec.md`
+minus the sanctioned allow-list (the spec §6 Test column), where
+`<build_start>` is build.md's frontmatter value: the commit that holds the
+approved artifacts, taken before the hook went in. The range ends at HEAD so
+nothing after the build slips past; it covers design.md and spec.md rather
+than all of docs/agent/ because later phases add their own files there
+(skills.md, interop.md, blueprint.html). No `build_start` in build.md, or any
+of those artifacts first entering git inside the range
+(`git log --diff-filter=A --format=%h <build_start>..HEAD -- evals/ docs/agent/design.md docs/agent/spec.md`
+prints something) → there is no baseline to compare against: blocker, routed
+to build. Zero unsanctioned changes. Cite the commit range and the diff
+summary. If the hook was bypassed for the Test column, build.md must record
+the restore-verification; confirm it.
 
 ## Section 5 — Observability + alarm
 
