@@ -23,12 +23,28 @@ silent swap. Record both in build.md frontmatter.
 
 ## Step 2 — Install the anti-gaming rail FIRST
 
-Before any source file exists, install the hook per
+Baseline first: /ship's anti-gaming audit diffs the approved artifacts from
+the commit before the build, so they must be in git before the build touches
+anything.
+- Not a git repo → ask the human whether to `git init`; no repo, no build.
+- `git status --porcelain -- docs/agent/design.md docs/agent/spec.md evals/`
+  prints anything, or `git ls-files` on the same paths misses one → commit
+  exactly those paths, nothing else:
+  `git add -- docs/agent/design.md docs/agent/spec.md evals/` then
+  `git commit -m "Approved design, spec and evals" -- docs/agent/design.md docs/agent/spec.md evals/`.
+  Already committed and clean → commit nothing.
+- Record `git rev-parse --short HEAD` as `build_start` for build.md's
+  frontmatter. Every commit after it is the build's.
+
+Then, before any source file exists, install the hook per
 `references/forge-delegation.md` §Hook: the target repo blocks edits to
 `evals/**` and `docs/agent/**` (allow-list: `docs/agent/build.md`, and spec.md
 ONLY for the §6 Test column at the end). Verify it triggers (attempt a dummy
 edit, see it blocked). If the harness has no hook mechanism, fall back to the
 documented git-diff audit contract in the same file — but say so in build.md.
+Commit the hook on its own (`.claude/hooks/guard_artifacts.py` and
+`.claude/settings.json`, nothing else), so the history shows it going in
+before the first source file.
 
 ## Step 3 — Scaffold: core/adapter split
 
@@ -116,7 +132,8 @@ Either way the finish line is identical:
 2. Adapter smoke test: service starts, health endpoint answers, one simulated
    end-to-end webhook roundtrip locally — record the commands + results.
 3. Write `docs/agent/build.md`: frontmatter (agent_name, version, status:
-   draft, date, design_version, spec_version, evals_config_date, runtime, target),
+   draft, date, design_version, spec_version, evals_config_date, runtime, target,
+   build_start),
    runner command, suite summary, smoke results, delegation decision,
    deviations/additions (e.g. telemetry fields added).
 4. Fill spec §6 Test column (ONLY that column).

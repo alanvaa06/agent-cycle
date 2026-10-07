@@ -16,8 +16,10 @@ been red by design goes green here, through a runner — never through opinion.
 2. THE SPEC'S RUNTIME IS LAW. Scaffold exactly the runtime/target the spec and
    design fixed — the plugin has no favorite framework at runtime. Wanting
    otherwise is a re-entry dispute.
-3. RAILS BEFORE CODE: the anti-gaming hook (blocks evals/ and docs/agent/
-   edits) is installed and verified BEFORE the first source file. The builder
+3. RAILS BEFORE CODE: the approved design, spec and evals are committed as
+   the baseline (build.md records it as build_start), then the anti-gaming
+   hook (blocks evals/ and docs/agent/ edits) is installed, verified and
+   committed on its own BEFORE the first source file. The builder
    NEVER edits evals or specs — disputes go to the human via the re-entry
    ladder.
 4. Core/adapter split: agent code imports no infra SDKs; the adapter owns the
@@ -61,7 +63,9 @@ been red by design goes green here, through a runner — never through opinion.
 
 - Building on a stale chain, or scaffolding a runtime the spec didn't fix
   (rules 1-2).
-- Writing code before the hook exists (rule 3).
+- Writing code before the hook exists, or installing it before the approved
+  artifacts are committed — /ship then has no baseline to diff against
+  (rule 3).
 - "Fixing" a failing eval by editing it — the cardinal violation (rules 3, 6).
 - Infra imports inside src/agent/, or a tool the spec never declared
   (rules 4-5).
