@@ -9,6 +9,7 @@ Filter mapping used by design Phase E:
 - "talks to other agents, no paid license" → eliminate `licensed-server` and `none` in a2a.
 - "talks to other agents, license acceptable" → eliminate `none` in a2a.
 - "telemetry may not leave to third parties" → every candidate whose default_egress is not `none` carries a mandatory spec security row to switch it off (not an elimination unless it cannot be switched off).
+- Refinement of the two a2a lines above: an own a2a-sdk server (in front of the ingress queue) is possible on every card, so a2a `none` or `server-only` is a build cost to cite in the candidate's cons, not an elimination; eliminate only on `licensed-server` when no paid license is acceptable.
 - Python only (all cards are Python).
 
 ## Filter table
