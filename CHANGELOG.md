@@ -3,6 +3,70 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill, patch = fixes.
 
+## [0.11.0] — 2026-10-08
+
+### Added
+- **Stack decision in `design` (Phase E, design.md §8):** four filter
+  questions, hard filters from a dated stack catalog (eliminations written),
+  2-3 cited candidates, the user picks — no weighted scores. Stale cards
+  (>90 days) are re-verified before use; differences logged as catalog drift.
+  Details that landed beyond the first plan:
+  - A2A never eliminates a card: needing a self-owned `a2a-sdk` server is a
+    con on every card; the licensed Agent Server counts only when design §8
+    records an accepted license.
+  - §5 seams stay stack-neutral; the concrete per-seam binding lives in §8.
+  - §8 fields: Filter answers, Set aside (judgment), Mandatory spec security
+    rows, Catalog drift (with a Card column).
+  - Re-entry path for pre-v0.11 designs: Phase E only, nothing else reopens.
+- **Stack catalog** (`skills/design/references/stacks/`): nine cards —
+  pydantic-ai, google-adk, langchain-create-agent, langgraph, deep-agents,
+  openai-agents-sdk, crewai, claude-agent-sdk, no-framework — verified
+  2026-10-07, every fact URL-cited.
+- **Per-stack build bindings** (`skills/build/references/bindings/`), LangGraph
+  the deepest (Postgres checkpointer, interrupt gate, both caps, OTel spike,
+  free vs licensed A2A). Every binding meets the generic obligations in
+  `_binding-template.md`:
+  - queue keyed by session key; ingress dedupe record with
+    `processed_at`/`outcome`/`reply` (redelivery protection); persist -> send
+    -> ack; own-loop crash marker.
+  - pending-record lifecycle with a fresh `approval_id` per pause and
+    per-approved-call idempotency keys; `resume_started` marker;
+    `awaiting_approval` outcome; deny ends the turn; turn-start repair of
+    dangling tool calls.
+  - per-turn caps count requested calls (the whole batch) before execution;
+    tool-surface preflight with a negative control; the runner drives the
+    worker's turn handler; "executed" means the wrapper recorded it at body
+    entry.
+  - numbered spikes, each with a pass test. Build never edits plugin files:
+    a binding defect is "STOP and report".
+- **`refresh` skill** — maintainer re-verification of cards, bindings and
+  index; harvests drift from agent projects; never commits. Gated by a
+  version-move rule, marks observed facts, and also harvests design drift and
+  build defect records.
+- `scripts/check_catalog.py` + tests (39): cards, index and bindings never
+  contradict each other.
+
+### Changed
+- `spec` gates on design §8, pins `runtime: <card-id>@<version>` (forms:
+  `card@version`, `no-framework@n/a`, `off-catalog:<name>@<version>`), and
+  turns the stack's security/data traps into security rows. The card-trap
+  check is additive; install-time supply-chain rows feed build rule 9 and
+  the ship lockfile check.
+- `build` reads the runtime from spec, uses the stack binding, hash-pins
+  flagged dependencies; state store decoupled from target (managed Postgres
+  such as Supabase valid everywhere, with connection/schema/free-plan rules).
+- `interop` takes the A2A path from the stack binding; HITL can never be
+  bypassed via A2A; roles are stated per relationship. `ship` checks the
+  lockfile runtime pin across `uv.lock`, `poetry.lock` and
+  `requirements.txt`.
+- Deliberate eval-text changes: ITP-E02 (interop) and DES-E01 check 7
+  (design) were reworded on purpose, not by drift.
+- Pydantic AI runner mapping rewritten for V2.
+
+### Pending graduation
+- Stack phase run on a real new agent; one `refresh` run with a genuinely
+  changed fact.
+
 ## [0.10.1] — 2026-10-07
 
 ### Fixed

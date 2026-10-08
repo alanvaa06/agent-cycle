@@ -64,7 +64,7 @@ upstream artifact, the fix goes back to the *lowest phase whose artifact is
 wrong* (version bump → surgical staleness → re-approve). The builder never
 edits evals or specs — that path is mechanically blocked.
 
-## The 10 skills, in plain words
+## The 11 skills, in plain words
 
 ### The 7 phases — in order, each needs the previous one approved
 
@@ -72,6 +72,8 @@ edits evals or specs — that path is mechanically blocked.
 It interviews you, one question at a time, and writes the blueprint. Like the
 floor plan of a house before laying a single brick. Example: "an assistant
 that saves me half the time I spend checking my calendar and Notion."
+It also picks the stack with you: filters out frameworks that can't meet your
+constraints, shows 2-3 with cited pros and cons, and you choose.
 *Use it when:* starting a new agent from an idea. *Skip it when:* you want to
 examine an agent that already exists — that's `review`.
 
@@ -137,6 +139,13 @@ with their bot; walks out with a diagnosis that doubles as the proposal.
 *Skip it when:* the code has no agent in it (that's normal code review), or
 you want the release inspection of a pipeline agent (that's `ship`).
 
+### Maintenance — for the plugin itself
+
+**`refresh` — keeps the stack catalog honest.** Run it inside this repo now
+and then (or after a project logged catalog drift). It re-checks every
+framework card against current docs, updates what changed with sources, and
+leaves the changes for you to review. It never commits.
+
 ## Core contracts
 
 - **Disk-backed artifacts** land in the TARGET AGENT'S repo (`docs/agent/*`,
@@ -160,7 +169,7 @@ Semver, driven by `.claude-plugin/plugin.json`:
 
 See `CHANGELOG.md` for release history.
 
-**Status:** v0.10.1 — all 7 phases + 3 transversals. 10 skills. Built
+**Status:** v0.11.0 — all 7 phases + 3 transversals + refresh. 11 skills. Built
 skill-by-skill, each dogfooded on a real agent.
 
 ## License
