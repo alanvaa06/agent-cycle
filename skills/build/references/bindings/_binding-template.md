@@ -44,7 +44,8 @@ per session); durability settings.
   queue message. Checkpointer stacks: the checkpointer has committed during
   the run; then one repository transaction writes `requested_at` and the
   dedupe record's `processed_at` and reply; then send; then ack. A pending
-  interrupt with no `requested_at` is treated as requested now.
+  interrupt found with no record is handled as in the Pending-record lifecycle
+  bullet below.
 - Redelivery: the ingress dedupe record (keyed by the channel message id)
   carries `processed_at` and the reply text. On dequeue, a message whose
   record has `processed_at` set is not re-run: re-send the stored reply if the
