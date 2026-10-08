@@ -20,3 +20,4 @@ Filter mapping used by design Phase E:
 | pydantic-ai | framework | none | any | server-only | native | semver-stable | none (Logfire optional) | 2026-10-07 |
 | google-adk | framework | none | any | client+server | native | fast-moving | none | 2026-10-07 |
 | openai-agents-sdk | framework | none | any | none | native | pre-1.0 | tracing to OpenAI ON by default, inputs and outputs included | 2026-10-07 |
+| crewai | framework | none | any | client+server | native | fast-moving | anonymous telemetry ON by default; built-in tracing uploads to the CrewAI platform when enabled | 2026-10-07 |
