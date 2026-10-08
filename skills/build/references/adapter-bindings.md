@@ -16,7 +16,7 @@ INGRESS (verify + ack fast) → QUEUE (per-session ordering) → WORKER (the loo
 |---|---|---|---|
 | Ingress | Caddy/Traefik reverse proxy → FastAPI/ASGI endpoint; TLS automatic (Caddy) | API Gateway HTTP API → thin Lambda | Cloud Run ingress service |
 | Queue | Redis/Valkey list or stream, worker process consumes; strict serial per session key (per-user by default; an approver's reply is keyed to the requester's session) | SQS FIFO, MessageGroupId = session key (per-user by default; an approver's reply uses the requester's session key) | Pub/Sub, ordering key = session key (per-user by default; an approver's reply uses the requester's session key) |
-| State | Postgres (or Supabase Postgres) behind the repository interface | DynamoDB behind the repository interface | Firestore / Cloud SQL behind the repository interface |
+| State | Postgres behind the repository interface — self-hosted in the Compose stack, or any managed Postgres (e.g. Supabase) | DynamoDB, or any managed Postgres (e.g. Supabase, RDS) behind the repository interface | Cloud SQL Postgres, Firestore, or any managed Postgres (e.g. Supabase) behind the repository interface |
 | Secrets | .env file mode 0600 loaded by systemd/compose, or SOPS+age; never committed | Secrets Manager | Secret Manager |
 | Deploy recipe | Docker Compose (worker + queue + proxy [+ db]); systemd only as the thing that starts Docker | SAM/CDK (Lambda) or ECS/Fargate task | gcloud run deploy / Cloud Build |
 
@@ -38,35 +38,27 @@ Universal rules regardless of target:
   listens publicly.
 - Health endpoint (`GET /health` or platform equivalent) for the smoke test.
 
-## Runner mapping per framework
+Managed Postgres (Supabase) rules — any target:
+- Connect directly (IPv6 or the IPv4 add-on) or through Supavisor **session**
+  mode (port 5432). Never the **transaction** pooler (port 6543) with psycopg3:
+  it does not support prepared statements (and psycopg3 uses them by default,
+  inference).
+  Source: https://supabase.com/docs/guides/database/connecting-to-postgres
+- State tables live in a schema not exposed by the Data API, with RLS enabled
+  as defense in depth; verify with Supabase's security advisors.
+  Source: https://supabase.com/docs/guides/api/securing-your-api
+- The Free plan pauses projects after 7 days of low activity and caps the
+  database at 500 MB — never for a production agent.
+  Source: https://supabase.com/docs/guides/platform/free-project-pausing
 
-The eval suite is data; the runner binds it to a framework:
+## Runner mapping per stack
 
-- **ADK:** see `skills/build/references/bindings/google-adk.md` (Eval runner
-  mapping); the pipeline runner owns trajectory modes and pass^k.
-- **Any Python framework (Pydantic AI, LangGraph, custom):** a pytest harness:
-  one parametrized test per case file; fixtures build fake tool backends from
-  `input.fixture`. Per-stack model doubles, capture sources and cap handling:
-  see the binding file named in the stack card
-  (`skills/build/references/bindings/<card-id>.md`). Since
-  "step" and "tool call" are distinct caps in most specs, the loop must count
-  them separately and expose both — do not rely on a framework's single
-  request limit to mean both. `messages[]` (debounce) replay requires the
-  debounce mechanism to be built against an INJECTABLE clock/scheduler seam
-  (build-guide Step 6) so offsets replay instantly in tests; trajectory
-  captured from the loop's tool-call log and compared per mode; `forbidden`
-  checked against outbound calls AND reply text; llm_judge cases call the
-  judge model named in the rubric and enforce the rubric's pass threshold;
-  config.yaml `thresholds` drive pytest reruns for pass^k tiers.
-- **LangGraph specifically:** state behind the Postgres checkpointer (never
-  SQLite with concurrent writers) wrapped by the spec's repository interface;
-  `thread_id` = the per-user session key; `interrupt()` is the natural HITL
-  gate binding for gated-tier actions (approval resumes the graph); trajectory
-  captured from the graph's event stream; caps enforced via `recursion_limit`
-  PLUS an own tool-call counter (they measure different things — keep the
-  spec's two caps distinct); `harness_condition` via injected erroring nodes /
-  a model double that never converges.
-- Exit code contract is identical everywhere: 0 = every case at threshold.
+Moved to `references/bindings/<card-id>.md`, one file per stack card (the
+spec's `runtime` field names the card). Each binding's "Eval runner mapping"
+section gives the model double, trajectory capture, the
+EXACT / IN_ORDER / ANY_ORDER mapping and harness_condition injection. The
+exit-code contract is identical everywhere: 0 = every case at threshold;
+pass^k is always computed by the pipeline runner.
 
 ## Telemetry binding
 
