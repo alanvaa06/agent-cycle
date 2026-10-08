@@ -35,6 +35,16 @@ per session); durability settings.
   to the pending session's key before enqueueing.
 - Any one-time schema setup runs as a named one-shot migration job (compose
   service / ECS task / Cloud Run job), never from the worker.
+- Post-run commit order (all stacks): (a) ONE transaction that persists the
+  run's messages/state, writes or deletes the pending-approval record
+  (`requested_at` = now, taken just before sending; the record is deleted in
+  the SAME transaction that stores the resume's messages) and sets the turn
+  status; (b) send the prompt or reply; (c) ack the queue message. For
+  checkpointer stacks the checkpointer commit is (a); send-then-ack still holds.
+- Crash marker (own-loop stacks): write the turn status `running` at turn
+  start, after the repair, and overwrite it with the outcome on every exit.
+  The repair treats `running` or a missing status row as a crash and writes
+  "outcome unknown", never "not executed".
 - Every spike states its pass test and runs before build-guide Step 4. Every
   sessions/store spike, on failure, STOPS and raises a re-entry on the
   design's sessions seam; never a silent store swap. Other spikes state their
@@ -111,6 +121,14 @@ runner.
   built-in the binding deliberately keeps, each with its reason in build.md).
   Test doubles must not change the tool surface. Name how the first
   request's tool names are observed.
+- The eval runner drives the worker's single turn handler (dequeue logic,
+  expiry, repair, resume-or-end, cap mapping) against an in-memory
+  implementation of the repository interface, never the framework's run call
+  directly, so the deny, expiry and cap branches cannot diverge from
+  production.
+- `tool_always_errors` = the tool's injected BACKEND double raises and the real
+  tool returns the spec's error observation (build-guide Step 5); the tool
+  surface never changes.
 - Name the capture source.>
 
 ## A2A and MCP
