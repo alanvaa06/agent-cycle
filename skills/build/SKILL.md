@@ -13,9 +13,10 @@ been red by design goes green here, through a runner — never through opinion.
 1. TRIPLE GATE + chain: design, spec, evals all approved; design_version /
    spec_version links consistent. Stale → re-entry, not a build. Economics
    read when present (alarm + telemetry obligations).
-2. THE SPEC'S RUNTIME IS LAW. Scaffold exactly the runtime/target the spec and
-   design fixed — the plugin has no favorite framework at runtime. Wanting
-   otherwise is a re-entry dispute.
+2. THE SPEC'S RUNTIME IS LAW. Scaffold exactly the runtime the spec pins
+   (runtime: <card-id>@<version>) and the target the design fixed — the plugin
+   has no favorite framework at runtime. Wanting otherwise is a re-entry
+   dispute.
 3. RAILS BEFORE CODE: the approved design, spec and evals are committed as
    the baseline (build.md records it as build_start), then the anti-gaming
    hook (blocks evals/ and docs/agent/ edits) is installed, verified and
@@ -39,7 +40,9 @@ been red by design goes green here, through a runner — never through opinion.
    before running. Trivial all-safe builds may go direct TDD with a recorded
    justification. Same finish line either way.
 9. Secrets never in code; deps pinned from the first commit; registries
-   vetted (slopsquatting defense).
+   vetted (slopsquatting defense); hash-pinned installs for any dependency the
+   stack card tags [security] or the spec's §4 stack security rows flag as
+   install-time supply-chain.
 10. Writes: src/, tests/, the runner, the hook config, docs/agent/build.md,
     and ONLY the Test column of spec §6 (after green, sanctioned at the
     gate). DoD = suite green + adapter smoke, recorded in build.md,
@@ -49,8 +52,9 @@ been red by design goes green here, through a runner — never through opinion.
 
 1. Read `references/build-guide.md`; run steps 0→9 in order — the rails
    (Step 2) come before any code.
-2. Bindings and runner mapping from `references/adapter-bindings.md`;
-   delegation and the hook from `references/forge-delegation.md`.
+2. Target bindings from `references/adapter-bindings.md`; stack binding from
+   `references/bindings/<card-id>.md` (its spikes run before build-guide
+   Step 4); delegation and the hook from `references/forge-delegation.md`.
 3. Finish line: runner green (pass^k) + smoke test + build.md record + Test
    column + gate summary (suite result, smoke result, delegation decision,
    deviations).

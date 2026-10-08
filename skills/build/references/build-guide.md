@@ -15,11 +15,36 @@ Hard-fail (write nothing, say why, stop) unless ALL hold:
 
 ## Step 1 — Fix the runtime and target (no debate)
 
-The spec states the runtime (language, agent framework, model route) and the
-design states the deployment target. BUILD EXACTLY THAT. The plugin's own
-adapter docs may cover other frameworks more deeply — irrelevant: the spec is
-law. Wanting a different runtime is a re-entry dispute on the spec, never a
-silent swap. Record both in build.md frontmatter.
+The spec's frontmatter `runtime:` names the stack; the design states the
+deployment target. BUILD EXACTLY THAT. The value takes one of three forms:
+`<card-id>@<version>`, `no-framework@n/a`, or `off-catalog:<name>@<version>`.
+Parse it by splitting on the LAST `@` (an off-catalog name can be npm-scoped,
+like `@scope/pkg@1.2.3`). The spec is law; the plugin has no favorite
+framework. Wanting a different runtime is a re-entry dispute on the design
+(§8), never a silent swap. Record runtime and target in build.md frontmatter.
+
+Catalog runtime (`<card-id>@<version>` or `no-framework@n/a`): open the
+binding at `references/bindings/<card-id>.md` (the agent-cycle plugin's
+`skills/build/references/bindings/<card-id>.md` when the build runs in the
+target repo; `no-framework` has a binding too). Its sections govern sessions,
+HITL, caps, model provider, telemetry (including switching off vendor egress),
+the eval-runner mapping and A2A/MCP for this build, and it holds the pins and
+the spikes.
+
+Version: install EXACTLY the spec's version. For `no-framework@n/a` the
+version is n/a and the pins live in the binding. If the spec's version
+differs from the binding's `version_pinned` (design may have re-checked a newer
+release), the build re-runs EVERY spike of the binding on the spec's version
+before Step 4 and records the difference in build.md. A failing spike is a
+re-entry (per the binding's own failure path), never a silent downgrade to
+`version_pinned`.
+
+Off-catalog runtime (`off-catalog:<name>@<version>`): no binding exists.
+Derive the same eight sections (Sessions and state, HITL gate, Caps, Model
+provider, Telemetry, Eval runner mapping, A2A and MCP, Pinned version and
+traps) from design §8's cited research, write them into build.md under
+"Off-catalog binding", and note in the gate summary that `agent-cycle:refresh`
+should draft a card.
 
 ## Step 2 — Install the anti-gaming rail FIRST
 
@@ -57,7 +82,14 @@ src/
 tests/          unit tests + the eval-runner integration entrypoint
 ```
 
-Dependencies pinned from the first commit (exact versions / lockfile). Vetted
+Dependencies pinned from the first commit (exact versions / lockfile).
+Hash pins (`--require-hashes`) are mandatory when the spec's §4 "Stack
+security rows" carry an install-time supply-chain row (traced to "build rule 9
+hash pins + ship lockfile check"), or when the stack card tags a dependency as
+a `[security]` trap (LiteLLM today): generate the lock with hashes and install
+with `pip install --require-hashes -r requirements.txt`, or the lockfile
+manager's equivalent (for example `uv pip install --require-hashes -r
+requirements.txt`). /ship checks the lockfile. Vetted
 registries only — hallucinated package names are an attack surface
 (slopsquatting): verify every dependency exists and is the canonical name
 before installing.
@@ -68,6 +100,15 @@ typed contracts with extra=forbid, TDD, pinned deps, errors-as-observations,
 no secrets in code.
 
 ## Step 4 — State and contracts first
+
+Before anything below: run the binding's spikes (the ones its "Sessions and
+state" and other sections number, each stated as running before this step)
+and record each one's pass/fail in build.md. Off-catalog: the spikes you
+derived in "Off-catalog binding". A store spike (sessions/store) that fails
+STOPS the build and routes to a design re-entry on the sessions seam, per the
+binding's own failure path; other spikes follow their own stated failure path
+(a binding defect -> fix the binding). No spike result is assumed: a spike
+that was not run is not a pass.
 
 Implement the spec §Data schemas behind the repository interfaces (the
 design's sessions seam). Then the Pydantic models for every tool contract:
@@ -98,7 +139,8 @@ are distinct limits in the spec), even if the framework offers only one.
 
 ## Step 7 — Adapter
 
-The 5 bindings for the design's target per `references/adapter-bindings.md`.
+The 5 bindings for the design's target per `references/adapter-bindings.md`
+(target) and `references/bindings/<card-id>.md` (stack).
 Ingress enforces the spec's channel security (signature over raw body,
 allowlist, dedupe) BEFORE anything reaches the loop. Secrets per the adapter
 pattern; update `.env.example` to match reality.
@@ -106,7 +148,7 @@ pattern; update `.env.example` to match reality.
 ## Step 8 — The eval runner
 
 Build the runner that makes `evals/` executable (mapping per
-`references/adapter-bindings.md` §Runner):
+`references/bindings/<card-id>.md` § Eval runner mapping):
 - Loads golden/ + adversarial/ + config.yaml AS-IS. Any edit to evals/ to
   "make a test pass" is the cardinal violation — dispute via re-entry instead.
 - Materializes fixtures: world state, messages[] sequences (debounce),
@@ -134,7 +176,8 @@ Either way the finish line is identical:
 3. Write `docs/agent/build.md`: frontmatter (agent_name, version, status:
    draft, date, design_version, spec_version, evals_config_date, runtime, target,
    build_start),
-   runner command, suite summary, smoke results, delegation decision,
+   runner command, suite summary, smoke results, spike results (and the
+   spec-vs-binding version difference, if any), delegation decision,
    deviations/additions (e.g. telemetry fields added).
 4. Fill spec §6 Test column (ONLY that column).
 5. Human gate → status: approved. Hand off: "/ship audits this build record."
