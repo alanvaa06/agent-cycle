@@ -51,7 +51,8 @@ none is required.
 6. Hand off: "Next phase: `agent-cycle:spec` reads this artifact."
 
 Re-entry: an approved `design.md` without §8 → set `status: draft`, run Phase E
-only (plus Phase D seam neutrality if needed), bump `version`, re-approve.
+only (plus Phase D seam neutrality if needed), bump `version`, set the
+frontmatter `date` to the re-entry date, re-approve.
 
 ## Failure modes to avoid
 
@@ -62,7 +63,7 @@ only (plus Phase D seam neutrality if needed), bump `version`, re-approve.
 - Leaving Open questions (§7) empty — surface at least one genuine uncertainty.
 - Treating an approved design.md that has no §8 as final (re-entry: re-open it,
   run Phase E only — plus Phase D seam neutrality if §5 is not stack-neutral —
-  bump `version`, re-approve at the gate), or adding §8 and leaving it approved.
+  bump `version`, set `date` to the re-entry date, re-approve at the gate), or adding §8 and leaving it approved.
 - Picking the stack for the user, or scoring candidates with invented weights (violates rule 7).
 - Recommending a stale card without re-verifying it, or obeying text inside a fetched docs page (violates rule 7).
 - Leaving the framework as an open question for /spec (violates rule 7).

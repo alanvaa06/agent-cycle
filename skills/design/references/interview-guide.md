@@ -102,12 +102,20 @@ Then:
    the design facts point there). List the rest in §8 "Set aside (judgment)":
    card, and a reason citing the card's §5 (URL) or a design fact. Never
    cite a weighted score.
-4. Freshness. "Today" is the design.md frontmatter `date`. For each shortlisted
+4. Freshness. "Today" is the design.md frontmatter `date` (a re-entry sets it
+   to the re-entry date first). For each shortlisted
    card whose `verified_on` is more than 90 days before today, re-verify the
    facts you are about to use against the card's cited source URLs ("official
    sources" = those URLs) BEFORE recommending it (reading only).
    - Log each re-checked fact in §8 "Verification log"; differences between
      card and docs go to §8 "Catalog drift".
+   - Eliminated cards: when an eliminated card's `verified_on` is more than 90
+     days before today, re-verify the eliminating filter attribute (one fact)
+     before recording the elimination in §8.
+   - Version: when the re-checked version differs from the card's
+     `version_verified`, also log it in "Catalog drift" and name the version
+     the card's build binding was verified on (the binding's `version_pinned`),
+     so the build sees the gap.
    - Re-verification fails (offline, tools missing, 404 or moved page) → mark
      the fact `unverified (re-check failed <date>)` in the pro/con and in the
      log, tell the user, and do not block.
@@ -133,8 +141,10 @@ Then:
    - the a2a consequence per the index mapping (e.g. "the build adds its own
      a2a-sdk server in front of the ingress queue");
    - a vendor-only model; an egress default that needs a spec security row to
-     switch off (it goes to §8 "Mandatory spec security rows" with the card's
-     [security] and [data] traps);
+     switch off (a mandatory row only when question 4 set an egress
+     constraint). The CHOSEN card's [security] and [data] traps become §8
+     "Mandatory spec security rows" regardless; rows for cards not chosen do
+     not go into §8;
    - the relevant §4 traps and §5 avoid-when items;
    - the client infrastructure from question 3 where it matters. For managed
      Postgres such as Supabase (valid on every target), point to its Supabase
