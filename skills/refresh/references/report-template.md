@@ -1,6 +1,7 @@
 # Refresh report template
 
-The report is written to `docs/refresh/<YYYY-MM-DD>.md` with this shape.
+The report is written to `docs/refresh/<YYYY-MM-DD>.md` with this shape (a second
+run on the same date: `<YYYY-MM-DD>-2.md`, then `-3`; never overwrite).
 
 ```
 ---
@@ -12,6 +13,9 @@ cards_reverified: <ids>
 ---
 
 # Stack catalog refresh — <date>
+
+## Research notes appended
+<paths of the research files that received a Refresh <date> section; or none>
 
 ## Commands run
 <python scripts/check_catalog.py --root . --as-of <date>  -> output before>
@@ -25,6 +29,10 @@ cards_reverified: <ids>
 | Card | version_verified old -> new | Breaking changes checked (URL) | Binding pins changed | Traps added / removed |
 |---|---|---|---|---|
 
+## Newer versions not adopted
+| Card | Newer version | Reason not adopted | Changes found only there (not applied) |
+|---|---|---|---|
+
 ## Observed facts to re-observe
 | Card or binding | Fact | Spike | Observed on | Re-observed this run (yes / no) |
 |---|---|---|---|---|
@@ -35,6 +43,10 @@ cards_reverified: <ids>
 
 ## Harvested drift
 | Project | Claim | Verdict (applied / rejected / already current) | Evidence |
+|---|---|---|---|
+
+## Binding defects reported
+| Source (project build.md or chat) | Defect claimed | Verified against | Spike to re-run |
 |---|---|---|---|
 
 ## Draft cards proposed

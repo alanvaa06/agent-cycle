@@ -10,6 +10,10 @@ Rules for every binding:
   statement `inference`.
 - Each section below must answer every obligation in its placeholder text, or
   say explicitly why it does not apply to this stack.
+- Marker `observed` (a fact seen in a scratch run, spike number beside it): a
+  bare `observed` means observed at the binding's `version_pinned` as of the
+  card's `verified_on`; `observed on <version>; re-observe` means not yet
+  re-observed at the current version. The preamble names the observation run.
 
 ```
 ---
