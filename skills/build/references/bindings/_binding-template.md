@@ -54,6 +54,10 @@ rules for work done before the pause.
 - Tier mapping: destructive -> HITL every time, never cached; reversible ->
   per design policy; safe -> auto.
 - One recommended placement for the gate.
+- If the spec says a deny ends the turn: no further tool executes after the
+  reject (name the construct that routes to the end); if the spec lets the
+  model continue after a deny, say so explicitly. Spike pass test: after a
+  reject, zero further tool calls execute.
 - How the eval runner answers approvals from the case fixture.>
 
 ## Caps
@@ -67,7 +71,15 @@ counted separately.
   outcome.
 - How the runner ensures the intended cap trips in
   harness_condition.force_step_cap cases.
-- The wall-clock cap.>
+- The wall-clock cap.
+- No aborted turn (either cap, wall-clock, crash, deny-ends-turn) may leave an
+  AI message with tool calls lacking tool results. Repair runs at TURN START
+  (idempotent, survives crashes): if the last AI message has tool calls
+  without matching tool messages, append tool-result notices through the
+  framework's state-update call, attributed to a named node. A wall-clock
+  abort notice says "outcome unknown - do not retry without the user" (the
+  tool may have run). Spike pass test: abort mid-turn, then a follow-up turn
+  succeeds against the real provider.>
 
 ## Model provider
 <How the LiteLLM-style config string maps; non-native providers' caveats.
@@ -88,6 +100,10 @@ runner.
   captured list of (tool name, args) with args_subset matching (golden-format;
   never full-argument equality).
 - Framework evaluators are optional references only.
+- One rule for trajectory vs forbidden: trajectory = the REQUESTED tool calls
+  (name, args) read from the model messages; `forbidden` = the EXECUTED calls
+  (tool messages) plus the reply text (adapter-bindings.md). No per-case
+  guessing.
 - Name the capture source.>
 
 ## A2A and MCP
