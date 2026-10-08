@@ -4,8 +4,9 @@ Same agentic procedure as `skills/design/evals/README.md` (fresh session,
 per-check PASS/FAIL rows in `results.md`, fix-and-rerun, dispute — never
 silently edit — if a case is wrong).
 
-Case-specific setup — ALWAYS a scratch copy of the plugin repo, never this
-checkout (refresh edits files):
+Case-specific setup — ALWAYS a git clone or git worktree copy of the plugin repo (the
+refresh gate requires a git work tree), never this checkout (refresh edits
+files):
 
 - **REF-E01**: in the copy, set `verified_on: 2026-01-01` on
   `skills/design/references/stacks/google-adk.md` and lower its

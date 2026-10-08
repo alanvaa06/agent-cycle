@@ -25,7 +25,7 @@ Universal rules regardless of target:
   returns 200 fast, and drops non-allowlisted senders BEFORE the loop.
 - Dedupe on the channel's message id with a unique index / conditional put —
   retries and duplicates are guaranteed by the channel, not hypothetical. The
-  dedupe record also carries `processed_at` and the reply text, written in the
+  dedupe record also carries `processed_at`, `outcome` and the reply text, written in the
   worker's post-run transaction; on dequeue a message whose record has
   `processed_at` set is not re-run (re-send the stored reply if the send may
   not have happened, then ack). Ingress dedupe alone only catches channel
@@ -40,16 +40,17 @@ Universal rules regardless of target:
 
 Managed Postgres (Supabase) rules — any target:
 - Connect directly (IPv6 or the IPv4 add-on) or through Supavisor **session**
-  mode (port 5432). Never the **transaction** pooler (port 6543) with psycopg3:
-  it does not support prepared statements (and psycopg3 uses them by default,
-  inference).
+  mode (port 5432). Never the **transaction** pooler (port 6543) with psycopg3 or asyncpg
+  (prepared statements): it does not support prepared statements (psycopg3
+  uses them by default, inference).
   Source: https://supabase.com/docs/guides/database/connecting-to-postgres
 - State tables live in a schema not exposed by the Data API, with RLS enabled
   as defense in depth; verify with Supabase's security advisors.
   Source: https://supabase.com/docs/guides/api/securing-your-api
-- The Free plan pauses projects after 7 days of low activity and caps the
-  database at 500 MB — never for a production agent.
-  Source: https://supabase.com/docs/guides/platform/free-project-pausing
+- The Free plan pauses projects after 7 days (1 week) of low activity and caps
+  the database at 500 MB — never for a production agent.
+  Sources: https://supabase.com/docs/guides/platform/free-project-pausing,
+  https://supabase.com/pricing
 
 ## Runner mapping per stack
 
@@ -59,6 +60,10 @@ section gives the model double, trajectory capture, the
 EXACT / IN_ORDER / ANY_ORDER mapping and harness_condition injection. The
 exit-code contract is identical everywhere: 0 = every case at threshold;
 pass^k is always computed by the pipeline runner.
+
+Universal: trajectory = requested calls; `forbidden` = executed calls (the tool
+wrapper records a call at body entry, after argument validation) plus reply
+text; off-catalog stacks use build.md's "Off-catalog binding".
 
 ## Telemetry binding
 

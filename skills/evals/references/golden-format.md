@@ -1,9 +1,9 @@
 # Suite formats — agent-cycle:evals
 
 The suite is DATA. No runner code, no framework imports — `/build`'s adapter
-binds the runner (first documented target: ADK `AgentEvaluator` with
-EXACT / IN_ORDER / ANY_ORDER trajectory modes; other frameworks map the same
-fields). Everything below lands in the TARGET AGENT'S repo under `evals/`.
+binds the runner (the build's per-stack binding,
+`skills/build/references/bindings/<card-id>.md`; the pipeline runner implements
+the trajectory modes and pass^k itself). Everything below lands in the TARGET AGENT'S repo under `evals/`.
 
 ## Directory layout
 

@@ -59,7 +59,8 @@ coverage map.
   Lockfile = the one the deploy recipe/Dockerfile installs from (`uv.lock`,
   `poetry.lock`, or a compiled `requirements.txt`; `package-lock.json` or
   `pnpm-lock.yaml` for an npm-scoped off-catalog name). `uv.lock` or
-  `poetry.lock`: `grep -n -A1 '^name = "<pkg>"$' <lockfile>` shows
+  `poetry.lock`: `grep -n -i -A1 '^name = "<normalized-pkg>"$' <lockfile>`
+  (normalized = lowercase, hyphens; also try the underscore form if absent) shows
   `version = "<v>"`. `requirements.txt`: `grep -n -i -A3 '^<pkg>==' requirements.txt`
   shows `<pkg>==<v>` and its `--hash=` lines. Also cite the install command in
   the deploy recipe that reads that lockfile (with `--require-hashes` or the

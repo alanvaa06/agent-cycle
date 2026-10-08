@@ -9,6 +9,9 @@ Hard-fail (write nothing, say why, stop) unless ALL hold:
 - `docs/agent/design.md` approved; `docs/agent/spec.md` approved with
   `design_version` == design's `version`; `evals/config.yaml` approved with
   `spec_version` == spec's `version`. A stale link → re-entry ladder.
+- spec.md frontmatter `runtime` present in one of the three forms
+  (`<card-id>@<version>`, `no-framework@n/a`, `off-catalog:<name>@<version>`);
+  missing -> hard-fail, route to design re-entry (§8) and a spec version bump.
 - If `docs/agent/<agent_name>-economics.md` exists: read it. Carry its
   token-spend alarm threshold and any telemetry requirements (e.g. token
   counters) into the build as obligations.

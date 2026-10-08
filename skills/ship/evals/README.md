@@ -6,6 +6,10 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
+- The real whatsapp-owner-assistant fixture is pre-v0.11: it has no design
+  §8 and no spec `runtime`. It needs design re-entry (Phase E) and a spec
+  version bump with `runtime` before SHP-E01 can run (or use a copy with §8 +
+  `runtime` added).
 - **SHP-E01** is the real dogfood run and requires the FULL chain including a
   green build (BLD-E01 first, then SKL-E01 and ITP-E01 decisions recorded).
   Scoring evidence-per-command: every audit section must cite the literal
