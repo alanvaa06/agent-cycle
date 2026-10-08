@@ -64,6 +64,8 @@ Expected: `Switched to a new branch 'feat/v0.11-stack-decision'`.
 
 ### Task 1: Catalog checker — tests first
 
+> Note: post-review hardening (BOM, unreadable files, missing id, duplicates, heading finder) landed after this task; the code blocks below are the original version — scripts/check_catalog.py is authoritative.
+
 **Files:**
 - Create: `tests/conftest.py`
 - Create: `tests/test_check_catalog.py`
@@ -2168,7 +2170,7 @@ Run each and check the expected output:
 ```bash
 python -m pytest tests -q
 ```
-Expected: `18 passed`.
+Expected: `39 passed`.
 
 ```bash
 python scripts/check_catalog.py --root .
