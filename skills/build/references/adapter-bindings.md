@@ -6,7 +6,7 @@ same invariant architecture on every target because the channel's delivery
 semantics (fast ack, retries, duplicates) force it:
 
 ```
-INGRESS (verify + ack fast) → QUEUE (per-user ordering) → WORKER (the loop)
+INGRESS (verify + ack fast) → QUEUE (per-session ordering) → WORKER (the loop)
 → STATE (durable sessions + dedupe) → EGRESS (reply + model calls)
 ```
 
@@ -15,7 +15,7 @@ INGRESS (verify + ack fast) → QUEUE (per-user ordering) → WORKER (the loop)
 | Binding | VPS (self-hosted) | AWS | GCP |
 |---|---|---|---|
 | Ingress | Caddy/Traefik reverse proxy → FastAPI/ASGI endpoint; TLS automatic (Caddy) | API Gateway HTTP API → thin Lambda | Cloud Run ingress service |
-| Queue | Redis/Valkey list or stream, worker process consumes; strict serial per sender | SQS FIFO, MessageGroupId = user id | Pub/Sub, ordering key = user id |
+| Queue | Redis/Valkey list or stream, worker process consumes; strict serial per session key (per-user by default; an approver's reply is keyed to the requester's session) | SQS FIFO, MessageGroupId = session key (per-user by default; an approver's reply uses the requester's session key) | Pub/Sub, ordering key = session key (per-user by default; an approver's reply uses the requester's session key) |
 | State | Postgres (or Supabase Postgres) behind the repository interface | DynamoDB behind the repository interface | Firestore / Cloud SQL behind the repository interface |
 | Secrets | .env file mode 0600 loaded by systemd/compose, or SOPS+age; never committed | Secrets Manager | Secret Manager |
 | Deploy recipe | Docker Compose (worker + queue + proxy [+ db]); systemd only as the thing that starts Docker | SAM/CDK (Lambda) or ECS/Fargate task | gcloud run deploy / Cloud Build |
@@ -25,7 +25,9 @@ Universal rules regardless of target:
   returns 200 fast, and drops non-allowlisted senders BEFORE the loop.
 - Dedupe on the channel's message id with a unique index / conditional put —
   retries and duplicates are guaranteed by the channel, not hypothetical.
-- The worker consumes the queue serially per sender; a running turn is never
+- The worker consumes the queue serially per session key (per-user by default;
+  an approver's reply is keyed to the requester's session, so ingress resolves
+  it to the pending session's key before enqueueing); a running turn is never
   cancelled by a new message.
 - Bind containers/services to localhost internally; only the proxy/gateway
   listens publicly.

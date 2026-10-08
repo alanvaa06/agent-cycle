@@ -31,12 +31,15 @@ the framework construct this replaces, if any.>
 adapter to write; per-session serialization (the queue guarantees one turn
 per session); durability settings.
 - Queue ordering key = the session key, so one turn per session holds even
-  when an approver is a different sender.
+  when an approver is a different sender. Ingress resolves an approver's reply
+  to the pending session's key before enqueueing.
 - Any one-time schema setup runs as a named one-shot migration job (compose
   service / ECS task / Cloud Run job), never from the worker.
-- Every spike states its pass test, runs before build-guide Step 4, and on
-  failure STOPS and raises a re-entry on the design's sessions seam; never a
-  silent store swap.>
+- Every spike states its pass test and runs before build-guide Step 4. Every
+  sessions/store spike, on failure, STOPS and raises a re-entry on the
+  design's sessions seam; never a silent store swap. Other spikes state their
+  own failure path (a binding defect -> fix the binding; telemetry -> its
+  fallback).>
 
 ## HITL gate
 <How gated/destructive tiers pause for approval and resume; idempotency
@@ -44,8 +47,12 @@ rules for work done before the pause.
 - The numbered worker sequence: dequeue -> check this session for a pending
   approval -> resume with the decision OR start a new turn.
 - The decision value shape (approve / deny / edit); deny and expiry behavior.
+- If a message for a pending session does not parse as a decision: keep the
+  interrupt pending and reply with the spec's pending-approval prompt (or deny
+  if the spec says so). Expiry is evaluated when the next message for that
+  session is dequeued (intended; a sweep is optional).
 - Tier mapping: destructive -> HITL every time, never cached; reversible ->
-  per spec policy; safe -> auto.
+  per design policy; safe -> auto.
 - One recommended placement for the gate.
 - How the eval runner answers approvals from the case fixture.>
 
@@ -53,6 +60,8 @@ rules for work done before the pause.
 <Step cap and tool-call cap — native or own counter; the two are always
 counted separately.
 - Both caps are PER TURN: reset at turn start.
+- The tool-call cap counts each tool call requested, not each tool-execution
+  step, and is checked before execution so parallel calls cannot overshoot.
 - State the unit conversion between the framework's limit and the spec's step.
 - Both cap exits MUST produce the spec's single failure reply and the cap
   outcome.
