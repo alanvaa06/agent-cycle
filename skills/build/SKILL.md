@@ -14,7 +14,8 @@ been red by design goes green here, through a runner — never through opinion.
    spec_version links consistent. Stale → re-entry, not a build. Economics
    read when present (alarm + telemetry obligations).
 2. THE SPEC'S RUNTIME IS LAW. Scaffold exactly the runtime the spec pins
-   (runtime: <card-id>@<version>) and the target the design fixed — the plugin
+   (runtime: <card-id>@<version>, no-framework@n/a, or
+   off-catalog:<name>@<version>) and the target the design fixed — the plugin
    has no favorite framework at runtime. Wanting otherwise is a re-entry
    dispute.
 3. RAILS BEFORE CODE: the approved design, spec and evals are committed as
@@ -79,3 +80,6 @@ been red by design goes green here, through a runner — never through opinion.
   (rule 7).
 - Running forge without the human approving the plan (rule 8).
 - A secret in a commit, or an unpinned dependency (rule 9).
+- Skipping a binding spike, or silently downgrading to the binding's
+  version_pinned when the spec's version fails one (rule 2; build-guide
+  Steps 1 and 4).

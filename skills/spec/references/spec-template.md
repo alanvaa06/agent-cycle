@@ -95,9 +95,9 @@ channel-less agents: one line — "not applicable because <reason>".
 |---|---|---|---|
 | <e.g. default trace exporter on> | <the obligation, e.g. exporter disabled> | <url> | BHV-NNN |
 
-The BHV column may read "build rule 9 + ship lockfile" for install-time
-supply-chain rows only (e.g. hash-pinned packages); every other row cites a
-BHV scenario with an observable Then.
+The BHV column may read "build rule 9 hash pins + ship lockfile check" for
+install-time supply-chain rows only (e.g. hash-pinned packages); every other
+row cites a BHV scenario with an observable Then.
 
 - **Least privilege:** scopes per credential, read provisioned separately from
   write.
