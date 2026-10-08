@@ -5,59 +5,82 @@ version_pinned: 1.2.14
 
 # LangGraph - build binding
 
-Facts below cite the same sources as the card (`skills/design/references/stacks/langgraph.md`); a URL is repeated where a rule depends on it.
+Facts below cite the same sources as the card (`skills/design/references/stacks/langgraph.md`) and the research file `docs/superpowers/research/2026-10-07-stack-catalog/langchain-family.md`; a URL is repeated where a rule depends on it. Statements marked inference are the binding's own reasoning.
+
+Shape: a hand-built `StateGraph` with four parts: a model node, a gate node (HITL), a tool node and a router. State = `messages` plus `tool_call_count`. It is built by `build_graph(model, checkpointer, tools)` in `src/agent/`, which replaces `create_react_agent` (no longer recommended, see the pins section). The adapter constructs `PostgresSaver` / `AsyncPostgresSaver` (or the DynamoDB saver) in `adapters/<target>/` and injects it; `src/agent/` never imports psycopg or the saver packages. The checkpointer holds only graph state. Dedupe and the spec's data schemas live in repository tables behind the repository interface, not in graph state.
 
 ## Sessions and state
-- Postgres: `PostgresSaver` / `AsyncPostgresSaver` from `langgraph-checkpoint-postgres` (pin it). Source: https://docs.langchain.com/oss/python/langgraph/checkpointers.md
+- Postgres: `PostgresSaver` / `AsyncPostgresSaver` from `langgraph-checkpoint-postgres`. Source: https://docs.langchain.com/oss/python/langgraph/checkpointers.md
+- Saver kind follows the worker: an async worker uses `AsyncPostgresSaver` and `ainvoke` / `astream`; a sync worker uses `PostgresSaver` and `invoke` / `stream` (inference; the persistence page names both savers: https://docs.langchain.com/oss/python/langgraph/persistence ).
 - A connection you create yourself must use `autocommit=True` and `row_factory=dict_row` (autocommit makes `.setup()` persist the tables; the saver reads columns by name). Source: https://github.com/langchain-ai/langgraph/blob/main/libs/checkpoint-postgres/README.md
-- Call `.setup()` once, as the migrations step of the deploy recipe, not per request. Source: https://github.com/langchain-ai/langgraph/blob/main/libs/checkpoint-postgres/README.md
-- Run with `durability="sync"` (persists before the next step starts; highest durability). Source: https://docs.langchain.com/oss/python/langgraph/checkpointers.md
+- `.setup()` runs once, as a named one-shot migration job (`agent-migrate`: compose service / ECS task / Cloud Run job), never from the worker and never per request. Source for the call: https://github.com/langchain-ai/langgraph/blob/main/libs/checkpoint-postgres/README.md
+- Durability: pass `durability="sync"` on every graph call (persists changes before the next step starts; default is "async"). The parameter is documented on `invoke`: https://reference.langchain.com/python/langgraph/pregel/main/Pregel/invoke ; that `stream`, `ainvoke` and `astream` accept it is unverified, so confirm the signature on the pinned version in the first spike. The modes are described at https://docs.langchain.com/oss/python/langgraph/checkpointers.md
 - `thread_id` = the spec's session key; keep it under 255 characters on Postgres. Source: https://docs.langchain.com/oss/python/langgraph/persistence
-- Concurrency: the OSS library has no per-thread locking, so the adapter's per-sender queue must guarantee one turn per thread. Source: https://docs.langchain.com/langsmith/double-texting.md
-- Supabase: use the direct connection or the Supavisor session mode (port 5432); never the transaction pooler (port 6543), which does not support prepared statements (psycopg3 uses them by default, inference). Source: https://supabase.com/docs/guides/database/connecting-to-postgres
-- Supabase schema: put the checkpoint tables in a schema that is not exposed through the Data API (for example `agent_state`, selected via the connection's search_path; the search_path wiring is unverified, so confirm it with a spike) and enable RLS on them. Source: https://supabase.com/docs/guides/database/postgres/row-level-security
+- Queue ordering key = `thread_id` (the session key), so one turn per thread holds even when the approver is a different sender. The OSS library has no per-thread locking and double-texting is not available there. Source: https://docs.langchain.com/langsmith/double-texting.md
+- Supabase connection: use the direct connection or the Supavisor session mode (port 5432); never the transaction pooler (port 6543), which does not support prepared statements (psycopg3 uses them by default, inference). Source: https://supabase.com/docs/guides/database/connecting-to-postgres
+- Supabase schema: put the checkpoint tables in a schema not exposed through the Data API (for example `agent_state`, selected via the connection's search_path; the wiring is unverified) and enable RLS on them. Source: https://supabase.com/docs/guides/database/postgres/row-level-security
 - Supabase Free plan: projects are paused after 1 week of inactivity, so it is not for production. Source: https://supabase.com/pricing
-- DynamoDB: `langgraph-checkpoint-aws` provides the checkpointer (the class is named DynamoDBSaver in the research digest; the docs page lists only the package, so confirm the class name when you pin the package). The same page also lists a separate community package, `langgraph-dynamodb-checkpoint` (agentstate); prefer the AWS package and confirm either with a spike. Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
-- Firestore: no official checkpointer (a community package exists, unverified for production); on GCP use Cloud SQL Postgres. Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
+- DynamoDB: `langgraph-checkpoint-aws` provides the checkpointer (the class is named DynamoDBSaver in the research file; the docs page lists only the package). The same page also lists a separate community package, `langgraph-dynamodb-checkpoint` (agentstate); prefer the AWS package. Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
+- Firestore: no official checkpointer (a community package is listed, unverified for production). Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md . If the design names Firestore, STOP and raise a re-entry on the design's sessions seam; do not swap the store silently.
+- Spikes (each runs before build-guide Step 4; on failure STOP and raise a re-entry on the design's sessions seam, never a silent store swap):
+  - Supabase: after `.setup()` with the chosen search_path the tables exist in `agent_state` and not in `public`; then `ENABLE ROW LEVEL SECURITY` on them; a put/get round trip works as the saver's DB role.
+  - DynamoDB: the pinned package imports the named saver class and a put/get round trip works against the target table.
+  - Durability: `durability="sync"` is accepted by the exact call the worker uses (`invoke`, `ainvoke`, `stream` or `astream`).
 
 ## HITL gate
-- Put `interrupt()` inside the gated tool, or in a gate node placed before it; approval resumes with `Command(resume=decision)` on the same `thread_id`. A durable checkpointer is required. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
-- The whole node re-runs on resume: everything before the `interrupt()` call must be idempotent; put non-idempotent work after it or in a separate node. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
-- Interrupts in a node are matched to resume values by position: never reorder them or skip them conditionally. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
-- Do not use static breakpoints (`interrupt_before` / `interrupt_after`) for approvals; they are for debugging. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
+- Recommended placement: a gate node between the model node and the tool node. It calls `interrupt()` once per gated tool call, in a fixed order, and resumes with `Command(resume=decision)` on the same `thread_id`. A durable checkpointer is required. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
+- Worker sequence:
+  1. Dequeue the message for the session (ordering key `thread_id`).
+  2. Read `graph.get_state(config)` for that `thread_id` and check whether a pending interrupt exists (the snapshot's pending tasks carry it; confirm the attribute on the pinned version, inference).
+  3. If an approval is pending: resume with `Command(resume=decision)` built from this message or from the approver's reply. Otherwise start a new turn with fresh input.
+- Decision value (own design, inference): `{"decision": "approve" | "deny" | "edit", "args": {...}}`; `args` only for `edit`. Deny: the gate node returns a denial `ToolMessage` for that call and the router goes back to the model, or ends with the spec's deny reply if the spec says so. Expiry: when the pending approval is older than the spec's TTL, the worker resumes it with `deny` and records the expiry.
+- Tier mapping: destructive -> `interrupt()` every time, never cached; reversible -> per the spec's policy; safe -> no interrupt.
+- Everything before the `interrupt()` call re-runs on resume, so it must be idempotent; put non-idempotent work after it or in another node. Interrupts in a node are matched to resume values by position: never reorder them or skip them conditionally. Static breakpoints (`interrupt_before` / `interrupt_after`) are for debugging, not approvals. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
+- Eval runner: when the run returns an interrupt, the runner resolves it by calling `Command(resume=<next approval in the case fixture>)` on the same `thread_id`, until the graph finishes or the fixture runs out.
 
 ## Caps
-- Step cap: set `recursion_limit` at the top level of the run config (not inside `configurable`) to the spec's step cap; it counts super-steps and raises `GraphRecursionError`. Use `RemainingSteps` in a router to wind down gracefully. Source: https://docs.langchain.com/oss/python/langgraph/graph-api
-- Tool-call cap: a counter in graph state, incremented per tool call and checked by the router, exiting with the spec's single failure reply (own code, inference: raw LangGraph has no tool-call limit). Source: https://docs.langchain.com/oss/python/langgraph/graph-api
+- Both caps are PER TURN. `tool_call_count` is reset by passing `tool_call_count: 0` in the input of every turn's invoke; the field has no reducer, so the input overwrites it (a key without a reducer is overwritten: https://docs.langchain.com/oss/python/langgraph/graph-api ). Never put an additive reducer on it.
+- Tool-call cap (own counter, inference: raw LangGraph has none): count each tool call in the model's message (`len(ai_message.tool_calls)`), not tool-node runs; the model node writes `tool_call_count + len(tool_calls)`. The router checks the counter BEFORE the tool node, so parallel calls in one message cannot overshoot. Over the cap -> route to a failure node that emits the spec's single failure reply and the outcome `tool_call_cap`.
+- Step cap: `recursion_limit` is set at the top level of the run config (not inside `configurable`) and counts super-steps; exceeding it raises `GraphRecursionError`. Source: https://docs.langchain.com/oss/python/langgraph/graph-api
+- Unit conversion (inference: the page does not give a super-step count for a model -> tools loop): each spec step costs one super-step per node on the loop, i.e. 2 without the gate node and 3 with it. Set `recursion_limit` = (nodes on the loop) x (spec step cap) + 1, and record the factor in `build.md`; or define the spec's step as a super-step and record that instead. Confirm the factor with one test that counts super-steps.
+- `GraphRecursionError` MUST be caught by the worker and mapped to the same single failure reply and the outcome `step_cap`. `RemainingSteps` for a graceful wind-down is optional.
+- Wall-clock cap: the worker bounds each turn with the spec's wall-clock limit (timeout around the graph call); expiry produces the same failure reply and the outcome `wall_clock`.
+- `harness_condition.force_step_cap`: use a fake model that never gives a final answer and set the tool-call cap above the step cap, so the step cap is the one that trips.
 - Never use one limit for both: super-steps are not tool calls.
 
 ## Model provider
-- `ChatLiteLLM(model=<spec model route>)` from `langchain-litellm`, pinned; the docs recommend it for routers and proxies (maintainer unverified). Source: https://docs.langchain.com/oss/python/langchain/models
-- Or `init_chat_model("provider:model")` when the spec pins a single provider. Source: https://docs.langchain.com/oss/python/langchain/models
+- Selection rule: when the spec's route names a single provider, use `init_chat_model("provider:model")` (https://docs.langchain.com/oss/python/langchain/models ); when it names a router, proxy or LiteLLM route, use `ChatLiteLLM(model=<spec route>)` from `langchain-litellm` (the docs recommend it for routers and proxies; maintainer unverified). Source: https://docs.langchain.com/oss/python/langchain/models
+- Format conversion: LiteLLM routes are `provider/model`, `init_chat_model` takes `provider:model`; split on the first `/` and rejoin with `:`, then check the provider id is one `init_chat_model` knows (LiteLLM and LangChain provider names can differ; inference).
 
 ## Telemetry
-- Install `langsmith[otel]` (docs ask for langsmith>=0.3.18, recommend >=0.4.25), set `LANGSMITH_OTEL_ENABLED=true` and `LANGSMITH_OTEL_ONLY=true`, and point `OTEL_EXPORTER_OTLP_*` at the design's backend. `OTEL_EXPORTER_OTLP_ENDPOINT` is a base URL (no `/v1/traces`). Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
-- MANDATORY SPIKE before the build relies on it: emit one turn and confirm `gen_ai.usage.input_tokens` / `output_tokens` attributes arrive at the backend. The docs show how LangSmith reads those attributes on ingest but do not state what the SDK emits (unverified). If they do not arrive, add own spans carrying those attributes. Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
+- Install `langsmith[otel]`, set `LANGSMITH_OTEL_ENABLED=true` and `LANGSMITH_OTEL_ONLY=true`, and point `OTEL_EXPORTER_OTLP_*` at the design's backend. `OTEL_EXPORTER_OTLP_ENDPOINT` is a base URL (no `/v1/traces`). Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
+- The worker opens one per-turn span (for example `agent.turn`) carrying the spec's attributes and the turn outcome (`ok`, `step_cap`, `tool_call_cap`, `wall_clock`, `hitl_denied`, `hitl_expired`; names follow the spec).
+- MANDATORY SPIKE before the build relies on it, with a REAL model call (fakes report no usage): emit one turn and confirm the backend receives `gen_ai.usage.input_tokens` and `gen_ai.usage.output_tokens` with values above zero. The docs show how LangSmith reads those attributes on ingest but do not state what the SDK emits (unverified). If they do not arrive, add fallback spans: wrap the model node so it opens a child span of `agent.turn` and sets those attributes from `AIMessage.usage_metadata` (inference). Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
 - Never set `LANGSMITH_TRACING` unless the design's telemetry backend is LangSmith (the docs examples pair it with the LangSmith endpoint). Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
 
 ## Eval runner mapping
 - Fresh graph and a fresh `InMemorySaver` per test. Source: https://docs.langchain.com/oss/python/langgraph/test.md
 - Model double: `GenericFakeChatModel` scripted with the tool calls and replies. Source: https://docs.langchain.com/oss/python/langchain/test/unit-testing.md
-- Trajectory: taken from the graph's event stream (the pipeline runner's own capture, inference). The agentevals modes are strict, unordered, subset and superset. Source: https://docs.langchain.com/oss/python/langchain/test/evals.md
-- EXACT = agentevals `strict`; ANY_ORDER = agentevals `unordered`; IN_ORDER has no agentevals mode, so the pipeline runner implements it as a subsequence check. Source: https://docs.langchain.com/oss/python/langchain/test/evals.md
-- `harness_condition.force_step_cap` = a fake model that never gives a final answer (runs until `recursion_limit`); `tool_always_errors` = an erroring tool node (both inference, built on the primitives above). Source: https://docs.langchain.com/oss/python/langgraph/graph-api
-- pass^k is computed by the pipeline runner; it is not native to the stack (digest).
+- Capture source: run the graph with `stream_mode="updates"` (it emits the node name and that node's state update after each step; https://docs.langchain.com/oss/python/langgraph/streaming.md ) and collect `(tool name, args)` from the `tool_calls` of the AI messages in the model node's updates, in order.
+- The PIPELINE runner implements EXACT, IN_ORDER and ANY_ORDER itself over that captured list, with `args_subset` matching (the golden-format: expected args must be a subset of actual args; never full-argument equality). The agentevals evaluators (https://docs.langchain.com/oss/python/langchain/test/evals.md ) are optional references only.
+- `harness_condition.force_step_cap` = a fake model that never gives a final answer (see Caps); `tool_always_errors` = a tool node that always raises or returns an error message (inference).
+- pass^k is computed by the pipeline runner; it is not native to the stack (research file).
 
 ## A2A and MCP
 - Two A2A paths; record which one in interop.md.
   - (a) Licensed LangSmith Agent Server `/a2a/{assistant_id}`: A2A v1.0 JSON-RPC, push notifications not supported, the graph state must include a `messages` key. Source: https://docs.langchain.com/langsmith/server-a2a.md ; a standalone server needs `LANGGRAPH_CLOUD_LICENSE_KEY` and reaches beacon.langchain.com for license verification and usage reporting (unless air-gapped). Source: https://docs.langchain.com/langsmith/deploy-standalone-server.md
-  - (b) Free: your own server built with `a2a-sdk` that wraps the compiled graph and persists interrupted state through the checkpointer (the digest's path; own code, inference). Source: https://docs.langchain.com/langsmith/server-a2a.md
-- MCP client: `langchain[mcp]>=1.4.0`, `MCPAdapter` (beta, the API may change). Source: https://docs.langchain.com/oss/python/langchain/mcp
+  - (b) Own server built with `a2a-sdk` that wraps the compiled graph and persists interrupted state through the checkpointer (own code, inference; a build option only when a license is acceptable or A2A is not a hard filter). Source for the licensed alternative: https://docs.langchain.com/langsmith/server-a2a.md
+- MCP client: `langchain[mcp]` with a minimum of 1.4.0, `MCPAdapter` (beta, the API may change). Source: https://docs.langchain.com/oss/python/langchain/mcp
 - Serving MCP (`/mcp`) is documented on Agent Server; no OSS-library endpoint is documented. Source: https://docs.langchain.com/langsmith/server-mcp.md
 
 ## Pinned version and traps
-- Pins: `langgraph==1.2.14`, `langgraph-checkpoint-postgres` (exact version), `langchain-litellm` (exact version). Source: https://pypi.org/project/langgraph/
+- Every package below gets an exact pin in the lockfile. Any ">=" in this text is a minimum, never a requirement spec.
+  - `langgraph==1.2.14` (https://pypi.org/project/langgraph/)
+  - `langgraph-checkpoint-postgres`, `psycopg[pool]` (the install command in https://docs.langchain.com/oss/python/langgraph/add-memory is `psycopg[binary,pool]`; choose per the base image)
+  - `langchain-litellm`, `langsmith[otel]` (docs: minimum 0.3.18, recommended 0.4.25 or later)
+  - `langchain[mcp]` (minimum 1.4.0)
+  - `langgraph-checkpoint-aws` (only when DynamoDB is chosen), `a2a-sdk` (only for A2A path b)
 - Obligation (ops): interrupt() re-runs the node on resume, so side effects before it are idempotent. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
-- Obligation (ops): the OSS library has no per-thread locking and double-texting is not available there; the adapter queue serializes turns. Source: https://docs.langchain.com/langsmith/double-texting.md
+- Obligation (ops): the OSS library has no per-thread locking and double-texting is not available there; the adapter queue (key = `thread_id`) serializes turns. Source: https://docs.langchain.com/langsmith/double-texting.md
 - Obligation (data): do not set `LANGSMITH_TRACING` unless LangSmith is the chosen backend; use `LANGSMITH_OTEL_ONLY` for OTel-only export. Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
-- Obligation (churn): do not adopt langgraph-supervisor (no longer actively maintained) or build new code on `create_react_agent`; LangGraph 0.4 maintenance ends December 2026. Sources: https://docs.langchain.com/oss/python/migrate/langgraph-supervisor.md , https://docs.langchain.com/oss/python/migrate/langchain-v1.md , https://docs.langchain.com/oss/python/release-policy
+- Obligation (churn): do not adopt langgraph-supervisor (no longer actively maintained) and do not build new code on `create_react_agent` (the v1 guide recommends `create_agent`; this binding hand-builds the graph instead). Sources: https://docs.langchain.com/oss/python/migrate/langgraph-supervisor.md , https://docs.langchain.com/oss/python/migrate/langchain-v1.md
