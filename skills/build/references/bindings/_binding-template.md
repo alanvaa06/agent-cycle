@@ -49,7 +49,17 @@ per session); durability settings.
   carries `processed_at` and the reply text. On dequeue, a message whose
   record has `processed_at` set is not re-run: re-send the stored reply if the
   send may not have happened, then ack. Ingress dedupe alone only catches
-  channel retries; this closes queue redelivery after a worker crash.
+  channel retries; this closes queue redelivery after a worker crash. The
+  step-2a expiry commit does NOT set `processed_at`: only the final post-run
+  commit of the turn that handles the message sets it.
+- Pending-record lifecycle: every pause writes a NEW pending record with a
+  fresh UUID `approval_id` (never the session key, never reused across pauses
+  or turns). Any run started from a pending record deletes it in the post-run
+  transaction unless the run ended in a NEW pause, which writes a fresh record
+  (new id) in that same transaction. "Ended in a pause" = pending calls
+  non-empty AND the run completed without an exception or timeout; otherwise
+  discard the pending calls (a wall-clock abort with a gated call pending must
+  not write a record).
 - Crash marker (own-loop stacks): write the turn status `running` at turn
   start, after the repair, and overwrite it with the outcome on every exit.
   The repair treats `running` or a missing status row as a crash and writes
@@ -64,7 +74,17 @@ per session); durability settings.
 <How gated/destructive tiers pause for approval and resume; idempotency
 rules for work done before the pause.
 - The numbered worker sequence: dequeue -> check this session for a pending
-  approval -> resume with the decision OR start a new turn.
+  approval -> resume with the decision OR start a new turn. Step 2a (expiry)
+  deletes the pending record but does not set the dedupe record's
+  `processed_at`.
+- Idempotency key for a gated/destructive call: unique per APPROVED CALL,
+  `"<approval_id>:<call index or function_call_id>"`, where `approval_id` is the
+  fresh UUID of the pending record (see Sessions and state). A resume that
+  pauses again writes a new record with a new id, so keys are never reused
+  across pauses or turns; the key is stable across queue redelivery because the
+  record is deleted only in the post-run transaction. Spike pass test: resume
+  -> second pause -> second approval yields distinct keys and the second tool
+  body runs.
 - The decision value shape (approve / deny / edit); deny and expiry behavior.
 - If a message for a pending session does not parse as a decision: keep the
   interrupt pending and reply with the spec's pending-approval prompt (or deny

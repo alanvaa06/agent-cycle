@@ -42,18 +42,13 @@ Universal rules regardless of target:
 
 The eval suite is data; the runner binds it to a framework:
 
-- **ADK (first documented target):** `AgentEvaluator` consumes trajectory
-  expectations natively; map golden `trajectory.mode` to ADK's
-  EXACT / IN_ORDER / ANY_ORDER; fixtures via session-service fakes;
-  harness_condition via callback-injected step caps / erroring tool doubles.
+- **ADK:** see `skills/build/references/bindings/google-adk.md` (Eval runner
+  mapping); the pipeline runner owns trajectory modes and pass^k.
 - **Any Python framework (Pydantic AI, LangGraph, custom):** a pytest harness:
   one parametrized test per case file; fixtures build fake tool backends from
-  `input.fixture`. Pydantic AI concretely: `FunctionModel`/`TestModel` as the
-  model double to force tool-call sequences; `capture_run_messages()` for the
-  trajectory log; `UsageLimits(request_limit=...)` for cap enforcement;
-  `harness_condition.force_step_cap` = a `FunctionModel` that keeps requesting
-  tools and never final-answers, so the cap fires at the configured limit;
-  `tool_always_errors` swaps the named tool for an erroring double. Since
+  `input.fixture`. Per-stack model doubles, capture sources and cap handling:
+  see the binding file named in the stack card
+  (`skills/build/references/bindings/<card-id>.md`). Since
   "step" and "tool call" are distinct caps in most specs, the loop must count
   them separately and expose both — do not rely on a framework's single
   request limit to mean both. `messages[]` (debounce) replay requires the
