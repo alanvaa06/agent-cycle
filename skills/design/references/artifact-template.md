@@ -65,3 +65,34 @@ No schemas here — /spec owns contracts.
 ## 7. Open questions → /spec
 
 <Non-empty. Anything unresolved. /spec interviews ONLY on these.>
+
+## 8. Stack decision
+
+Appended last on purpose: /spec cites §4 and §7 by number.
+
+- **Chosen:** `<card-id>@<exact version>` — or `off-catalog:<name>@<version>`
+- **Why:** <one paragraph tying the pick to this design's facts>
+
+| Candidate | Pros (cited) | Cons (cited) |
+|---|---|---|
+| <card-id> | <card fact + URL / design fact> | <card fact + URL, incl. binding-level costs: custom seams, own a2a server, vendor-only model, egress switch-off> |
+
+| Eliminated | Filter that eliminated it |
+|---|---|
+| <card-id> | <e.g. model portability required; card is vendor-only (anthropic)> |
+
+**Relaxed filters:** <none, or which and why>
+
+**Verification log:**
+
+| Fact re-verified | Source | Date |
+|---|---|---|
+| <fact> | <url> | <YYYY-MM-DD> |
+
+**Catalog drift:**
+
+| Card says | Docs now say | Source | Date |
+|---|---|---|---|
+| <...> | <...> | <url> | <YYYY-MM-DD> |
+
+**Suspicious content seen:** <none, or page URL + short excerpt>
