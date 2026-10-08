@@ -41,6 +41,22 @@ coverage map.
 - Ingress spot-checks: signature-over-raw-body before parsing, sender
   allowlist before the loop, dedupe on the channel message id — present in
   the code, cite file:line.
+- Runtime pin: read spec.md's frontmatter `runtime`, strip a leading
+  `off-catalog:` prefix and split on the LAST `@`. Show the lockfile line
+  (command + output) for each case:
+  - `<card-id>@<version>`: the lockfile line for the card's package (named by
+    the agent-cycle plugin's `skills/build/references/bindings/<card-id>.md`,
+    its frontmatter and "Pinned version and traps" list) equals exactly the
+    spec's version.
+  - `no-framework@n/a`: every pin the `no-framework` binding lists is exact
+    in the lockfile (hashed where the next bullet requires it).
+  - `off-catalog:<name>@<version>`: the named package is exactly that version.
+  Any range, or any other version, is a finding routed to build.
+- Install-time supply chain: for each spec §4 "Stack security rows" row whose
+  BHV column cites build rule 9 hash pins, show that the lockfile or
+  requirements file carries hashes for the named dependency (command +
+  output, for example the `--hash=` lines of that package). Missing hashes are
+  a finding routed to build.
 
 ## Section 4 — Anti-gaming audit
 

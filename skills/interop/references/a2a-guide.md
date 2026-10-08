@@ -33,16 +33,27 @@ Remote agents are UNTRUSTED counterparties, always:
 
 ## Step 3 — Executor binding
 
-Declare how THIS runtime speaks A2A — never assume:
-- **ADK (first documented binding):** the A2A executor pattern — an
-  AgentExecutor wrapping `LlmAgent` + `Runner` as the reasoning core;
-  `google-adk[a2a]` extras; the Task API maps to A2A task semantics.
-- **Custom runtimes (Pydantic AI, LangGraph, etc.):** an explicit handler
-  service that accepts A2A task messages, feeds them to the agent loop as
-  turns, persists interrupted state in the session store (the build's
-  repository interface), and emits protocol-conformant responses. If the
-  build lacks such a handler, adding it is a BUILD change (re-entry), not
-  something this phase improvises.
+Declare how THIS runtime speaks A2A — never assume. Read the "A2A and MCP"
+section of the agent-cycle plugin's
+`skills/build/references/bindings/<card-id>.md`. Take the card id from
+spec.md's `runtime` (`<card-id>@<version>`, or `no-framework@n/a`, whose
+binding is `no-framework.md`); for `off-catalog:<name>@<version>` there is no
+binding file, so read the "A2A and MCP" section of build.md's "Off-catalog
+binding". The section states the paths the stack offers:
+- **native** (CrewAI client; ADK, experimental in both roles);
+- **licensed server** (LangChain family via LangSmith Agent Server, only when
+  a license is accepted);
+- **own `a2a-sdk` server** in front of the ingress queue (available on every
+  stack).
+
+Record in interop.md which path was chosen and whether it is licensed or free.
+If the binding says the native server bypasses the ingress queue, the session
+key, the caps or the HITL gate, the record must say so and the path is the
+own `a2a-sdk` server, unless the design explicitly accepts that bypass (cite
+where). The own server is the recommended path under HITL: a native server can
+run tasks outside the queue and the gate. If the chosen path requires a
+handler the build does not have, adding it is a BUILD change (re-entry), not
+something this phase improvises.
 
 ## Step 4 — Registry decision
 
