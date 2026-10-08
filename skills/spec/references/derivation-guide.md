@@ -8,7 +8,14 @@ Read `docs/agent/design.md`. Hard-fail (write nothing, say why, stop) if:
 - the file does not exist → "run agent-cycle:design first";
 - frontmatter `status` != `approved` → "design is draft; approve it at the
   design gate first";
-Record `design_version` = the design's `version` field. If the user asks to
+- §8 Stack decision is missing, or has no "Chosen" stack (an approved design
+  written before v0.11, or a §8 that never recorded a pick) → "design has no
+  stack decision; re-open design (re-entry: set status draft, run Phase E
+  only, bump its version, re-approve)";
+Record `design_version` = the design's `version` field. Record `runtime` =
+the design §8 "Chosen" value, verbatim (`<card-id>@<version>`,
+`no-framework@n/a`, or `off-catalog:<name>@<version>`) — never re-pick or
+re-version it here. If the user asks to
 change something the design already decided (scope, tools, deployment,
 NO-goals), do NOT fold it in here — that is the re-entry ladder: the design
 must be re-opened, bumped, and re-approved first.
@@ -63,8 +70,16 @@ summary. Security: every untrusted surface from the design gets a handling row
 + a BHV scenario reference; untrusted status follows the DESIGN's threat model,
 not a blanket per-channel default (an owner-only channel with allowlist
 enforcement may be trusted by design). Also cover least-privilege scoping per
-credential and the PII/secrets outbound rules from the design's NO-goals. Data:
-schemas behind the repository interface named in the design's sessions seam.
+credential and the PII/secrets outbound rules from the design's NO-goals.
+Stack traps: copy design §8 "Mandatory spec security rows" into §4 — one row
+each (handling = the obligation, e.g. "default trace exporter disabled"),
+each traced to at least one BHV scenario. Do not re-derive the list from the
+card; open `design/references/stacks/<card-id>.md` only to look up the
+card's wording and URL for a trap §8 already lists. `off-catalog:` stacks:
+the rows come from §8's cited cons. Data:
+schemas behind the repository interface named in the design's sessions seam;
+read §8 "Concrete per-seam binding" to name the chosen store (the interface
+itself stays stack-neutral).
 
 ## Step 6 — Format tax check
 

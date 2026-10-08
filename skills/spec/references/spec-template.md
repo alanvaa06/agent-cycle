@@ -5,6 +5,8 @@ TARGET AGENT'S repo. Default is ONE file; split into a `specs/` folder only if
 the single file would exceed ~400 lines. Frontmatter is mandatory —
 `design_version` pins which design this spec was derived from (staleness
 detection: if design.md's version moves past it, this spec is stale).
+`runtime` pins the stack design §8 chose; it is copied, never edited here —
+changing it is a design re-entry.
 
 ---
 agent_name: <same-as-design>
@@ -12,6 +14,7 @@ version: 1
 status: draft            # draft | approved — approved ONLY via explicit human gate
 date: <YYYY-MM-DD>
 design_version: <version of the design.md consumed>
+runtime: <card-id>@<version>   # copied verbatim from design §8 "Chosen"; or no-framework@n/a, or off-catalog:<name>@<version>
 ---
 
 # <Agent Name> — Spec
@@ -79,6 +82,15 @@ channel-less agents: one line — "not applicable because <reason>".
 |---|---|---|
 | <e.g. inbound WhatsApp text> | <attacker-writable> | <extraction boundary, never in system prompt, sanitized echo> |
 
+- **Stack security rows** — copied from design §8 "Mandatory spec security
+  rows" (the chosen stack's `[security]`/`[data]` traps, plus the egress
+  switch-off row only when design Q4 set an egress constraint). Off-catalog:
+  from §8's cited cons. One row each, no omissions:
+
+| Trap / obligation | Handling | Source (card URL) | BHV |
+|---|---|---|---|
+| <e.g. default trace exporter on> | <the obligation, e.g. exporter disabled> | <url> | BHV-NNN |
+
 - **Least privilege:** scopes per credential, read provisioned separately from
   write.
 - **Injection posture:** what happens when embedded instructions are detected
@@ -89,7 +101,8 @@ channel-less agents: one line — "not applicable because <reason>".
 ## 5. Data
 
 Schemas for session/state/dedupe behind a repository interface (the design's
-sessions seam). Tables/collections with fields, key strategy, TTLs. YAML for
+sessions seam; the interface stays stack-neutral — note the chosen store from
+design §8 "Concrete per-seam binding"). Tables/collections with fields, key strategy, TTLs. YAML for
 anything nested >3 deep.
 
 ## 6. Traceability
