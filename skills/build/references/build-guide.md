@@ -40,7 +40,8 @@ the spec's version (the binding's transitive pins hold only at
 until their spikes pass. The spikes always run (Step 4); on a version
 difference EVERY spike of the binding runs on the spec's version. A failing
 spike is a re-entry (per the binding's own failure path), never a silent
-downgrade to `version_pinned`.
+downgrade to `version_pinned`. Facts marked "re-observe" count as unverified at
+ANY version until their spike passes, and their spikes always run.
 
 Off-catalog runtime (`off-catalog:<name>@<version>`): no binding exists.
 Derive the same eight sections (Sessions and state, HITL gate, Caps, Model
