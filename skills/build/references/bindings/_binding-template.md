@@ -109,7 +109,8 @@ runner.
 - Tool-surface preflight: the eval runner AND a permanent CI unit test assert
   that the FIRST model request's tool names equal the spec's tool set (plus any
   built-in the binding deliberately keeps, each with its reason in build.md).
-  Test doubles must not change the tool surface.
+  Test doubles must not change the tool surface. Name how the first
+  request's tool names are observed.
 - Name the capture source.>
 
 ## A2A and MCP
