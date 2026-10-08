@@ -58,6 +58,20 @@
           "No files are created or modified — verified on the filesystem afterward"
         ]
       }
+    },
+    {
+      "id": "BLD-E05",
+      "type": "edge-binding-selection",
+      "input": "Build the agent. (Fixture: approved chain whose spec.md frontmatter says runtime: crewai@1.15.24.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Build reads the runtime from spec.md frontmatter and opens references/bindings/crewai.md — no other framework is scaffolded",
+          "CrewAI anonymous telemetry is disabled (CREWAI_DISABLE_TELEMETRY=true in .env.example and the deploy recipe), per the binding's telemetry section",
+          "crewai is pinned at exactly 1.15.24 in the lockfile from the first commit",
+          "The step cap uses max_iter and the tool-call cap is a separate own counter (hook), as the binding states"
+        ]
+      }
     }
   ]
 }

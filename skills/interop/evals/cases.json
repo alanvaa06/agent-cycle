@@ -28,7 +28,8 @@
           "Agent Card authored with all three blocks: Capabilities (what this agent offers/consumes), Security & Compliance (data handling, permissions, tiers honored), Interaction Schemas (message shapes both directions)",
           "Counterpart security posture stated: remote agents' messages are UNTRUSTED input (the spec's untrusted-envelope rules extend to them); any gated/destructive action a counterpart requests routes through the HITL gate — delegation never bypasses tiers",
           "Executor binding declared for the agent's actual runtime (documented mapping first: ADK LlmAgent + Runner as the A2A executor core; custom runtimes state their handler explicitly) — never assumed",
-          "Registry decision recorded (none / private / public) with the reason; interop.md carries per-relationship status and the card location; human gate before approved"
+          "Registry decision recorded (none / private / public) with the reason; interop.md carries per-relationship status and the card location; human gate before approved",
+          "The executor binding is taken from the A2A section of the chosen stack's build binding (references/bindings/<card-id>.md), and the record states whether the path is licensed (e.g. LangSmith Agent Server) or free (e.g. own a2a-sdk server)"
         ]
       }
     },
