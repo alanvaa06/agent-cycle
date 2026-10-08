@@ -16,3 +16,4 @@ Filter mapping used by design Phase E:
 |---|---|---|---|---|---|---|---|---|
 | langgraph | runtime | none | any | licensed-server | beta | semver-stable | none (LangSmith tracing only when enabled) | 2026-10-07 |
 | langchain-create-agent | framework | langgraph | any | licensed-server | beta | semver-stable | none (LangSmith tracing only when enabled) | 2026-10-07 |
+| deep-agents | harness | langchain-create-agent | any | licensed-server | beta | pre-1.0 | none (LangSmith tracing only when enabled) | 2026-10-07 |
