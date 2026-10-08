@@ -73,7 +73,7 @@ per session); durability settings.
   The repair treats `running` or a missing status row as a crash and writes
   "outcome unknown", never "not executed". A turn that ended in a pause has
   the status `awaiting_approval`; the repair maps it to nothing (the pending
-  record owns it).
+  record owns it). A resume sets the turn status back to `running`.
 - Every spike states its pass test and runs before build-guide Step 4. Every
   sessions/store spike, on failure, STOPS and raises a re-entry on the
   design's sessions seam; never a silent store swap. Other spikes state their
@@ -95,11 +95,15 @@ rules for work done before the pause.
   record is deleted only in the post-run transaction. Spike pass test: resume
   -> second pause -> second approval yields distinct keys and the second tool
   body runs.
-- Resume-started marker: before running a resume, set `resume_started` on the
-  pending record in a committed write (a resume may run tools and then crash).
-  If step 2a (expiry) or a deny later finds the flag set, the notice for the
-  pending calls is "outcome unknown - do not retry without the user", never
-  "was not run"; the flag is deleted with the record.
+- Resume-started marker: at step 2 capture `prior` = the pending record's
+  `resume_started` and choose the deny/expiry notice text from `prior`. Set
+  (commit) the flag ONLY right before a resume that can run tools (approve,
+  edit, deny-and-continue); a reject-only or deny-ends-turn path never sets it.
+  If `prior` is set at step 2a (expiry) or a deny, the notice for the pending
+  calls is "outcome unknown - do not retry without the user", never "was not
+  run" (a resume may have run tools and then crashed); the flag is deleted with
+  the record. Spike pass test: an ordinary deny writes "was not run"; a deny
+  after a crashed approve-resume writes "outcome unknown".
 - The decision value shape (approve / deny / edit); deny and expiry behavior.
 - If a message for a pending session does not parse as a decision: keep the
   interrupt pending and reply with the spec's pending-approval prompt (or deny
