@@ -90,7 +90,7 @@ No schemas here — /spec owns contracts.
 
 **Relaxed filters:** <none, or which and why>
 
-**Mandatory spec security rows:** <e.g. switch off the chosen card's default egress; the card's [security] and [data] traps>
+**Mandatory spec security rows:** <the CHOSEN card's [security] and [data] traps, always; plus switching off its default egress only when Q4 set an egress constraint. Rows of cards not chosen do not go here>
 
 **Concrete per-seam binding** (from the chosen card's §3):
 
