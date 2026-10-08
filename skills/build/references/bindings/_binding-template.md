@@ -59,7 +59,10 @@ per session); durability settings.
   (new id) in that same transaction. "Ended in a pause" = pending calls
   non-empty AND the run completed without an exception or timeout; otherwise
   discard the pending calls (a wall-clock abort with a gated call pending must
-  not write a record).
+  not write a record). Checkpointer stacks: a pending interrupt found at step 2
+  with no record (crash after the checkpoint commit, or a timeout after the
+  interrupt was checkpointed) gets a fresh record (new UUID `approval_id`,
+  `requested_at` = now) before prompting or resuming.
 - Crash marker (own-loop stacks): write the turn status `running` at turn
   start, after the repair, and overwrite it with the outcome on every exit.
   The repair treats `running` or a missing status row as a crash and writes
