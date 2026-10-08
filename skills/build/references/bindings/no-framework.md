@@ -41,6 +41,7 @@ async def _execute(self, st, calls, decision=None):               # persisted or
         if (p := self.problem(c)):                st.new.append(row(c, f"error: {p}", "rejected")); continue   # [S7]
         if decision and decision.denies(c):       st.new.append(row(c, decision.text, "denied")); continue
         key = f"{st.approval_id}:{c.id}" if st.approval_id and self.tier(c) != "safe" else None
+        st.executed.append(c)                                       # body entry, after validation: the `forbidden` record
         try:    out, kind = await self.run_tool(c, key), "result"   # sync bodies run through asyncio.to_thread, or async-only
         except Exception: out, kind = "tool failed", "error"        # fixed text, never the exception message
         st.new.append(row(c, out, kind))
@@ -49,7 +50,9 @@ async def run(self, st, history, resume=None):   # resume = (persisted calls, de
     t0 = time.monotonic()                        # before the try, so the finally never sees an unbound name
     try:
         async with asyncio.timeout(CAPS.wall_clock - st.elapsed_s):    # remaining budget; Python 3.11+
-            if resume: await self._execute(st, resume.calls, resume.decision)
+            if resume:
+                await self._execute(st, resume.calls, resume.decision)
+                st.approval_id = None                       # the key belongs to the persisted batch only
             await self._loop(st, history)
     except TimeoutError: st.exit = "wall_clock"; self._close(st, history, UNKNOWN)  # clears st.pending; notice rows for unanswered calls
     except Exception:    st.exit = "error";      self._close(st, history, UNKNOWN)
@@ -120,6 +123,7 @@ async def run(self, st, history, resume=None):   # resume = (persisted calls, de
 - Idempotency key (G5): for every call executed on a resume whose tool is not safe, `"<approval_id>:<tool_call_id>"`, unique per APPROVED CALL.
   - `approval_id` is the fresh UUID of the row written at that pause; `tool_call_id` is the provider's call id read from the persisted batch, so the key is stable across queue redelivery (the row is deleted only in the post-run transaction).
   - A resume that pauses again writes a new row with a new id, so keys are never reused across pauses or turns.
+  - The key belongs to the persisted batch only: `approval_id` is cleared from the `Turn` once the resumed batch has executed, so calls of the continued loop get no key from it (observed, spike 5 follow-up).
   - The loop passes the key to the tool body as a parameter that is NOT in the schema shown to the model; a model-supplied value is ignored. A backend with a key-length limit receives a hash of the key.
   - A crash after the approved body ran but before commit (a) leaves the row with `resume_started = true`; the redelivered message resumes again and the body runs again with the SAME key (observed, spike 5).
   - Calls of an un-paused turn have no key (their redelivery re-asks the model, so no stable id exists); they are safe or reversible-auto by design policy.
@@ -175,7 +179,7 @@ async def run(self, st, history, resume=None):   # resume = (persisted calls, de
 
   | Route | Final answer | Tool request | Everything else -> outcome error |
   |---|---|---|---|
-  | Anthropic Messages | `end_turn` | `tool_use` | `max_tokens`, `stop_sequence`, `pause_turn`, `refusal`, `model_context_window_exceeded` (values: https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons ) |
+  | Anthropic Messages | `end_turn` | `tool_use` | `max_tokens`, `stop_sequence` (the binding sets no `stop_sequences`), `pause_turn`, `refusal`, `model_context_window_exceeded` (values: https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons ) |
   | OpenAI Chat Completions | `stop` | `tool_calls` | `length`, `content_filter`, any other value (values not stated on the pages read, unverified) |
   | OpenAI Responses | status `completed`, no `function_call` item | `function_call` items | `incomplete`, `failed`, any other status (unverified) |
   | LiteLLM | `stop` | `tool_calls` (documented on the function_call page) | `length`, `content_filter`, any other value (provider values are mapped by LiteLLM, unverified) |
@@ -225,7 +229,7 @@ async def run(self, st, history, resume=None):   # resume = (persisted calls, de
 - Model double: a `ScriptedModel` implementing the same `complete(messages, tool_specs, route)` signature as the adapters; it returns scripted `Reply` objects (calls, then a final text), records every request, and makes no network call. A scripted reply may hold several calls, so batch and cap branches run without a provider. The provider-specific conversion is covered by spike 4 and by adapter unit tests on the request payload.
 - Trajectory vs forbidden, one rule:
   - trajectory = the REQUESTED calls `(name, args)` read from the `tool_calls` of the stored assistant rows in order, including calls the cap blocked or the approver denied;
-  - `forbidden` = the EXECUTED calls (tool rows of kind `result` or `error`) plus the reply text. A call refused before its body runs (unknown tool, invalid JSON or schema, cap-blocked, denied, expired) is NOT executed; executed = a tool body actually ran, whether it succeeded or raised.
+  - `forbidden` = the EXECUTED calls plus the reply text. The source of truth for executed is the tool wrapper: `_execute` records `(tool name, args, call id)` into `st.executed` at body entry, AFTER argument validation and immediately before the body runs, so a refusal (unknown tool, invalid JSON or schema, cap-blocked, denied, expired) never reaches it; executed = a tool body actually ran, whether it succeeded or raised. Tool rows of kind `result` or `error` agree with that list.
 - The pipeline runner implements EXACT, IN_ORDER and ANY_ORDER itself over the trajectory list with `args_subset` matching (golden-format: expected args a subset of actual; never full-argument equality). pass^k is computed by the pipeline runner from its own per-case results (k live runs through the same handler). No framework evaluator exists or is needed.
 - Approvals in a case: the fixture's approvals enter the handler as decision messages; when they run out while a pause is pending the runner fails the case with an explicit error, never waits.
 - Tool-surface preflight: the eval runner AND a permanent CI unit test assert that the FIRST model request's tool names equal the spec's tool set (this binding keeps no built-in tool; any addition needs its reason in `build.md`).

@@ -65,7 +65,7 @@ Further sources for the rows above:
 ## 5. Pick when / avoid when
 Pick when the agent is the typical client tool agent that needs HITL with v1 stability: create_agent is described as a minimal, highly configurable harness for a customizable agent (https://docs.langchain.com/oss/python/langchain/overview ) and the docs point to LangChain for straightforward applications without complex orchestration (https://docs.langchain.com/oss/python/concepts/products ).
 Avoid when the orchestration needs explicit graph control or mixed deterministic and agentic steps: the overview points those to LangGraph (https://docs.langchain.com/oss/python/langchain/overview ).
-Avoid when A2A serving is required and no paid license is acceptable: A2A is documented on Agent Server (no OSS-library endpoint is documented) and a standalone server needs a license key, so the index filter eliminates this card in that case (https://docs.langchain.com/langsmith/server-a2a.md , https://docs.langchain.com/langsmith/deploy-standalone-server.md ). An own a2a-sdk server is a build option only when a license is acceptable or A2A is not a hard filter (inference).
+Avoid when A2A serving is required and no paid license is acceptable: A2A is documented on Agent Server (no OSS-library endpoint is documented) and a standalone server needs a license key (https://docs.langchain.com/langsmith/server-a2a.md , https://docs.langchain.com/langsmith/deploy-standalone-server.md ). The con to cite: the build adds its own a2a-sdk server in front of the ingress queue; the licensed Agent Server path is an option only when a license is acceptable (inference).
 
 ## 6. Build binding
 `skills/build/references/bindings/langchain-create-agent.md`

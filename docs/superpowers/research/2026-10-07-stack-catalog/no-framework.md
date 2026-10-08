@@ -139,3 +139,7 @@ Same scratch skeleton, extended with the review fixes and re-run (all earlier ca
 - Route kept on the pending record and restored on the resumed `Turn`. `_close` clears `pending` and `t0` is taken before the `try`.
 - Not covered by any run: real adapters, the per-route stop-reason mapping (unverified for OpenAI Chat, Responses and LiteLLM values: the OpenAI function-calling page does not list them), `litellm.register_model`, family-switch id remapping.
 - Anthropic stop reasons (https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons): `end_turn`, `max_tokens`, `stop_sequence`, `tool_use`, `pause_turn`, `refusal`, `model_context_window_exceeded`; for a `max_tokens` stop with an incomplete `tool_use` block the page advises retrying with a higher `max_tokens`; the binding chooses outcome `error` instead. No text addressed to AI agents.
+
+### Second re-run (2026-10-08)
+- Executed record: `st.executed` is appended at body entry, after validation and the denied check; a cap-blocked batch left it empty, and the resumed run listed exactly the bodies that ran (`b`, `e1`).
+- Approval key: after the resumed batch executed, `approval_id` was cleared; a later reversible auto call in the continued loop received no key (`None`).

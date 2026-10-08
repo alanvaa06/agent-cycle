@@ -162,10 +162,12 @@ runner.
 - Framework evaluators are optional references only.
 - One rule for trajectory vs forbidden: trajectory = the REQUESTED tool calls
   (name, args) read from the model messages; `forbidden` = the EXECUTED calls
-  (tool messages) plus the reply text (adapter-bindings.md). A call
-  refused before its body runs (unknown tool, invalid JSON or schema,
-  cap-blocked, denied, expired) is NOT executed for `forbidden`; executed = a
-  tool body actually ran, whether it succeeded or raised. No per-case
+  (the wrapper's list) plus the reply text (adapter-bindings.md). The source of
+  truth for executed is the tool wrapper: it records (tool name, args, call
+  id) into the turn's executed list at body entry, AFTER argument validation
+  and immediately before the body runs, so a refusal (unknown tool, invalid
+  args, cap-blocked, denied, expired) never reaches it; executed = a tool
+  body actually ran, whether it succeeded or raised. No per-case
   guessing.
 - Tool-surface preflight: the eval runner AND a permanent CI unit test assert
   that the FIRST model request's tool names equal the spec's tool set (plus any

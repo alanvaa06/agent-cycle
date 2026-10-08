@@ -6,10 +6,8 @@ cards never appear here. Values are copied from each card's frontmatter and
 
 Filter mapping used by design Phase E:
 - "must switch model provider" → eliminate rows whose model_portability is `vendor-only (...)`.
-- "talks to other agents, no paid license acceptable" → eliminate `licensed-server` in a2a.
-- "talks to other agents, license acceptable" → no a2a elimination.
+- "talks to other agents" → no a2a elimination. `licensed-server`, `none` and `server-only` all mean the build adds its own a2a-sdk server in front of the ingress queue: cite it as a con of the candidate (for `licensed-server` add "the licensed Agent Server path is not used").
 - "telemetry may not leave to third parties" → every candidate whose default_egress is not `none` carries a mandatory spec security row to switch it off (not an elimination unless it cannot be switched off).
-- a2a `none` or `server-only` means the build adds its own a2a-sdk server in front of the ingress queue: cite it as a con of the candidate, never as an elimination.
 - Python only (all cards are Python).
 
 ## Filter table
