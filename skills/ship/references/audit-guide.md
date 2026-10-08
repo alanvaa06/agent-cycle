@@ -42,16 +42,33 @@ coverage map.
   allowlist before the loop, dedupe on the channel message id — present in
   the code, cite file:line.
 - Runtime pin: read spec.md's frontmatter `runtime`, strip a leading
-  `off-catalog:` prefix and split on the LAST `@`. Show the lockfile line
-  (command + output) for each case:
-  - `<card-id>@<version>`: the lockfile line for the card's package (named by
-    the agent-cycle plugin's `skills/build/references/bindings/<card-id>.md`,
-    its frontmatter and "Pinned version and traps" list) equals exactly the
-    spec's version.
-  - `no-framework@n/a`: every pin the `no-framework` binding lists is exact
-    in the lockfile (hashed where the next bullet requires it).
+  `off-catalog:` prefix and split on the LAST `@`. Show the lockfile entry
+  (command + output) for the form the spec uses:
+  - `<card-id>@<version>`: the lockfile entry for the card's package (the
+    `package:` field in the frontmatter of the agent-cycle plugin's
+    `skills/design/references/stacks/<card-id>.md`; the binding's "Pinned
+    version and traps" names any alternative, e.g. `pydantic-ai-slim`) equals
+    exactly the spec's version. Compare names case-insensitively with `-`,
+    `_` and `.` treated as equivalent.
+  - `no-framework@n/a`: each package pinned in `bindings/no-framework.md`
+    section "Pinned version and traps" that appears in the lockfile is at
+    exactly the listed version (packages the design does not use are absent,
+    not findings), and every lockfile entry carries hashes (the binding
+    requires it).
   - `off-catalog:<name>@<version>`: the named package is exactly that version.
-  Any range, or any other version, is a finding routed to build.
+  Lockfile = the one the deploy recipe/Dockerfile installs from (`uv.lock`,
+  `poetry.lock`, or a compiled `requirements.txt`; `package-lock.json` or
+  `pnpm-lock.yaml` for an npm-scoped off-catalog name). `uv.lock` or
+  `poetry.lock`: `grep -n -A1 '^name = "<pkg>"$' <lockfile>` shows
+  `version = "<v>"`. `requirements.txt`: `grep -n -i -A3 '^<pkg>==' requirements.txt`
+  shows `<pkg>==<v>` and its `--hash=` lines. Also cite the install command in
+  the deploy recipe that reads that lockfile (with `--require-hashes` or the
+  manager's equivalent when the hash bullet below applies). No lockfile, the
+  package absent, or a deploy that installs around the lockfile is a finding
+  routed to build.
+
+  A range in the requirements file, or any other version, is a finding routed
+  to build.
 - Install-time supply chain: for each spec §4 "Stack security rows" row whose
   BHV column cites build rule 9 hash pins, show that the lockfile or
   requirements file carries hashes for the named dependency (command +
