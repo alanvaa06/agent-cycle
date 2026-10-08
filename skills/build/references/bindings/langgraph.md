@@ -17,7 +17,7 @@ Facts below cite the same sources as the card (`skills/design/references/stacks/
 - Supabase: use the direct connection or the Supavisor session mode (port 5432); never the transaction pooler (port 6543), which does not support prepared statements (psycopg3 uses them by default, inference). Source: https://supabase.com/docs/guides/database/connecting-to-postgres
 - Supabase schema: put the checkpoint tables in a schema that is not exposed through the Data API (for example `agent_state`, selected via the connection's search_path; the search_path wiring is unverified, so confirm it with a spike) and enable RLS on them. Source: https://supabase.com/docs/guides/database/postgres/row-level-security
 - Supabase Free plan: projects are paused after 1 week of inactivity, so it is not for production. Source: https://supabase.com/pricing
-- DynamoDB: `langgraph-checkpoint-aws` provides the checkpointer (the class is named DynamoDBSaver in the research digest; the docs page lists only the package, so confirm the class name when you pin the package). Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
+- DynamoDB: `langgraph-checkpoint-aws` provides the checkpointer (the class is named DynamoDBSaver in the research digest; the docs page lists only the package, so confirm the class name when you pin the package). The same page also lists a separate community package, `langgraph-dynamodb-checkpoint` (agentstate); prefer the AWS package and confirm either with a spike. Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
 - Firestore: no official checkpointer (a community package exists, unverified for production); on GCP use Cloud SQL Postgres. Source: https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
 
 ## HITL gate
@@ -53,10 +53,10 @@ Facts below cite the same sources as the card (`skills/design/references/stacks/
   - (a) Licensed LangSmith Agent Server `/a2a/{assistant_id}`: A2A v1.0 JSON-RPC, push notifications not supported, the graph state must include a `messages` key. Source: https://docs.langchain.com/langsmith/server-a2a.md ; a standalone server needs `LANGGRAPH_CLOUD_LICENSE_KEY` and reaches beacon.langchain.com for license verification and usage reporting (unless air-gapped). Source: https://docs.langchain.com/langsmith/deploy-standalone-server.md
   - (b) Free: your own server built with `a2a-sdk` that wraps the compiled graph and persists interrupted state through the checkpointer (the digest's path; own code, inference). Source: https://docs.langchain.com/langsmith/server-a2a.md
 - MCP client: `langchain[mcp]>=1.4.0`, `MCPAdapter` (beta, the API may change). Source: https://docs.langchain.com/oss/python/langchain/mcp
-- Serving MCP (`/mcp`) is Agent Server only. Source: https://docs.langchain.com/langsmith/server-mcp.md
+- Serving MCP (`/mcp`) is documented on Agent Server; no OSS-library endpoint is documented. Source: https://docs.langchain.com/langsmith/server-mcp.md
 
 ## Pinned version and traps
-- Pins: `langgraph==1.2.14`, `langgraph-checkpoint-postgres` (exact version), `langchain-litellm` (exact version). Source: https://docs.langchain.com/oss/python/concepts/products
+- Pins: `langgraph==1.2.14`, `langgraph-checkpoint-postgres` (exact version), `langchain-litellm` (exact version). Source: https://pypi.org/project/langgraph/
 - Obligation (ops): interrupt() re-runs the node on resume, so side effects before it are idempotent. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
 - Obligation (ops): the OSS library has no per-thread locking and double-texting is not available there; the adapter queue serializes turns. Source: https://docs.langchain.com/langsmith/double-texting.md
 - Obligation (data): do not set `LANGSMITH_TRACING` unless LangSmith is the chosen backend; use `LANGSMITH_OTEL_ONLY` for OTel-only export. Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
