@@ -61,5 +61,7 @@ Value meanings:
 - `stability`: `semver-stable` = breaking changes only in majors (published
   policy); `fast-moving` = >=1.0 but breaking changes observed in minors or
   patches; `pre-1.0` = 0.x; `alpha` = marked alpha; `own-code` = no framework.
+- `[security]`/`[data]` tags are for risks of the deployed agent at runtime or
+  install time; maintainer-facing risks use `[ops]`.
 - `support`: `native` = built in; `adapter` = official or small documented
   adapter; `custom` = the build writes it.

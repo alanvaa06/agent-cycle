@@ -18,8 +18,8 @@ inform judgment; none is required.
 
 1. GATE FIRST: hard-fail if `docs/agent/design.md` is missing or not
    `status: approved`. Also hard-fail when design §8 Stack decision is missing
-   or has no chosen stack (route to design's re-entry: re-open, run Phase E
-   only, bump version, re-approve). Write nothing. Name the gate.
+   or has no chosen stack (route to design re-entry per agent-cycle:design's
+   re-entry rule). Write nothing. Name the gate.
 2. The design is settled law. Interview ONLY on its §7 open questions, one
    question per message. A request to change an approved design decision goes
    to the re-entry ladder (re-open design, bump version, re-approve) — never
@@ -30,14 +30,15 @@ inform judgment; none is required.
    extra=forbid. Errors as observations. FINAL tier per tool — tier changes vs
    the design's guess carry a one-line justification.
 5. Every untrusted surface named in the design appears in §4 with handling AND
-   at least one injection-attempt BHV scenario.
+   at least one injection-attempt BHV scenario. §4 also carries the chosen
+   stack's security rows (copied from design §8 "Mandatory spec security
+   rows"), each traced to a BHV scenario.
 6. Format tax: Markdown headers; YAML only for schemas nested >3 deep.
 7. ONE spec.md by default; split only if >~400 lines. Sections that don't
    apply collapse to one line with the reason — never padded.
 8. Artifact carries frontmatter `agent_name, version, status: draft, date,
-   design_version, runtime` (`runtime` copied verbatim from design §8
-   "Chosen"; §4 Security copies §8's mandatory security rows, each traced to a
-   BHV scenario). Approved ONLY at the explicit human gate. Never
+   design_version, runtime` (`runtime` = the value inside the backticks of
+   design §8 "Chosen", nothing else). Approved ONLY at the explicit human gate. Never
    self-approve. Write ONLY `docs/agent/spec.md`.
 
 ## Workflow
@@ -48,7 +49,8 @@ inform judgment; none is required.
 3. Fill `references/spec-template.md`. Write `docs/agent/spec.md`
    (`status: draft`, `design_version` pinned).
 4. Present summary: capability list, BHV count per capability, tier changes vs
-   design (with justifications), conversation mechanics decided at spec level
+   design (with justifications), the pinned `runtime`, the stack security rows
+   table (rows added as "not in design §8" flagged), conversation mechanics decided at spec level
    (e.g. debounce), untrusted-surface table, open questions.
 5. Explicit approval → `status: approved`. Feedback → edit, re-present.
 6. Hand off: "Next phase: `agent-cycle:evals` reads this artifact."
@@ -63,4 +65,4 @@ inform judgment; none is required.
 - Padding non-applicable sections to look complete (violates rule 7).
 - Setting status: approved without the human gate (violates rule 8).
 - Writing a spec whose runtime differs from design §8, or omitting the chosen
-  stack's security/data traps from §4 (rules 1, 8).
+  stack's security/data traps from §4 (rules 5, 8).
