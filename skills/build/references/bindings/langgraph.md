@@ -27,7 +27,7 @@ Shape: a hand-built `StateGraph` with four parts: a model node, a gate node (HIT
   - DynamoDB (store spike): the pinned package imports the named saver class and a put/get round trip works against the target table.
   - Pending interrupt: after an `interrupt()`, `get_state(config)` exposes the pending interrupt via `state.tasks[*].interrupts` (pass test: the attribute is present and carries the interrupt payload; failure path: fix this binding and the worker's check, not a sessions-seam re-entry).
   - Durability (binding spike, not a store spike): `durability="sync"` is accepted by the exact call the worker uses (`invoke`, `ainvoke`, `stream` or `astream`); failure path: fix this binding (use the call or parameter the pinned version accepts), not a sessions-seam re-entry.
-- Worker post-run order: the checkpointer commit is the transaction (a) (state, plus the worker's pending-approval record with `requested_at` = now taken just before sending, and the turn status); then (b) send the prompt or reply; then (c) ack the queue message.
+- Worker post-run order: the checkpointer has committed during the run; then one repository transaction writes `requested_at` (now, taken just before sending) and the dedupe record's `processed_at` and reply text; then send the prompt or reply; then ack the queue message. A pending interrupt with no `requested_at` is treated as requested now. A dequeued message whose dedupe record has `processed_at` set is not re-run: re-send the stored reply if the send may not have happened, then ack.
 
 ## HITL gate
 - Recommended placement: a gate node between the model node and the tool node. It calls `interrupt()` once per gated tool call, in a fixed order, and resumes with `Command(resume=decision)` on the same `thread_id`. A durable checkpointer is required. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
@@ -41,7 +41,7 @@ Shape: a hand-built `StateGraph` with four parts: a model node, a gate node (HIT
 - Tier mapping: destructive -> `interrupt()` every time, never cached; reversible -> per design policy; safe -> no interrupt.
 - Everything before the `interrupt()` call re-runs on resume, so it must be idempotent; put non-idempotent work after it or in another node. Interrupts in a node are matched to resume values by position: never reorder them or skip them conditionally. Static breakpoints (`interrupt_before` / `interrupt_after`) are for debugging, not approvals. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
 - Deny and expiry spike (binding spike; failure path: fix this binding): after a deny under deny-ends-turn, and after an `expire` under either deny policy, zero further tool calls execute and the follow-up turn on the same `thread_id` works.
-- Eval runner: when the run returns an interrupt, the runner resolves it by calling `Command(resume=<next approval in the case fixture>)` on the same `thread_id`, until the graph finishes or the fixture runs out.
+- Eval runner: the fixture's approvals enter the worker handler as decision messages; the handler resumes with `Command(resume=<decision>)` on the same `thread_id`, until the graph finishes or the fixture runs out.
 
 ## Caps
 - Both caps are PER TURN. `tool_call_count` is reset by passing `tool_call_count: 0` in the input of every turn's invoke; the field has no reducer, so the input overwrites it (a key without a reducer is overwritten: https://docs.langchain.com/oss/python/langgraph/graph-api ). Never put an additive reducer on it.

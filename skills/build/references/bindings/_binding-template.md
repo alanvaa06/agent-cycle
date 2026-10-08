@@ -35,12 +35,21 @@ per session); durability settings.
   to the pending session's key before enqueueing.
 - Any one-time schema setup runs as a named one-shot migration job (compose
   service / ECS task / Cloud Run job), never from the worker.
-- Post-run commit order (all stacks): (a) ONE transaction that persists the
-  run's messages/state, writes or deletes the pending-approval record
+- Post-run commit order. Own-loop stacks: (a) ONE transaction that persists
+  the run's messages/state, writes or deletes the pending-approval record
   (`requested_at` = now, taken just before sending; the record is deleted in
-  the SAME transaction that stores the resume's messages) and sets the turn
-  status; (b) send the prompt or reply; (c) ack the queue message. For
-  checkpointer stacks the checkpointer commit is (a); send-then-ack still holds.
+  the SAME transaction that stores the resume's messages), sets the turn
+  status, and sets `processed_at` and the reply text on the ingress dedupe
+  record of the dequeued message; (b) send the prompt or reply; (c) ack the
+  queue message. Checkpointer stacks: the checkpointer has committed during
+  the run; then one repository transaction writes `requested_at` and the
+  dedupe record's `processed_at` and reply; then send; then ack. A pending
+  interrupt with no `requested_at` is treated as requested now.
+- Redelivery: the ingress dedupe record (keyed by the channel message id)
+  carries `processed_at` and the reply text. On dequeue, a message whose
+  record has `processed_at` set is not re-run: re-send the stored reply if the
+  send may not have happened, then ack. Ingress dedupe alone only catches
+  channel retries; this closes queue redelivery after a worker crash.
 - Crash marker (own-loop stacks): write the turn status `running` at turn
   start, after the repair, and overwrite it with the outcome on every exit.
   The repair treats `running` or a missing status row as a crash and writes
