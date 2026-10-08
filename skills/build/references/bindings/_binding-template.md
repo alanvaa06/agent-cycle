@@ -76,7 +76,9 @@ counted separately.
   AI message with tool calls lacking tool results. Repair runs at TURN START
   (idempotent, survives crashes): if the last AI message has tool calls
   without matching tool messages, append tool-result notices through the
-  framework's state-update call, attributed to a named node. A wall-clock
+  framework's state/history update API (or the repository, for own-loop
+  stacks), attributed to the right step/node where the framework requires
+  it. A wall-clock
   abort notice says "outcome unknown - do not retry without the user" (the
   tool may have run). Spike pass test: abort mid-turn, then a follow-up turn
   succeeds against the real provider.>
