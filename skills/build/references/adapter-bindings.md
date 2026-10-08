@@ -24,7 +24,12 @@ Universal rules regardless of target:
 - Ingress verifies the channel signature over the RAW body before parsing,
   returns 200 fast, and drops non-allowlisted senders BEFORE the loop.
 - Dedupe on the channel's message id with a unique index / conditional put —
-  retries and duplicates are guaranteed by the channel, not hypothetical.
+  retries and duplicates are guaranteed by the channel, not hypothetical. The
+  dedupe record also carries `processed_at` and the reply text, written in the
+  worker's post-run transaction; on dequeue a message whose record has
+  `processed_at` set is not re-run (re-send the stored reply if the send may
+  not have happened, then ack). Ingress dedupe alone only catches channel
+  retries; this closes queue redelivery after a worker crash.
 - The worker consumes the queue serially per session key (per-user by default;
   an approver's reply is keyed to the requester's session, so ingress resolves
   it to the pending session's key before enqueueing); a running turn is never
