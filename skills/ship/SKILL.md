@@ -26,7 +26,9 @@ NO-SHIP is the pipeline working.
    becomes NO-SHIP.
 6. Security re-verify is mandatory: adversarial status, least-privilege diff
    (real scopes vs spec), secret scan incl. git history, ingress spot-checks
-   with file:line.
+   with file:line; lockfile pins the spec's runtime framework at exactly the
+   spec's version (all three `runtime` forms), with hashes where spec §4 has
+   an install-time supply-chain row.
 7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
    (the baseline committed before the hook) to HEAD on evals/, design.md and
    spec.md minus the sanctioned allow-list; no recorded baseline is a
