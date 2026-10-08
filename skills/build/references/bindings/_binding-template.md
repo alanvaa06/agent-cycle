@@ -4,6 +4,13 @@ One file per active stack card, named `<card-id>.md`. Frontmatter
 `version_pinned` must equal the card's `version_verified`
 (`scripts/check_catalog.py` enforces it). Facts carry source URLs like cards.
 
+Rules for every binding:
+- Never refer to "the digest". Cite a URL or the research file path
+  (`docs/superpowers/research/2026-10-07-stack-catalog/<file>.md`), or mark the
+  statement `inference`.
+- Each section below must answer every obligation in its placeholder text, or
+  say explicitly why it does not apply to this stack.
+
 ```
 ---
 card: <card-id>
@@ -12,34 +19,74 @@ version_pinned: <exact version>
 
 # <Name> — build binding
 
+Shape: <the core object shape, built by an injectable factory in src/agent/
+(for example build_agent(model, store, tools)). Infra clients (DB drivers,
+savers) are constructed in adapters/<target>/ and injected; the core never
+imports infra SDKs. Framework state stores hold only conversation/graph state;
+dedupe and the spec's data schemas stay behind the repository interface. Name
+the framework construct this replaces, if any.>
+
 ## Sessions and state
 <Postgres (incl. Supabase) / DynamoDB / Firestore: official store or the
 adapter to write; per-session serialization (the queue guarantees one turn
-per session); durability settings.>
+per session); durability settings.
+- Queue ordering key = the session key, so one turn per session holds even
+  when an approver is a different sender.
+- Any one-time schema setup runs as a named one-shot migration job (compose
+  service / ECS task / Cloud Run job), never from the worker.
+- Every spike states its pass test, runs before build-guide Step 4, and on
+  failure STOPS and raises a re-entry on the design's sessions seam; never a
+  silent store swap.>
 
 ## HITL gate
 <How gated/destructive tiers pause for approval and resume; idempotency
-rules for work done before the pause.>
+rules for work done before the pause.
+- The numbered worker sequence: dequeue -> check this session for a pending
+  approval -> resume with the decision OR start a new turn.
+- The decision value shape (approve / deny / edit); deny and expiry behavior.
+- Tier mapping: destructive -> HITL every time, never cached; reversible ->
+  per spec policy; safe -> auto.
+- One recommended placement for the gate.
+- How the eval runner answers approvals from the case fixture.>
 
 ## Caps
 <Step cap and tool-call cap — native or own counter; the two are always
-counted separately.>
+counted separately.
+- Both caps are PER TURN: reset at turn start.
+- State the unit conversion between the framework's limit and the spec's step.
+- Both cap exits MUST produce the spec's single failure reply and the cap
+  outcome.
+- How the runner ensures the intended cap trips in
+  harness_condition.force_step_cap cases.
+- The wall-clock cap.>
 
 ## Model provider
-<How the LiteLLM-style config string maps; non-native providers' caveats.>
+<How the LiteLLM-style config string maps; non-native providers' caveats.
+- One selection rule between the options.
+- The route-string format conversion if the formats differ.>
 
 ## Telemetry
-<OTel GenAI setup, token counters, and how to switch OFF any vendor egress.>
+<OTel GenAI setup, token counters, and how to switch OFF any vendor egress.
+- A per-turn span carrying the spec's attributes and the outcome.
+- Where fallback spans hook in.
+- Telemetry spikes need a real model call (fakes report no usage).>
 
 ## Eval runner mapping
 <Model double, trajectory capture, EXACT/IN_ORDER/ANY_ORDER mapping, caps
 and harness_condition injection; pass^k is always computed by the pipeline
-runner.>
+runner.
+- The PIPELINE runner implements EXACT / IN_ORDER / ANY_ORDER itself over the
+  captured list of (tool name, args) with args_subset matching (golden-format;
+  never full-argument equality).
+- Framework evaluators are optional references only.
+- Name the capture source.>
 
 ## A2A and MCP
 <A2A path (native / licensed / own a2a-sdk server) and MCP client.>
 
 ## Pinned version and traps
 <Exact pins (and hash pinning where a card trap says so) plus the card's
-traps restated as build obligations.>
+traps restated as build obligations.
+- Every package the binding names gets an exact pin in the lockfile; any ">="
+  in the text is a minimum, never a requirement spec.>
 ```
