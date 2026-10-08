@@ -40,20 +40,39 @@ spec.md's `runtime` (`<card-id>@<version>`, or `no-framework@n/a`, whose
 binding is `no-framework.md`); for `off-catalog:<name>@<version>` there is no
 binding file, so read the "A2A and MCP" section of build.md's "Off-catalog
 binding". The section states the paths the stack offers:
-- **native** (CrewAI client; ADK, experimental in both roles);
+- **native** (CrewAI client and server; ADK, experimental in both roles);
 - **licensed server** (LangChain family via LangSmith Agent Server, only when
-  a license is accepted);
+  design §8 records an accepted license: cite it);
+- **external server** (Pydantic AI via fasta2a);
 - **own `a2a-sdk` server** in front of the ingress queue (available on every
-  stack).
+  stack, recommended under HITL).
 
-Record in interop.md which path was chosen and whether it is licensed or free.
-If the binding says the native server bypasses the ingress queue, the session
-key, the caps or the HITL gate, the record must say so and the path is the
-own `a2a-sdk` server, unless the design explicitly accepts that bypass (cite
-where). The own server is the recommended path under HITL: a native server can
-run tasks outside the queue and the gate. If the chosen path requires a
-handler the build does not have, adding it is a BUILD change (re-entry), not
-something this phase improvises.
+Record the role(s) per relationship: server (the counterpart calls this
+agent) and/or client (this agent delegates). The client is the binding's A2A
+client: a tool whose tier follows the design and whose results are untrusted
+(Step 2); a native client only when build.md records the spike showing the
+gate sees its calls.
+
+Record in interop.md which path was chosen, whether it is licensed or free,
+and anything else the section says to record (for example the protocol
+version).
+
+If the binding says a path's server (native, licensed or external, e.g. ADK
+`to_a2a`, CrewAI's native server, fasta2a, LangSmith Agent Server) runs tasks
+outside the ingress queue, the session key, the caps or the HITL gate, or does
+not say, the record names that and the path is the own `a2a-sdk` server. A
+non-own server path is usable only when build.md records the binding's A2A
+spike as passed for that path (task in the ingress queue with the session key
+as ordering key; a gated tool reached through it pauses). The HITL gate is
+never bypassable, whatever the design says; a design may accept a
+queue/session-key bypass only for an agent with no gated tools reachable
+through that path (cite where).
+
+Update the agent card's Interaction Schemas (protocol version, paused-task
+state) to the chosen path.
+
+If the chosen path requires a handler or client tool the build does not have,
+adding it is a BUILD change (re-entry), not something this phase improvises.
 
 ## Step 4 — Registry decision
 
@@ -67,6 +86,6 @@ improvise them.
 
 docs/agent/interop.md: frontmatter (agent_name, version, status: draft,
 date, spec_version, build_version), the entry-test table, per-relationship:
-card location, executor binding, registry decision, counterpart-security
+card location, role(s), executor binding, registry decision, counterpart-security
 notes. Human gate → status: approved. Hand off: "/ship audits this record;
 cross-agent flows join the eval suite as untrusted-surface cases."
