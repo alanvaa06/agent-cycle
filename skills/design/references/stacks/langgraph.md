@@ -27,15 +27,15 @@ Low-level orchestration framework and runtime for long-running, stateful agents 
 | stability | semver-stable | https://docs.langchain.com/oss/python/release-policy |
 
 Notes on the filter values (each with its own source):
-- a2a: the A2A endpoint `/a2a/{assistant_id}` exists on Agent Server only. Source: https://docs.langchain.com/langsmith/server-a2a.md . A standalone Agent Server needs a LangSmith license key: https://docs.langchain.com/langsmith/deploy-standalone-server.md
-- MCP serving (`/mcp`) is also Agent Server only: https://docs.langchain.com/langsmith/server-mcp.md
+- a2a: the A2A endpoint `/a2a/{assistant_id}` is documented on Agent Server; no OSS-library endpoint is documented. Source: https://docs.langchain.com/langsmith/server-a2a.md . A standalone Agent Server needs a LangSmith license key: https://docs.langchain.com/langsmith/deploy-standalone-server.md
+- MCP serving (`/mcp`) is likewise documented on Agent Server; no OSS-library endpoint is documented: https://docs.langchain.com/langsmith/server-mcp.md
 - mcp_client: `langchain.mcp` MCPAdapter needs `langchain[mcp]>=1.4.0` and is marked beta. Source: https://docs.langchain.com/oss/python/langchain/mcp
 - deploy_constraints, "free in your own container": that the MIT library can be hosted in your own FastAPI container with your own checkpointer is the research digest's reading (inference); the pages above show only the licensed paths.
 
 ## 3. Seam mapping
 | Seam | Support | How | Source |
 |---|---|---|---|
-| sessions | native | Postgres checkpointer for production, SQLite is for experimentation/local only; DynamoDB via the AWS package langgraph-checkpoint-aws (class name unverified); no Firestore checkpointer in the official set (a community package exists; on GCP use Cloud SQL Postgres, inference); thread_id is the primary key (keep under 255 chars on Postgres); durability "sync" is the most durable mode, so the pipeline requires it (inference) | https://docs.langchain.com/oss/python/langgraph/checkpointers.md |
+| sessions | native | Postgres checkpointer for production, SQLite is for experimentation/local only; DynamoDB via the AWS package langgraph-checkpoint-aws (class name unverified) or the separately listed community package langgraph-dynamodb-checkpoint (agentstate); no Firestore checkpointer in the official set (a community package exists; on GCP use Cloud SQL Postgres, inference); thread_id is stored in a limited-length column (keep under 255 characters on Postgres); the checkpointers page also describes thread_id as the primary key for storing and retrieving checkpoints; durability "sync" is the most durable mode, so the pipeline requires it (inference) | https://docs.langchain.com/oss/python/langgraph/checkpointers.md |
 | hitl_gate | native | `interrupt()` + `Command(resume=...)` on the same thread_id; requires a checkpointer; the whole node restarts on resume; static breakpoints (interrupt_before/after) are not recommended for HITL | https://docs.langchain.com/oss/python/langgraph/interrupts |
 | step_cap | native | `recursion_limit` counts super-steps (default 1000 since 1.0.6), raises GraphRecursionError; RemainingSteps lets a router wind down gracefully | https://docs.langchain.com/oss/python/langgraph/graph-api |
 | tool_call_cap | custom | none in raw LangGraph; a counter in state checked by a router (inference; recursion_limit counts super-steps, not tool calls) | https://docs.langchain.com/oss/python/langgraph/graph-api |
@@ -45,7 +45,8 @@ Notes on the filter values (each with its own source):
 | deploy | native | MIT library in your own container with your own checkpointer (inference from the licensed alternatives); `langgraph dev` is an in-memory server for development and testing only; the standalone Agent Server needs a license key | https://docs.langchain.com/langsmith/deploy-standalone-server.md |
 
 Further sources for the rows above:
-- sessions (DynamoDB listed, Firestore community package): https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
+- version 1.2.14 (released 2026-10-06) and MIT license: https://pypi.org/project/langgraph/
+- sessions (DynamoDB: langgraph-checkpoint-aws and community langgraph-dynamodb-checkpoint; Firestore community package): https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
 - sessions (thread_id under 255 chars on Postgres): https://docs.langchain.com/oss/python/langgraph/persistence
 - eval_runner (GenericFakeChatModel, InMemorySaver): https://docs.langchain.com/oss/python/langchain/test/unit-testing.md and https://docs.langchain.com/oss/python/langgraph/test.md
 - deploy (`langgraph dev` is in-memory, dev and test only): https://docs.langchain.com/oss/python/langgraph/local-server.md
@@ -60,7 +61,7 @@ Further sources for the rows above:
 
 ## 5. Pick when / avoid when
 Pick when you need durable or resumable state machines, mixed deterministic and agentic steps, or fine-grained orchestration control. Source: https://docs.langchain.com/oss/python/concepts/products
-Avoid when the agent is a linear tool loop (create_agent or no-framework is enough; inference backed by the same products page https://docs.langchain.com/oss/python/concepts/products ) and when free A2A serving is required without writing your own a2a-sdk server (A2A is Agent Server only: https://docs.langchain.com/langsmith/server-a2a.md ).
+Avoid when the agent is a linear tool loop (create_agent or no-framework is enough; inference backed by the same products page https://docs.langchain.com/oss/python/concepts/products ) and when free A2A serving is required without writing your own a2a-sdk server (A2A is documented on Agent Server; no OSS-library endpoint is documented: https://docs.langchain.com/langsmith/server-a2a.md ).
 
 ## 6. Build binding
 `skills/build/references/bindings/langgraph.md`
