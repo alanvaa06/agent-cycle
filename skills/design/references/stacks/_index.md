@@ -18,3 +18,4 @@ Filter mapping used by design Phase E:
 | langchain-create-agent | framework | langgraph | any | licensed-server | beta | semver-stable | none (LangSmith tracing only when enabled) | 2026-10-07 |
 | deep-agents | harness | langchain-create-agent | any | licensed-server | beta | pre-1.0 | none (LangSmith tracing only when enabled) | 2026-10-07 |
 | pydantic-ai | framework | none | any | server-only | native | semver-stable | none (Logfire optional) | 2026-10-07 |
+| google-adk | framework | none | any | client+server | native | fast-moving | none | 2026-10-07 |
