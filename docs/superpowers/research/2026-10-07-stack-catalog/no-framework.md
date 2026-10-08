@@ -92,3 +92,38 @@ The fit with the pipeline seams is strong. Every fixed seam (repository-backed s
 3. **Not using the Tool Runner** once HITL is required (Anthropic says so itself).
 
 Recommend it as the **default baseline card**: the simplest option that satisfies all seams. Choose a framework only when a concrete need (graph orchestration, durable replay) names what it buys.
+
+## 12. Build-binding observations (2026-10-08)
+
+Scratch evidence behind the binding (`skills/build/references/bindings/no-framework.md`). Skeleton = about 150 lines of Python 3.14.2 (loop, worker, in-memory repository, scripted model double); no network, no real provider, no real store. The numbered spikes in the binding repeat each check against the real store and provider.
+
+### Skeleton run (binding spikes 5-9)
+- Cap, whole batch on first sight: tool cap 2 and a scripted response with 3 calls -> no tool body ran, 1 model request, outcome `tool_call_cap`, all three calls have `not_executed` rows, the requested-call log holds all three.
+- Pause: a response with one safe and one destructive call paused with zero bodies run; the pending row held both calls, `steps=1`, `calls_requested=2`, `history_len`; status `awaiting_approval`. Approve ran the safe body (no key) and the destructive body (key `<approval_id>:<call id>`) once; the second pause had a new `approval_id`, `calls_requested=3`, and the second approval ran its body with a distinct key; the row was gone and no call was unpaired.
+- Redelivery: a commit failure after the approved body ran left the row (`resume_started=true`, same `approval_id`) and no dedupe `processed_at`; the redelivered message ran the body again with the SAME key. A redelivery after a successful commit returned the stored reply and made no model request.
+- Deny ends turn: 0 model requests after the deny, 0 bodies, one `DENIED: ... was not run` row; with `resume_started` already set the text was `DENIED: outcome unknown - do not retry without the user`; a follow-up turn needed no repair. Expiry (ttl 0.01 s) wrote `EXPIRED: ... was not run`, left no dedupe `processed_at` for the expiry commit, and the dequeued message ran as a new turn.
+- Step cap 2: second response asking for a tool -> `step_cap`, that call not executed, 2 requests; across a pause the total stayed 2; the next new turn started at steps 1 and calls 0.
+- Wall clock: a 2 s tool under a 0.3 s budget -> `wall_clock`, the call got an "outcome unknown" row, a follow-up turn succeeded; a resume with 0.95 s of a 1.0 s budget already used was cut after about 0.06 s.
+- Repair: a hand-built history with an unanswered call: status `running` or no row -> "outcome unknown"; status `step_cap` -> "not executed"; exactly one notice per call.
+- Preflight: the first request's tool names equalled the registry; adding one tool made the comparison fail (negative control).
+- Non-decision message ("maybe?"): row kept, dedupe `processed_at` set with outcome `awaiting_approval`. A tool body that raised became an `error` row with a fixed text and the turn continued.
+
+### Lock and packages (binding spike 3)
+- `uv pip compile` with `litellm==1.104.1` and `openai==3.26.0` failed: litellm 1.104.1 depends on `openai>=2.20.0,<3.0.0`. Without the openai pin the lock resolved `openai==2.54.0`, `anthropic==1.12.0`, `mcp==2.3.0` (`mcp-types==2.3.0`), `a2a-sdk==1.2.2`, `opentelemetry-sdk==1.45.1`, `opentelemetry-exporter-otlp==1.45.1`, both genai instrumentors 1.2b0 (`opentelemetry-util-genai==1.2b0`); 102 packages, all hashed. A separate openai-only set resolved `openai==3.26.0` with `anthropic==1.12.0`.
+- PyPI JSON on 2026-10-08: anthropic 1.12.1 and openai 3.26.1 and litellm 1.104.2 are newer than the versions the card was written against (1.12.0, 3.26.0, 1.104.1); litellm releases list 1.82.6 then 1.83.0, with no 1.82.7 or 1.82.8. litellm requires Python `<3.15,>=3.10`; mcp is "Development Status :: 5 - Production/Stable"; the genai instrumentors "4 - Beta", Apache-2.0.
+
+### Telemetry facts read (binding spike 10 not run: no real model call)
+- Both genai instrumentor READMEs on PyPI: prompts and completions are NOT captured by default; `OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT` takes `NO_CONTENT`, `SPAN_ONLY`, `EVENT_ONLY`, `SPAN_AND_EVENT` (the openai README writes them lower case). The openai instrumentor covers chat completions, the Responses API and embeddings and uses the latest experimental conventions unconditionally.
+- LiteLLM's OTel callback (docs.litellm.ai/docs/observability/opentelemetry_integration): emits `gen_ai.usage.input_tokens` / `output_tokens`; message content is logged by default unless `litellm.turn_off_message_logging=True`; endpoint env vars `OTEL_ENDPOINT` / `OTEL_EXPORTER_OTLP_ENDPOINT`.
+- LiteLLM source at v1.104.1 (`litellm_core_utils/get_model_cost_map.py`): the model cost map is fetched remotely during `litellm.__init__` unless `LITELLM_LOCAL_MODEL_COST_MAP` is `true`; a daemon thread retries up to twice on 429, 5xx or transport errors. A GET only; no user data (inference from the code read).
+- OTel agent-spans doc (Status: Development): `invoke_agent {gen_ai.agent.name}` (INTERNAL span requires only `gen_ai.operation.name`); `execute_tool` requires `gen_ai.operation.name` and `gen_ai.tool.name`, recommends `gen_ai.tool.call.id` and `gen_ai.tool.type`; `gen_ai.tool.call.arguments` / `.result` and `gen_ai.input.messages` / `.output.messages` are Opt-In and sensitive.
+
+### Provider docs read
+- Anthropic handle-tool-calls: results must immediately follow the tool-use message, `tool_result` blocks come first in the user message, text after; a missing result gives a 400 ("tool_use ids were found without tool_result blocks immediately after"). Parallel tool use: execution order is the caller's choice, one result per block, a skipped call still gets an `is_error` result; `disable_parallel_tool_use: true` inside `tool_choice` means at most one call with `auto`. Tool runner: beta; "when you need human-in-the-loop approval ... use the manual loop"; `max_iterations`.
+- OpenAI function calling: `parallel_tool_calls: false` means zero or one call; the guide does not say what happens when an output is omitted (unverified).
+- LiteLLM function_call page: does not document `parallel_tool_calls` or its mapping to Anthropic (unverified); arguments may be invalid JSON. Gemini 3.5 blog: `functionResponse.id` must match, ids embed `__thought__<signature>`, new features need `v1.87.0-dev.1` or later.
+- MCP what's-new: `Client` takes a URL, stdio parameters, a transport context manager or a server object (in-memory tests); `list_tools()` / `call_tool()` shapes are not shown (unverified). a2a-python README: spec 1.0 with 0.3 compatibility, extras `http-server`, `fastapi`, `grpc`, `telemetry`, `encryption`, `postgresql`, `mysql`, `sqlite`, `sql`, `all`; no server/client usage and no production statement on that page.
+- Text addressed to AI agents: none found on any page read.
+
+### Not run / unverified
+- Any real provider call (route conversion, id echo, usage on spans, `max_tokens` handling); a live Postgres, DynamoDB or Firestore store; the A2A and MCP wiring; LiteLLM's mapping of `parallel_tool_calls`; whether the instrumentor env var is case-insensitive; the A2A SDK's task-state name for a task waiting on the approver.
