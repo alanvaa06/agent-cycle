@@ -1,5 +1,7 @@
 # agent-cycle v0.11 — Stack Decision, Stack Catalog, `refresh`
 
+> Note: the shipped text (skills/ and CHANGELOG [0.11.0]) supersedes this design where they differ (e.g. per-stack binding details, runtime forms, A2A filter rule).
+
 **Date:** 2026-10-07
 **Status:** draft — pending Alan's review
 **Author:** Alan Vazquez + Claude (brainstorming session)

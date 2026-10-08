@@ -17,24 +17,26 @@ skill, patch = fixes.
   - §5 seams stay stack-neutral; the concrete per-seam binding lives in §8.
   - §8 fields: Filter answers, Set aside (judgment), Mandatory spec security
     rows, Catalog drift (with a Card column).
-  - Re-entry path for pre-v0.11 designs: Phase E only, nothing else reopens.
+  - Re-entry path for pre-v0.11 designs: Phase E only (plus Phase D seam
+    neutrality if needed).
 - **Stack catalog** (`skills/design/references/stacks/`): nine cards —
   pydantic-ai, google-adk, langchain-create-agent, langgraph, deep-agents,
   openai-agents-sdk, crewai, claude-agent-sdk, no-framework — verified
   2026-10-07, every fact URL-cited.
-- **Per-stack build bindings** (`skills/build/references/bindings/`), LangGraph
-  the deepest (Postgres checkpointer, interrupt gate, both caps, OTel spike,
-  free vs licensed A2A). Every binding meets the generic obligations in
-  `_binding-template.md`:
+- **Per-stack build bindings** (`skills/build/references/bindings/`): nine
+  per-stack bindings, one per catalog card. Every binding meets the generic
+  obligations in `_binding-template.md`:
   - queue keyed by session key; ingress dedupe record with
     `processed_at`/`outcome`/`reply` (redelivery protection); persist -> send
     -> ack; own-loop crash marker.
   - pending-record lifecycle with a fresh `approval_id` per pause and
     per-approved-call idempotency keys; `resume_started` marker;
-    `awaiting_approval` outcome; deny ends the turn; turn-start repair of
+    `awaiting_approval` outcome; deny ends the turn when the spec says so (no
+    tool runs after the deny); turn-start repair of
     dangling tool calls.
   - per-turn caps count requested calls (the whole batch) before execution;
-    tool-surface preflight with a negative control; the runner drives the
+    tool-surface preflight (negative control where tools are filtered); the
+    runner drives the
     worker's turn handler; "executed" means the wrapper recorded it at body
     entry.
   - numbered spikes, each with a pass test. Build never edits plugin files:
@@ -45,6 +47,9 @@ skill, patch = fixes.
   build defect records.
 - `scripts/check_catalog.py` + tests (39): cards, index and bindings never
   contradict each other.
+- **Off-catalog path:** design Phase E step 7, build Step 1 "Off-catalog
+  binding", interop and ship.
+- New eval cases: DES-E04..E06, BLD-E05, REF-E01..E05, SPC-E02 third run.
 
 ### Changed
 - `spec` gates on design §8, pins `runtime: <card-id>@<version>` (forms:
@@ -62,6 +67,13 @@ skill, patch = fixes.
 - Deliberate eval-text changes: ITP-E02 (interop) and DES-E01 check 7
   (design) were reworded on purpose, not by drift.
 - Pydantic AI runner mapping rewritten for V2.
+
+### Upgrade notes
+- Approved v0.10 designs have no §8: the spec hard-fails until design re-entry
+  (Phase E only).
+- `build`, `interop` and `ship` now require spec `runtime`.
+- The "Runner mapping per framework" section (ADK, Pydantic AI, LangGraph)
+  moved from `adapter-bindings.md` into the per-stack bindings.
 
 ### Pending graduation
 - Stack phase run on a real new agent; one `refresh` run with a genuinely

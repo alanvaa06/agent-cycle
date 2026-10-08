@@ -81,6 +81,7 @@ Shape: a hand-built `StateGraph` with four parts: a model node, a gate node (HIT
   - (b) Own server built with `a2a-sdk` that wraps the compiled graph and persists interrupted state through the checkpointer (own code, inference). It sits in front of the ingress queue and is available on every stack; the licensed Agent Server (a) is an option only when design §8 records an accepted license. Source for the licensed alternative: https://docs.langchain.com/langsmith/server-a2a.md
   - A2A spike (binding spike; when the design names A2A; failure path: binding defect: STOP and report (build-guide Step 4), or use path b, the own `a2a-sdk` server): a task arrives through the chosen path into the ingress queue keyed by the session key, and a gated tool reached through it pauses.
 - MCP client: `langchain[mcp]` with a minimum of 1.4.0, `MCPAdapter` (beta, the API may change). Source: https://docs.langchain.com/oss/python/langchain/mcp
+  - MCP spike (binding spike; when the design names an MCP server; failure path: binding defect: STOP and report (build-guide Step 4)): every MCP tool offered to the model is in the tier table; a tool missing from it is never offered.
 - Serving MCP (`/mcp`) is documented on Agent Server; no OSS-library endpoint is documented. Source: https://docs.langchain.com/langsmith/server-mcp.md
 
 ## Pinned version and traps

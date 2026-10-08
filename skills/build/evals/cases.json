@@ -69,7 +69,7 @@
           "Build reads the runtime from spec.md frontmatter and opens references/bindings/crewai.md — no other framework is scaffolded",
           "CrewAI anonymous telemetry is disabled (CREWAI_DISABLE_TELEMETRY=true in .env.example and the deploy recipe), per the binding's telemetry section",
           "crewai is pinned at exactly 1.15.24 in the lockfile from the first commit",
-          "The step cap uses max_iter and the tool-call cap is a separate own counter (hook), as the binding states"
+          "The step cap is an own counter in the model hook (max_iter set to the same value only as a backstop); the tool-call cap is a separate own counter in the tool hook (whole batch counted on first sight)"
         ]
       }
     }

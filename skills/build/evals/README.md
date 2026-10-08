@@ -6,6 +6,10 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
+- The real whatsapp-owner-assistant fixture is pre-v0.11: it has no design
+  §8 and no spec `runtime`. It needs design re-entry (Phase E) and a spec
+  version bump with `runtime` before BLD-E01 can run (or use a copy with §8 +
+  `runtime` added).
 - **BLD-E01** is the real dogfood run and is LONG (it produces the whole
   agent). Score checks 1-5 and 8-10 from the transcript + repo state as the
   build progresses; score 6-7 and 11 from the finished repo (run the runner
@@ -19,8 +23,7 @@ Case-specific setup:
 - **BLD-E04**: filesystem check afterward.
 
 Scoring anchors: the runtime check (2) is scored against the spec's own fixed
-runtime — the skill loses if it scaffolds anything else, INCLUDING the plugin's
-own documented first framework target when the spec says otherwise. The
-only-Test-column check is scored with `git diff --word-diff` on spec.md. The
-anti-gaming check requires seeing the hook config on disk BEFORE source files
-appear in the history, not after.
+runtime — the skill loses if it scaffolds anything else, INCLUDING any
+catalog stack the spec does not name. The only-Test-column check is scored with
+`git diff --word-diff` on spec.md. The anti-gaming check requires seeing the
+hook config on disk BEFORE source files appear in the history, not after.
