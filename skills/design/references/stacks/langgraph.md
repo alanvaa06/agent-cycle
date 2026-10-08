@@ -1,0 +1,66 @@
+---
+id: langgraph
+name: LangGraph
+level: runtime
+nests_on: none
+package: langgraph
+version_verified: 1.2.14
+license: MIT
+ts_sdk: full
+verified_on: 2026-10-07
+status: active
+---
+
+# LangGraph
+
+## 1. What it is
+Low-level orchestration framework and runtime for long-running, stateful agents (state graph, checkpointed threads, interrupts). It is the runtime that LangChain `create_agent` and Deep Agents run on. Source: https://docs.langchain.com/oss/python/concepts/products . The library is MIT licensed: https://github.com/langchain-ai/langgraph
+
+## 2. Filter attributes
+| Attribute | Value | Source |
+|---|---|---|
+| model_portability | any | https://docs.langchain.com/oss/python/langchain/models |
+| a2a | licensed-server | https://docs.langchain.com/langsmith/server-a2a.md |
+| mcp_client | beta | https://docs.langchain.com/oss/python/langchain/mcp |
+| deploy_constraints | A2A, MCP serving and double-texting need the licensed LangSmith Agent Server; the MIT library runs free in your own container | https://docs.langchain.com/langsmith/double-texting.md |
+| default_egress | none (LangSmith tracing only when enabled) | https://docs.langchain.com/langsmith/trace-with-opentelemetry.md |
+| stability | semver-stable | https://docs.langchain.com/oss/python/release-policy |
+
+Notes on the filter values (each with its own source):
+- a2a: the A2A endpoint `/a2a/{assistant_id}` exists on Agent Server only. Source: https://docs.langchain.com/langsmith/server-a2a.md . A standalone Agent Server needs a LangSmith license key: https://docs.langchain.com/langsmith/deploy-standalone-server.md
+- MCP serving (`/mcp`) is also Agent Server only: https://docs.langchain.com/langsmith/server-mcp.md
+- mcp_client: `langchain.mcp` MCPAdapter needs `langchain[mcp]>=1.4.0` and is marked beta. Source: https://docs.langchain.com/oss/python/langchain/mcp
+- deploy_constraints, "free in your own container": that the MIT library can be hosted in your own FastAPI container with your own checkpointer is the research digest's reading (inference); the pages above show only the licensed paths.
+
+## 3. Seam mapping
+| Seam | Support | How | Source |
+|---|---|---|---|
+| sessions | native | Postgres checkpointer for production, SQLite is for experimentation/local only; DynamoDB via the AWS package langgraph-checkpoint-aws (class name unverified); no Firestore checkpointer in the official set (a community package exists; on GCP use Cloud SQL Postgres, inference); thread_id is the primary key (keep under 255 chars on Postgres); durability "sync" is the most durable mode, so the pipeline requires it (inference) | https://docs.langchain.com/oss/python/langgraph/checkpointers.md |
+| hitl_gate | native | `interrupt()` + `Command(resume=...)` on the same thread_id; requires a checkpointer; the whole node restarts on resume; static breakpoints (interrupt_before/after) are not recommended for HITL | https://docs.langchain.com/oss/python/langgraph/interrupts |
+| step_cap | native | `recursion_limit` counts super-steps (default 1000 since 1.0.6), raises GraphRecursionError; RemainingSteps lets a router wind down gracefully | https://docs.langchain.com/oss/python/langgraph/graph-api |
+| tool_call_cap | custom | none in raw LangGraph; a counter in state checked by a router (inference; recursion_limit counts super-steps, not tool calls) | https://docs.langchain.com/oss/python/langgraph/graph-api |
+| model_provider | native | `init_chat_model("provider:model")`; LiteLLM via `ChatLiteLLM` from langchain-litellm (maintainer unverified) | https://docs.langchain.com/oss/python/langchain/models |
+| telemetry | adapter | docs default to LangSmith; OTel export via `langsmith[otel]` + `LANGSMITH_OTEL_ENABLED` / `LANGSMITH_OTEL_ONLY=true`; the page documents how gen_ai.usage.* attributes are read on ingest, but whether the SDK emits GenAI semconv is unverified | https://docs.langchain.com/langsmith/trace-with-opentelemetry.md |
+| eval_runner | adapter | InMemorySaver per test; GenericFakeChatModel scripts tool calls; agentevals trajectory match strict/unordered/subset/superset (no IN_ORDER mode) | https://docs.langchain.com/oss/python/langchain/test/evals.md |
+| deploy | native | MIT library in your own container with your own checkpointer (inference from the licensed alternatives); `langgraph dev` is an in-memory server for development and testing only; the standalone Agent Server needs a license key | https://docs.langchain.com/langsmith/deploy-standalone-server.md |
+
+Further sources for the rows above:
+- sessions (DynamoDB listed, Firestore community package): https://docs.langchain.com/oss/python/integrations/checkpointers/index.md
+- sessions (thread_id under 255 chars on Postgres): https://docs.langchain.com/oss/python/langgraph/persistence
+- eval_runner (GenericFakeChatModel, InMemorySaver): https://docs.langchain.com/oss/python/langchain/test/unit-testing.md and https://docs.langchain.com/oss/python/langgraph/test.md
+- deploy (`langgraph dev` is in-memory, dev and test only): https://docs.langchain.com/oss/python/langgraph/local-server.md
+- MIT license of the library: https://github.com/langchain-ai/langgraph
+
+## 4. Known traps
+- [ops] interrupt() re-runs the whole node on resume: side effects before the interrupt must be idempotent. Source: https://docs.langchain.com/oss/python/langgraph/interrupts
+- [ops] No per-thread locking in the OSS library; double-texting strategies are a LangSmith Deployment feature, not in the open source framework. Source: https://docs.langchain.com/langsmith/double-texting.md
+- [data] LangSmith tracing sends traces to LangSmith when LANGSMITH_TRACING is set (the docs examples pair it with the api.smith.langchain.com endpoint); use LANGSMITH_OTEL_ONLY for OTel-only export. Source: https://docs.langchain.com/langsmith/trace-with-opentelemetry.md
+- [churn] langgraph-supervisor is no longer actively maintained (the digest says archived); the LangChain v1 guide now recommends create_agent over langgraph.prebuilt create_react_agent. Source: https://docs.langchain.com/oss/python/migrate/langgraph-supervisor.md and https://docs.langchain.com/oss/python/migrate/langchain-v1.md
+- [churn] LangGraph 0.4 is in maintenance (security patches and critical fixes only) until December 2026. Source: https://docs.langchain.com/oss/python/release-policy
+
+## 5. Pick when / avoid when
+Pick when you need durable or resumable state machines, mixed deterministic and agentic steps, or fine-grained orchestration control. Source: https://docs.langchain.com/oss/python/concepts/products
+Avoid when the agent is a linear tool loop (create_agent or no-framework is enough; inference backed by the same products page https://docs.langchain.com/oss/python/concepts/products ) and when free A2A serving is required without writing your own a2a-sdk server (A2A is Agent Server only: https://docs.langchain.com/langsmith/server-a2a.md ).
+
+## 6. Build binding
+`skills/build/references/bindings/langgraph.md`
