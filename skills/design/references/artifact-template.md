@@ -52,9 +52,9 @@ No schemas here — /spec owns contracts.
 ## 5. Deployment intent
 
 - **Target:** AWS | GCP | VPS — <why, per the client's constraint>
-- **Seams (decided now, paid never):**
-  - Sessions: framework-native store (<e.g. DatabaseSessionService → Postgres/DynamoDB behind repository interface>) — never a managed store without an export path
-  - Model: LiteLLM config string — provider is a deployment decision
+- **Seams (decided now, paid never) — stack-neutral; concrete binding: see §8:**
+  - Sessions: a durable store behind the repository interface — never a managed store without an export path
+  - Model: a provider route string — provider is a deployment decision
   - Telemetry: OTel GenAI conventions — backend is an exporter setting
 - Source: vault article "Multi-Cloud Agent Deployment Patterns"
 
@@ -68,14 +68,21 @@ No schemas here — /spec owns contracts.
 
 ## 8. Stack decision
 
-Appended last on purpose: /spec cites §4 and §7 by number.
+<!-- Appended last on purpose: /spec cites §4 and §7 by number. -->
 
-- **Chosen:** `<card-id>@<exact version>` — or `off-catalog:<name>@<version>`
-- **Why:** <one paragraph tying the pick to this design's facts>
+**Filter answers:** Q1 provider switch: <answer> · Q2 A2A (and license, if asked): <answer> · Q3 client infrastructure: <answer> · Q4 data egress: <answer>. Mark any assumed answer ("I don't know" → stricter answer) as `assumption` and add a §7 item to confirm it.
+
+- **Chosen:** `<card-id>@<version>` — or `off-catalog:<name>@<version>`. Version rule: the re-checked version when the card was re-verified, else the card's `version_verified`; `no-framework@n/a` (pins per binding).
+- **Recommended:** <card-id> — <reason>
+- **Why:** <one paragraph tying the pick to this design's facts; if the user picked otherwise or delegated ("go with your recommendation"), say so and give their reason>
 
 | Candidate | Pros (cited) | Cons (cited) |
 |---|---|---|
 | <card-id> | <card fact + URL / design fact> | <card fact + URL, incl. binding-level costs: custom seams, own a2a server, vendor-only model, egress switch-off> |
+
+| Set aside (judgment) | Reason (card §5 + URL, or design fact) |
+|---|---|
+| <card-id> | <...> |
 
 | Eliminated | Filter that eliminated it |
 |---|---|
@@ -83,16 +90,24 @@ Appended last on purpose: /spec cites §4 and §7 by number.
 
 **Relaxed filters:** <none, or which and why>
 
+**Mandatory spec security rows:** <e.g. switch off the chosen card's default egress; the card's [security] and [data] traps>
+
+**Concrete per-seam binding** (from the chosen card's §3):
+
+| Seam | Support | How |
+|---|---|---|
+| sessions / model_provider / telemetry (and the other seams the design needs) | <...> | <...> |
+
 **Verification log:**
 
-| Fact re-verified | Source | Date |
-|---|---|---|
-| <fact> | <url> | <YYYY-MM-DD> |
+| Card | Card verified_on / version_verified | Fact re-verified | Source | Date |
+|---|---|---|---|---|
+| <card-id> | <YYYY-MM-DD / version> | <fact> | <url> | <YYYY-MM-DD> |
 
 **Catalog drift:**
 
-| Card says | Docs now say | Source | Date |
-|---|---|---|---|
-| <...> | <...> | <url> | <YYYY-MM-DD> |
+| Card | Card says | Docs now say | Source | Date |
+|---|---|---|---|---|
+| <card-id> | <...> | <...> | <url> | <YYYY-MM-DD> |
 
 **Suspicious content seen:** <none, or page URL + short excerpt>

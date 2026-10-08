@@ -2,8 +2,9 @@
 
 Every card follows this format exactly; `scripts/check_catalog.py` enforces it.
 Rules: every row and trap carries a full https:// source URL; unconfirmed facts
-keep the word `unverified`; own reasoning keeps the word `inference`; no `|`
-inside cell text; at most ~150 lines; English.
+keep the word `unverified`; own reasoning keeps the word `inference`; a fact
+seen in a scratch run rather than on a cited page keeps the word `observed`
+(the card says which run: version and setup); no `|` inside cell text; at most ~150 lines; English.
 
 ```
 ---
