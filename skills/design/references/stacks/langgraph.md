@@ -62,7 +62,7 @@ Further sources for the rows above:
 ## 5. Pick when / avoid when
 Pick when you need durable or resumable state machines, mixed deterministic and agentic steps, or fine-grained orchestration control. Source: https://docs.langchain.com/oss/python/concepts/products
 Avoid when the agent is a linear tool loop (create_agent or no-framework is enough; inference backed by the same products page https://docs.langchain.com/oss/python/concepts/products ).
-Avoid when A2A serving is required and no paid license is acceptable: A2A is documented on Agent Server (no OSS-library endpoint is documented) and a standalone server needs a license key, so the index filter eliminates LangGraph in that case (https://docs.langchain.com/langsmith/server-a2a.md , https://docs.langchain.com/langsmith/deploy-standalone-server.md ). An own a2a-sdk server is a build option only when a license is acceptable or A2A is not a hard filter (inference).
+Avoid when A2A serving is required and no paid license is acceptable: A2A is documented on Agent Server (no OSS-library endpoint is documented) and a standalone server needs a license key (https://docs.langchain.com/langsmith/server-a2a.md , https://docs.langchain.com/langsmith/deploy-standalone-server.md ). The con to cite: the build adds its own a2a-sdk server in front of the ingress queue; the licensed Agent Server path is an option only when a license is acceptable (inference).
 
 ## 6. Build binding
 `skills/build/references/bindings/langgraph.md`

@@ -64,7 +64,7 @@ Further sources for the rows above:
 ## 5. Pick when / avoid when
 Pick when the agent does long-running research or coding work that needs planning, subagents and a filesystem: the docs point Deep Agents at long-running planning, subagent and filesystem work (https://docs.langchain.com/oss/python/concepts/products ).
 Avoid when the agent is a small, tightly scoped least-privilege tool agent: create_agent carries less implicit surface (inference stated in docs/superpowers/research/2026-10-07-stack-catalog/langchain-family.md; the built-in filesystem, `task` and permission surface is listed at https://docs.langchain.com/oss/python/deepagents/harness ).
-Avoid when A2A serving is required and no paid license is acceptable: A2A is documented on Agent Server and a standalone server needs a license key, so the index filter eliminates this card in that case (https://docs.langchain.com/langsmith/server-a2a.md , https://docs.langchain.com/langsmith/deploy-standalone-server.md ). An own a2a-sdk server is a build option only when a license is acceptable or A2A is not a hard filter (inference).
+Avoid when A2A serving is required and no paid license is acceptable: A2A is documented on Agent Server and a standalone server needs a license key (https://docs.langchain.com/langsmith/server-a2a.md , https://docs.langchain.com/langsmith/deploy-standalone-server.md ). The con to cite: the build adds its own a2a-sdk server in front of the ingress queue; the licensed Agent Server path is an option only when a license is acceptable (inference).
 
 ## 6. Build binding
 `skills/build/references/bindings/deep-agents.md`
