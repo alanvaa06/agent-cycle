@@ -15,7 +15,7 @@
           "Environment classified on all 5 dimensions (observable/stochastic/sequential/dynamic/multi-agent), each with its architectural implication",
           "Harness decision defaults to single-agent with written justification",
           "Gate summary presented in chat includes the preliminary tool inventory with tier guesses (safe/reversible/destructive)",
-          "Deployment intent = AWS, with all 3 portability seams declared: sessions (framework-native store), model (LiteLLM config), telemetry (OTel)",
+          "Deployment intent = AWS, with all 3 portability seams declared stack-neutrally in §5 (sessions: durable store behind the repository interface; model: provider route string; telemetry: OTel GenAI); the concrete binding comes from the chosen card in §8",
           "Phase E (stack decision) runs after deployment intent: the four filter questions (provider portability, A2A, existing client infrastructure, data egress) are asked one per message and skipped when already answered",
           "Hard filters applied from stacks/_index.md: every eliminated card is listed with the filter that eliminated it; no weighted scores appear anywhere",
           "2-3 candidates presented as a lettered list; every pro/con cites a card fact with its URL or a design.md fact; one is marked recommended with a reason; the USER picks — the skill never picks",
