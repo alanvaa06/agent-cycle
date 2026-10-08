@@ -118,3 +118,40 @@ Conventions: every claim cites a source key (URL list at the bottom). **unverifi
 - [AMP] https://docs-platform.crewai.com/platform/en/introduction
 - [FACTORY] https://enterprise-docs.crewai.com/installation/requirements.md
 - [PRICING] https://www.crewai.com/pricing
+
+## Build-binding observations (2026-10-08)
+
+Moved here from `skills/build/references/bindings/crewai.md` to keep the binding short. "observed" = seen in a scratch run on 1.15.24 (Python 3.12, Windows, scripted `BaseLLM`, no network model call), not stated on a cited page. Source paths are under `https://raw.githubusercontent.com/crewAIInc/crewAI/1.15.24/lib/`.
+
+### Why the HITL gate has the shape it has
+- A `PRE_TOOL_CALL` hook can block a call, but the run CONTINUES and the agent receives "Tool execution blocked by hook. Tool: <name>" (tool-hooks page; observed). Any exception other than `HookAborted` raised inside a hook is swallowed and the tool RUNS (`crewai/src/crewai/hooks/dispatch.py`, `_invoke_hook`; best practice 4 on the page; observed).
+- `@human_feedback` runs after the decorated method has returned and pauses that flow STEP. With a provider that raises `HumanFeedbackPending`, `kickoff` and `handle_turn` RETURN the pending object (observed) after the framework saved state and context through the persistence object. `Flow.from_pending(flow_id, persistence)` builds a NEW Flow object from the saved state, and `resume(feedback)` completes the paused step and runs the listeners of the same flow definition: the same flow execution, a new object, possibly a new process (`crewai/src/crewai/flow/runtime/__init__.py`; the saved context stores the original execution uuid "to restore on resume", `crewai/src/crewai/flow/async_feedback/types.py`).
+- The agent loop is not resumed: it ended before the pause, and each `kickoff_async` starts its executor at `iterations = 0` (`crewai/src/crewai/experimental/agent_executor.py`, `invoke_async`), so the framework's step count restarts.
+- With `emit` set, every non-empty feedback goes through an extra LLM call that picks the outcome (`_finalize_human_feedback`).
+- On resume the framework calls `clear_pending_feedback` after persisting the paused step and BEFORE running the listeners (log order observed: `load_pending`, `save_state`, `clear_pending`, then the listener's `save_state`). After a listener raised, `from_pending` raised `ValueError: No pending feedback found`.
+- A resume that pauses again calls `save_pending_feedback` with the same `flow_uuid`; in a one-row-per-session store it replaces the first row before the worker's transaction commits (observed: the two pause ids differ).
+
+### Observed runs (spike numbers refer to the binding)
+- Hook fail-open and block-continues: spikes 4(b). Plain exception in the hook: the destructive tool ran. Gated call blocked: the agent received the placeholder and the model was called again.
+- `max_iter=N` with a model that always asks for a tool: N tool rounds and N+1 model calls, the last a forced best-answer call that came back as a normal result; with the model hook counting, the hook raised on it (spike 7(b)).
+- Parallel calls: the hook ran once per call in `ThreadPoolExecutor` threads, before that call's body (spike 7(c)). A malformed-arguments call never reached the tool hook (4 requested, 3 hook calls). An unknown tool name did.
+- With no turn state both hooks refused: no tool ran and no model call was made (spike 4(b)).
+- Two sessions run at once through `asyncio.to_thread` kept separate counters (spike 4(e)).
+- Terminal-only `@persist`: a turn aborted by a cap stored nothing; a pause stored state plus the pending row; a resume or deny stored the finished exchange once (spike 3).
+- Redelivered resume from the same stored rows: body invoked twice with the same key, one user message and one assistant reply stored (spike 5(c)). Resume to second pause to second approval gave keys `AP1:y1` then `AP2:y2` and the second body ran (spike 5(b)).
+- Continuation: `history + tail` reproduces the original request ("Current Task: ..." once); passing the whole captured transcript double-wraps it (spike 5(a)).
+- Batch counting in the tool hook (the binding's final design): with the model hook storing `ctx.executor` and the tool hook reading the newest assistant message of `executor.messages` under the lock, 3 parallel calls under cap 2 executed none and the turn ended with `tool_call_cap`; two calls then one more under cap 2 ran 2 and tripped on the third; a malformed call was counted by the model-hook rescan (spike 7(c), 7(g)). `execute_native_tool` appends the assistant tool-call message (`self.state.messages.append(assistant_message)`, line 1782) before it submits the thread pool (line 1798) or starts the sequential loop (line 1840); `messages` is a property over the state (line 317).
+- Windows: with a cp1252 console the Rich event handlers failed on emoji and were logged as "Sync handler error" (set `PYTHONUTF8=1`).
+- MCP over HTTP: `http://127.0.0.1:8765/mcp` gave tool names `127_0_0_1_8765_mcp_echo` and `127_0_0_1_8765_mcp_wipe`; the static allow-list removed `wipe`. A stdio server gave a truncated name ending in a hash (`sanitize_tool_name` shortens past 64 characters).
+- Flow with no memory use created no `.crewai/` directory in the working directory.
+
+### Telemetry details
+- Endpoint `https://telemetry.crewai.com:4319/v1/traces`; the exporter is built in `Telemetry.__init__` (`crewai-core/src/crewai_core/telemetry.py`). `_is_telemetry_disabled` reads `OTEL_SDK_DISABLED`, `CREWAI_DISABLE_TELEMETRY` and `CREWAI_DISABLE_TRACKING` (true, 1, yes, on). The last is not in the docs. The singleton checks again on every use (`_should_execute_telemetry`), so a late change is honored. Observed: each of the three disables it, and "maybe" leaves it ON.
+- `OTEL_SDK_DISABLED=true` also disables CrewAI's exporter but silences the process's own OpenTelemetry SDK, so the binding never sets it.
+- Tracing: `_tracing_disabled` in `crewai/src/crewai/execution.py` honors `OTEL_SDK_DISABLED=true`, `tracing=False` and `CREWAI_TRACING_ENABLED` false or 0. With no setting a run is a "first run": spans are buffered in memory (up to 1,000 spans or 8 MiB; `CREWAI_EPHEMERAL_TRACE_MAX_SPANS` and `CREWAI_EPHEMERAL_TRACE_MAX_BYTES` change that) and on a terminal a consent prompt waits up to 20 seconds; without a terminal nothing is shown and the buffer is discarded (tracing page; `crewai/src/crewai/events/listeners/tracing/utils.py`, `_prompt_can_be_shown`).
+- Egress check run: a CONNECT-logging proxy that answers 403 to everything, `HTTPS_PROXY` set, `Agent.kickoff` with a scripted model, 7 s wait for the batch flush. Without the four variables: 8 `CONNECT telemetry.crewai.com:4319` lines. With them: none.
+- Version check: a verbose run outside CI asks PyPI (`crewai-core/src/crewai_core/version.py`; `console_formatter.py`); `CREWAI_DISABLE_VERSION_CHECK` true or 1 stops it.
+
+### A2A server search
+- `crewai/src/crewai/a2a/utils/task.py::execute` builds a `Task` from the incoming A2A message and runs `agent.aexecute_task(task=task, tools=agent.tools)`. A search of `crewai/src` and `crewai-core/src` for a2a-sdk server application and request-handler classes (`DefaultRequestHandler`, `A2AStarletteApplication`, `A2AFastAPIApplication`, `TaskStore`) found none; `from a2a.server` appears only in `a2a/utils/task.py` and `a2a/extensions/server.py`. The A2A page points to AMP for production. Whether the library can be hosted without AMP is therefore unverified.
+- `crewai[a2a]` pins `a2a-sdk~=0.3.10`; a2a-sdk 1.2.2 was the latest on PyPI on 2026-10-08.
