@@ -83,7 +83,10 @@ When the user asks for a second agent in a single-agent repo, design does not mo
 It shows the conversion commands — `git mv` of the existing agent's files into
 `agents/<existing-name>/`, create `agent-cycle.yaml` — for the human to run as one dedicated
 commit, then proceeds with the new agent. Ship accepts that pure-rename commit (detected with
-`--find-renames`) as sanctioned and records it.
+`--find-renames`) as sanctioned and records it. The commands start by upgrading an existing
+hook to the plugin's version, because an older hook does not protect `agents/*/`. They end by
+removing the `.` line from `.claude/hooks/built-agents.txt`, since the moved agent is recorded
+again under `agents/<existing-name>/`.
 
 ## 5. One persistent hook for the workspace
 
@@ -98,20 +101,57 @@ Freezing is decided from each agent's state at call time, never from a static li
 | `docs/agent/skills.md`, `interop.md`, `ship-report.md`, `blueprint.html`, `agent-card.json`, economics | never (written by phases after build) |
 
 Additional rules:
-- The set of agents comes from the directories that exist under `agents/` (plus the repo
-  root as an agent in a single-agent repo), not from the YAML list — removing a name from
-  the list never unfreezes an agent.
+- The set of agents always comes from directories: the repo root plus every
+  `agents/<dir>/`, matched longest prefix first (a path belongs to the deepest agent that
+  holds it). `agent-cycle.yaml` plays no part in it, so deleting, renaming or creating the
+  marker never changes what is frozen. The root freezes only when it has its own
+  `docs/agent/build.md`, so root-level folders in a workspace are not an agent. The marker
+  matters only for the append-only rule below.
+- **Ratchet.** The hook records every agent whose `build.md` it has seen in
+  `.claude/hooks/built-agents.txt`, one agent prefix per line (`.` for the root,
+  `agents/<name>/` otherwise). It writes the file itself (a process write, not a tool call) on
+  every run, before deciding. If an agent is recorded but its `build.md` is missing, the hook
+  treats it as frozen whatever its status: `evals/`, `design.md`, `spec.md` and the `build.md`
+  path itself, with no Test-column exception. So deleting `build.md` by glob, rename,
+  `git reset`/`revert` or `python -c` never unfreezes the agent. A failed write never fails
+  open: the call is still decided from the file's content plus what the hook sees on disk.
 - `agent-cycle.yaml` is append-only: an edit passes only when the new `agents:` list is a
-  superset of the old one and nothing else changed.
-- `.claude/hooks/` stays protected (the hook cannot be disabled by the builder).
+  superset of the old one and nothing else changed. A marker that exists but cannot be read or
+  parsed blocks every change to it.
+- `.claude/hooks/` stays protected (the hook and its ratchet file; the builder cannot
+  disable either).
+- **Settings.** A file-tool write to `.claude/settings.json` or `.claude/settings.local.json`
+  (and to the user's `~/.claude/settings.json`) is blocked when the resulting text is not
+  valid JSON, drops or alters the hook's `PreToolUse` entry, or sets `disableAllHooks`. Any
+  shell write naming `.claude/settings` is blocked.
 - Single-agent repos follow the same rules with `AGENT_ROOT` = repo root. Behavior change vs
   v0.11: the frozen set narrows from all of `docs/agent/**` to `design.md`, `spec.md`,
   `evals/` (matching ship's diff since PR #1), and the hook persists after the build.
-- Re-entry on an already-built agent stays the human's: rename the hook to
-  `guard_artifacts.py.off` from their own terminal, change, rename back.
+- Re-entry on an already-built agent stays the human's, from their own terminal (the hook
+  only governs Claude's tool calls): rename the hook to `guard_artifacts.py.off`, make the
+  change, remove the agent's line from `.claude/hooks/built-agents.txt` (needed when its
+  `build.md` is deleted or moved; otherwise the hook records it again on the next call), then
+  rename the hook back.
+- Upgrading the hook is also the human's job. Build never writes `.claude/hooks/` because the
+  hook protects that folder (§6.1 step 3).
 - Everything PR #1 added stays: `$CLAUDE_PROJECT_DIR` invocation, path resolution from the
   payload's `cwd`, folder-level shell-write blocking, UTF-8 stdin, fail-closed on unparseable
-  calls.
+  calls. File-tool paths are canonicalised before they are judged: no `$VAR`/`~` expansion (the
+  tool takes them literally), a leading `\\?\` stripped, and `realpath` resolves junctions,
+  8.3 names, case and trailing dots or spaces. Any `:` after the drive letter (an NTFS
+  alternate stream such as `::$DATA`) is blocked as an unsafe path.
+- Shell commands are read heuristically, one segment at a time (split on `;`, `&&`, `||`,
+  `&` and newlines; a pipeline stays one segment):
+  - Redirects that only move a stream (`2>&1`, `>/dev/null`, `2>NUL`) are not writes. When a
+    redirect is a segment's only write, the hook judges only its target paths.
+  - Folders that hold frozen files (the root, `agents/`, an agent folder, its `docs`,
+    `docs/agent`, `evals`) count only for destructive verbs (`rm`, `mv`, `Remove-Item`,
+    `robocopy`, `git clean/rm/mv`, `find -delete`, ...).
+  - The protected-name substring check skips quoted text such as commit messages.
+  - Some text is read as code rather than data: here-documents that feed a shell or
+    interpreter, `bash -c` and `pwsh -Command` strings.
+  - Globs are matched against protected paths, `git -C <dir>` resolves from `<dir>`, and
+    adjacent quote pieces are joined (`e""vals`).
 
 ## 6. Per-agent build and ship
 
@@ -122,9 +162,10 @@ Additional rules:
    (plus `agent-cycle.yaml` when X's entry is not yet committed); record `build_start` = HEAD.
 2. Write X's `docs/agent/build.md` stub (`status: draft`, `build_start`) and commit it alone —
    this is what freezes X's artifacts.
-3. Install the hook only if the workspace has none, or replace it when its version constant
-   is older than the plugin's; otherwise verify it is active (a dummy edit to X's
-   `evals/config.yaml` must be blocked).
+3. Hook: install it when absent. If the installed `HOOK_VERSION` is lower than the plugin's,
+   STOP and ask the human to upgrade it from their own terminal (rename to `.off`, copy the
+   plugin's file, rename back). Build never writes `.claude/hooks/`. Otherwise verify it is
+   active: a dummy edit to X's `evals/config.yaml` must be blocked.
 4. Build writes only inside `AGENT_ROOT` (source, tests, lockfile, deploy recipe).
 5. Resource names carry the agent prefix: queue/stream name, database schema,
    `service.name`, so agents sharing one Postgres/Redis/collector cannot collide. Added to
@@ -151,10 +192,42 @@ reviews one agent at a time (resolved per §4.2).
 - The hook moves out of the code block in `skills/build/references/forge-delegation.md` into
   a real file `skills/build/assets/guard_artifacts.py`; forge-delegation points to it and
   build copies it into the target repo. The file carries a `HOOK_VERSION` constant.
-- `tests/test_guard_artifacts.py` (pytest) covers: single-agent and workspace layouts; frozen
-  vs editable by `build.md` presence and draft/approved status; Test-column-only edits while
-  draft; YAML append-only; `.claude/hooks/` protection; PR #1's cases (`cd`, folder deletes,
-  UTF-8, fail-closed); the pure-rename commit is not the hook's concern (ship's).
+- `tests/test_guard_artifacts.py` (pytest) covers:
+  - single-agent and workspace layouts;
+  - frozen vs editable by `build.md` presence and draft/approved status;
+  - Test-column-only edits while draft;
+  - YAML append-only;
+  - `.claude/hooks/` protection;
+  - PR #1's cases (`cd`, folder deletes, UTF-8, fail-closed);
+  - the pure-rename commit is not the hook's concern (ship's).
+
+  The hardening pass adds:
+  - **Layout from directories:** deleting or creating the marker changes nothing; the
+    longest prefix wins over a built root; `rm *.yaml`, `rm agent-cycle.*` and `Rename-Item`
+    on the marker are blocked.
+  - **Ratchet:**
+    - `build.md` deleted after a prior call: the agent stays frozen;
+    - recorded agent with `build.md` missing: Test-column edit blocked;
+    - workspace `build.md` deleted by glob;
+    - renamed agent folder;
+    - file content, protection, write failure, and an unreadable file through `main()`.
+  - **Path canonicalisation:** `::$DATA`, `\\?\`, `$VAR/..`, trailing dots and spaces,
+    a junction, 8.3 names.
+  - **Shell detector gaps:** new write verbs, `sed`/`perl`/`awk` in-place, `git -C` and
+    global options, interpreter here-docs, empty here-docs, line continuations,
+    `bash -c`/`pwsh -Command`/`cmd /c`, `find -delete`, globs, quote splitting, `cd /d`,
+    `Set-Location -Path`, .NET file calls.
+  - **No false blocks:** the build commands `uv pip install -e . 2>&1 | tail`, `ruff check .
+    2>&1`, `pytest . 2>&1`, `cat evals/... 2>/dev/null`, `ls evals 2>&1`, `... > results.txt`,
+    `git diff -- evals/ > /tmp/d.txt`, commit messages naming frozen paths, `... | tee log`,
+    `cp README.md docs/`, and the workspace `uv run pytest agents/x 2>&1` and
+    `cd agents/x && ...` all pass.
+  - **Settings:** dropping or altering the guard entry, `disableAllHooks` (project, local and
+    user files), invalid JSON, shell writes; installing is allowed.
+  - **Reading state:** missing vs unreadable files, BOM and quoted `status`, on-disk case,
+    non-string inputs fail closed, one disk snapshot per call.
+  - **`main()`:** UTF-8 bytes on stdin, ASCII stderr, payload `cwd` different from
+    `CLAUDE_PROJECT_DIR`.
 - Console output of the hook and tests stays ASCII-only.
 
 ## 8. Evals (written before the skill changes — EDD)
@@ -172,8 +245,9 @@ reviews one agent at a time (resolved per §4.2).
 - **v0.12.0.** The CHANGELOG/README versioning rule changes from "minor = new pipeline
   skill" to "minor = new skill or new pipeline capability".
 - Upgrade notes: the hook is persistent and narrower in single-agent repos (only
-  `design.md`, `spec.md`, `evals/` frozen); repos with an older hook get it replaced on their
-  next build (version constant).
+  `design.md`, `spec.md`, `evals/` frozen). An older hook is never replaced by build: build
+  stops and asks the human to upgrade it (rename to `.off`, copy the plugin's file, rename
+  back). A pre-v0.12 hook does not protect `agents/*/`.
 - Pending graduation: a real workspace with two agents both taken through build.
 
 ## 10. Risks
@@ -182,5 +256,7 @@ reviews one agent at a time (resolved per §4.2).
 |---|---|
 | A skill forgets to resolve `AGENT_ROOT` and writes to the repo root in a workspace | One shared rule cited at the top of every skill; DES-E07/BLD-E06/SHP-E05 exercise the workspace path; the hook freezes per agent so a misplaced write to another agent's frozen files is blocked. |
 | The builder of X edits another agent's source (not frozen by the hook) | Ship of X flags any commit touching X and another agent together. |
-| State-driven freezing has an edge where a frozen file becomes editable (e.g. `build.md` deleted) | The hook protects `build.md` from deletion once it exists (a delete is a write); tests cover it. |
+| State-driven freezing has an edge where a frozen file becomes editable (e.g. `build.md` deleted) | The hook blocks visible deletes and moves of `build.md` once it exists. The ratchet (`.claude/hooks/built-agents.txt`) keeps a recorded agent frozen even when `build.md` disappears through a form the hook cannot see. Tests cover both. |
+| Shell forms the hook cannot see: a script that writes (`python fix.py`, `python -c`, PowerShell .NET calls not on its list), paths assembled in variables, backslash escapes inside names, brace expansion, encoded commands | Residual. Ship's word-diff from `build_start` on the agent's `evals/`, `design.md` and `spec.md` catches any change to frozen artifacts, whatever wrote it. For `build.md`, the ratchet means a hidden deletion never unfreezes the agent. |
+| Heuristic false blocks: a destructive verb on a folder that holds frozen files (`find . -name x -delete`, `find . -exec rm`), or reading a frozen file through a write verb (`cp evals/x /tmp/`) | The block message names the path; the builder narrows the command (`find src ...`, `cat evals/x > /tmp/y`). Everyday build commands are regression-tested as allowed. |
 | Persistent hook surprises single-agent users | Upgrade note; the frozen set is narrower than before, not wider. |
