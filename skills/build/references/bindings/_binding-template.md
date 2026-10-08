@@ -74,11 +74,12 @@ per session); durability settings.
   "outcome unknown", never "not executed". A turn that ended in a pause has
   the status `awaiting_approval`; the repair maps it to nothing (the pending
   record owns it). A resume sets the turn status back to `running`.
-- Every spike states its pass test and runs before build-guide Step 4. Every
-  sessions/store spike, on failure, STOPS and raises a re-entry on the
-  design's sessions seam; never a silent store swap. Other spikes state their
-  own failure path (a binding defect -> fix the binding; telemetry -> its
-  fallback).>
+- Every spike states its pass test and runs at build-guide Step 4 (re-run
+  when a later component it needs exists). Every sessions/store spike, on
+  failure, STOPS and raises a re-entry on the design's sessions seam; never a
+  silent store swap. Other spikes state their own failure path (a binding
+  defect -> STOP, record it in build.md and report it to the human as a plugin
+  fix; the build never edits plugin files; telemetry -> its fallback).>
 
 ## HITL gate
 <How gated/destructive tiers pause for approval and resume; idempotency

@@ -18,8 +18,8 @@ Hard-fail (write nothing, say why, stop) unless ALL hold:
 The spec's frontmatter `runtime:` names the stack; the design states the
 deployment target. BUILD EXACTLY THAT. The value takes one of three forms:
 `<card-id>@<version>`, `no-framework@n/a`, or `off-catalog:<name>@<version>`.
-Parse it by splitting on the LAST `@` (an off-catalog name can be npm-scoped,
-like `@scope/pkg@1.2.3`). The spec is law; the plugin has no favorite
+Parse it by stripping a leading `off-catalog:` prefix, then splitting on the
+LAST `@` (an off-catalog name can be npm-scoped, like `@scope/pkg@1.2.3`). The spec is law; the plugin has no favorite
 framework. Wanting a different runtime is a re-entry dispute on the design
 (§8), never a silent swap. Record runtime and target in build.md frontmatter.
 
@@ -34,16 +34,21 @@ the spikes.
 Version: install EXACTLY the spec's version. For `no-framework@n/a` the
 version is n/a and the pins live in the binding. If the spec's version
 differs from the binding's `version_pinned` (design may have re-checked a newer
-release), the build re-runs EVERY spike of the binding on the spec's version
-before Step 4 and records the difference in build.md. A failing spike is a
-re-entry (per the binding's own failure path), never a silent downgrade to
-`version_pinned`.
+release), the build records the difference in build.md, re-resolves the lock for
+the spec's version (the binding's transitive pins hold only at
+`version_pinned`), and treats the binding's "observed" facts as unverified
+until their spikes pass. The spikes always run (Step 4); on a version
+difference EVERY spike of the binding runs on the spec's version. A failing
+spike is a re-entry (per the binding's own failure path), never a silent
+downgrade to `version_pinned`.
 
 Off-catalog runtime (`off-catalog:<name>@<version>`): no binding exists.
 Derive the same eight sections (Sessions and state, HITL gate, Caps, Model
 provider, Telemetry, Eval runner mapping, A2A and MCP, Pinned version and
-traps) from design §8's cited research, write them into build.md under
-"Off-catalog binding", and note in the gate summary that `agent-cycle:refresh`
+traps) from design §8's cited research, per
+`skills/build/references/bindings/_binding-template.md` of the agent-cycle
+plugin: answer every placeholder obligation, including spikes with pass tests
+and failure paths. Write them into build.md under "Off-catalog binding", and note in the gate summary that `agent-cycle:refresh`
 should draft a card.
 
 ## Step 2 — Install the anti-gaming rail FIRST
@@ -84,9 +89,11 @@ tests/          unit tests + the eval-runner integration entrypoint
 
 Dependencies pinned from the first commit (exact versions / lockfile).
 Hash pins (`--require-hashes`) are mandatory when the spec's §4 "Stack
-security rows" carry an install-time supply-chain row (traced to "build rule 9
-hash pins + ship lockfile check"), or when the stack card tags a dependency as
-a `[security]` trap (LiteLLM today): generate the lock with hashes and install
+security rows" carry an install-time supply-chain row (an install-time
+supply-chain row: its BHV column cites build rule 9 instead of a scenario), or
+when the stack card (the agent-cycle plugin's
+`skills/design/references/stacks/<card-id>.md`) tags as a `[security]` trap a
+dependency that the build installs, directly or transitively (LiteLLM today): generate the lock with hashes and install
 with `pip install --require-hashes -r requirements.txt`, or the lockfile
 manager's equivalent (for example `uv pip install --require-hashes -r
 requirements.txt`). /ship checks the lockfile. Vetted
@@ -102,16 +109,28 @@ no secrets in code.
 ## Step 4 — State and contracts first
 
 Before anything below: run the binding's spikes (the ones its "Sessions and
-state" and other sections number, each stated as running before this step)
-and record each one's pass/fail in build.md. Off-catalog: the spikes you
-derived in "Off-catalog binding". A store spike (sessions/store) that fails
-STOPS the build and routes to a design re-entry on the sessions seam, per the
-binding's own failure path; other spikes follow their own stated failure path
-(a binding defect -> fix the binding). No spike result is assumed: a spike
-that was not run is not a pass.
+state" and other sections number, each stated as running at this step) and
+record each one's pass/fail in build.md. Off-catalog: the spikes you derived in
+"Off-catalog binding". Spikes run as scratch harnesses under `tests/spikes/`;
+credentials and the store DSN come from an uncommitted `.env` the human
+supplies (ask; never commit it). A spike whose pass test needs a later step's
+component (tools, loop, worker handler) runs now as a scratch harness and
+again once that component exists; record both results.
+
+A store spike (sessions/store) that fails STOPS the build and routes to a
+design re-entry on the sessions seam, per the binding's own failure path. A
+binding defect (any other spike failing because the binding is wrong) -> STOP,
+record it in build.md, and report it to the human as a plugin fix
+(`agent-cycle:refresh` or the maintainer); the build never edits plugin files.
+A spike for a seam the design does not use is recorded `n/a: <reason>`, which
+is distinct from "not run"; the build does not pass Step 4 with an unrun spike
+that is not `n/a`.
 
 Implement the spec §Data schemas behind the repository interfaces (the
-design's sessions seam). Then the Pydantic models for every tool contract:
+design's sessions seam), plus the fields the binding's Sessions and state and
+HITL gate sections add (dedupe `processed_at`/`outcome`/`reply`; pending
+`approval_id`/`requested_at`/`resume_started`; turn status). Record them in
+build.md as additions for the next spec bump, as with token counters. Then the Pydantic models for every tool contract:
 `extra="forbid"`, field constraints as specced. TDD: schema tests first
 (unknown field → rejected; constraint violations → rejected).
 
@@ -134,25 +153,39 @@ calibration depends on them; emit even if the spec's telemetry list predates
 them and note it in build.md as an addition for the next spec bump).
 Debounce/timing mechanics are built against an injectable clock/scheduler
 seam from the start — the eval runner replays messages[] offsets through it
-instantly. Step and tool-call caps are counted SEPARATELY in the loop (they
-are distinct limits in the spec), even if the framework offers only one.
+instantly. Step and tool-call caps are counted SEPARATELY (native or own
+counter, as the binding's Caps section says; they are distinct limits in the
+spec), even if the framework offers only one. The turn statuses the binding
+adds (`running`, `awaiting_approval`) are recorded in build.md the same way
+when the spec's enum lacks them.
+
+Build the worker's single turn handler per the binding's HITL gate (numbered
+sequence), Sessions and state (commit order, pending-record lifecycle, crash
+marker) and Caps (turn-start repair) sections; it lives in `src/agent/` against
+the repository interface so Step 8 can drive it.
 
 ## Step 7 — Adapter
 
 The 5 bindings for the design's target per `references/adapter-bindings.md`
-(target) and `references/bindings/<card-id>.md` (stack).
-Ingress enforces the spec's channel security (signature over raw body,
-allowlist, dedupe) BEFORE anything reaches the loop. Secrets per the adapter
+(target) and `references/bindings/<card-id>.md` (stack; off-catalog: build.md's
+Off-catalog binding). Ingress enforces the spec's channel security (signature
+over raw body, allowlist, dedupe, plus the worker's `processed_at` redelivery
+check from adapter-bindings.md's universal rules) BEFORE anything reaches the
+loop. Secrets per the adapter
 pattern; update `.env.example` to match reality.
 
 ## Step 8 — The eval runner
 
 Build the runner that makes `evals/` executable (mapping per
-`references/bindings/<card-id>.md` § Eval runner mapping):
+`references/bindings/<card-id>.md` § Eval runner mapping; off-catalog:
+build.md's Off-catalog binding):
 - Loads golden/ + adversarial/ + config.yaml AS-IS. Any edit to evals/ to
   "make a test pass" is the cardinal violation — dispute via re-entry instead.
 - Materializes fixtures: world state, messages[] sequences (debounce),
-  harness_condition (force_step_cap, tool_always_errors) via injected fakes.
+  harness_condition (force_step_cap, tool_always_errors) via backend doubles,
+  never a swapped tool; the runner drives the worker turn handler on an
+  in-memory repository and runs the tool-surface preflight, per the binding's
+  Eval runner mapping.
 - Verifies per case: trajectory (EXACT / IN_ORDER / ANY_ORDER), asserts,
   forbidden (absence), outcome enum; llm_judge cases scored against their
   rubric with the judge model the rubric names.
