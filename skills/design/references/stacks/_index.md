@@ -14,3 +14,4 @@ Filter mapping used by design Phase E:
 ## Filter table
 | id | level | nests_on | model_portability | a2a | mcp_client | stability | default_egress | verified_on |
 |---|---|---|---|---|---|---|---|---|
+| langgraph | runtime | none | any | licensed-server | beta | semver-stable | none (LangSmith tracing only when enabled) | 2026-10-07 |
