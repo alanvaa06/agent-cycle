@@ -101,10 +101,10 @@ Scratch evidence behind the binding (`skills/build/references/bindings/no-framew
 - Cap, whole batch on first sight: tool cap 2 and a scripted response with 3 calls -> no tool body ran, 1 model request, outcome `tool_call_cap`, all three calls have `not_executed` rows, the requested-call log holds all three.
 - Pause: a response with one safe and one destructive call paused with zero bodies run; the pending row held both calls, `steps=1`, `calls_requested=2`, `history_len`; status `awaiting_approval`. Approve ran the safe body (no key) and the destructive body (key `<approval_id>:<call id>`) once; the second pause had a new `approval_id`, `calls_requested=3`, and the second approval ran its body with a distinct key; the row was gone and no call was unpaired.
 - Redelivery: a commit failure after the approved body ran left the row (`resume_started=true`, same `approval_id`) and no dedupe `processed_at`; the redelivered message ran the body again with the SAME key. A redelivery after a successful commit returned the stored reply and made no model request.
-- Deny ends turn: 0 model requests after the deny, 0 bodies, one `DENIED: ... was not run` row; with `resume_started` already set the text was `DENIED: outcome unknown - do not retry without the user`; a follow-up turn needed no repair. Expiry (ttl 0.01 s) wrote `EXPIRED: ... was not run`, left no dedupe `processed_at` for the expiry commit, and the dequeued message ran as a new turn.
+- Deny ends turn: outcome `hitl_denied`, 0 model requests after the deny, 0 bodies, one `DENIED: ... was not run` row; with `resume_started` already set the text was `DENIED: outcome unknown - do not retry without the user`; a follow-up turn needed no repair. Expiry (ttl 0.01 s) wrote `EXPIRED: ... was not run`, left no dedupe `processed_at` for the expiry commit, and the dequeued message ran as a new turn.
 - Step cap 2: second response asking for a tool -> `step_cap`, that call not executed, 2 requests; across a pause the total stayed 2; the next new turn started at steps 1 and calls 0.
 - Wall clock: a 2 s tool under a 0.3 s budget -> `wall_clock`, the call got an "outcome unknown" row, a follow-up turn succeeded; a resume with 0.95 s of a 1.0 s budget already used was cut after about 0.06 s.
-- Repair: a hand-built history with an unanswered call: status `running` or no row -> "outcome unknown"; status `step_cap` -> "not executed"; exactly one notice per call.
+- Repair: a hand-built history with an unanswered call: status `running` or no row -> "outcome unknown"; status `step_cap` -> "not executed"; exactly one notice per call (a second repair run was not exercised on its own; spike 8 does).
 - Preflight: the first request's tool names equalled the registry; adding one tool made the comparison fail (negative control).
 - Non-decision message ("maybe?"): row kept, dedupe `processed_at` set with outcome `awaiting_approval`. A tool body that raised became an `error` row with a fixed text and the turn continued.
 
@@ -127,3 +127,15 @@ Scratch evidence behind the binding (`skills/build/references/bindings/no-framew
 
 ### Not run / unverified
 - Any real provider call (route conversion, id echo, usage on spans, `max_tokens` handling); a live Postgres, DynamoDB or Firestore store; the A2A and MCP wiring; LiteLLM's mapping of `parallel_tool_calls`; whether the instrumentor env var is case-insensitive; the A2A SDK's task-state name for a task waiting on the approver.
+
+## 13. Follow-up cases after review (2026-10-08)
+
+Same scratch skeleton, extended with the review fixes and re-run (all earlier cases still pass):
+- Rejected calls: a response with an unknown tool and a call whose arguments were the raw string `{bad json` ran no body, wrote two `rejected` rows, counted 2 requested, left `executed` empty and did not pause. A valid gated call beside an unknown one paused; the approval prompt named only the valid call; the resume ran the valid body and wrote `rejected` then `result` rows.
+- Deny ends turn with an automatic sibling: the sibling got a `not_executed` row ("not run: the batch was denied"), the gated call a `DENIED:` row, zero bodies.
+- Unsupported stop: a reply with calls and stop `length` raised before storage: outcome `error`, history held only the user row, nothing dangling, the next turn succeeded.
+- History length mismatch (a row appended behind a pending approval): the resume was refused before `resume_started` was committed, the batch got `interrupted` rows, status `error`, the pending row was deleted, dedupe `processed_at` was set, zero bodies.
+- Commit failure on a new turn: nothing sent; the redelivered message ran and replied.
+- Route kept on the pending record and restored on the resumed `Turn`. `_close` clears `pending` and `t0` is taken before the `try`.
+- Not covered by any run: real adapters, the per-route stop-reason mapping (unverified for OpenAI Chat, Responses and LiteLLM values: the OpenAI function-calling page does not list them), `litellm.register_model`, family-switch id remapping.
+- Anthropic stop reasons (https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons): `end_turn`, `max_tokens`, `stop_sequence`, `tool_use`, `pause_turn`, `refusal`, `model_context_window_exceeded`; for a `max_tokens` stop with an incomplete `tool_use` block the page advises retrying with a higher `max_tokens`; the binding chooses outcome `error` instead. No text addressed to AI agents.
