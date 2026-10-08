@@ -17,7 +17,8 @@
           "Observability verified with evidence: traces arriving at the adapter's backend (or exporter log), token counters present on spans, token-spend alarm configured at the economics threshold when an economics artifact exists",
           "Runbook verified against the minimums (queue/DLQ drain, rollback, kill switch, weekly ritual scheduled); a missing or thin runbook is a FINDING with the template referenced — never silence, never auditor-authored",
           "Explicit verdict: SHIP or NO-SHIP; every finding carries a severity and its re-entry route (which phase re-opens); NO-SHIP framed as the pipeline working, not as failure",
-          "Artifact docs/agent/ship-report.md with frontmatter (agent_name, version, status: draft, date, and the versions of every chain artifact audited); the auditor modified NOTHING else in the repo; human sign-off at the gate = shipped"
+          "Artifact docs/agent/ship-report.md with frontmatter (agent_name, version, status: draft, date, and the versions of every chain artifact audited); the auditor modified NOTHING else in the repo; human sign-off at the gate = shipped",
+          "Lockfile pin check: the framework from spec.md's runtime field is pinned at exactly that version in the lockfile — command and output cited; a mismatch is a finding routed to build"
         ]
       }
     },

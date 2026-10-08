@@ -21,7 +21,9 @@
           "Data section defines session/dedupe/state schemas behind a repository interface",
           "Format tax respected: clean Markdown headers; YAML only for schemas nested >3 deep; no giant inline JSON blobs in prose",
           "Traceability table maps every BHV-NNN to a future eval slot (empty eval column allowed; the row must exist)",
-          "Artifact written to docs/agent/spec.md with frontmatter agent_name, version, status: draft, date, design_version; skill stops at the human gate — approved only on explicit user approval"
+          "Artifact written to docs/agent/spec.md with frontmatter agent_name, version, status: draft, date, design_version; skill stops at the human gate — approved only on explicit user approval",
+          "spec.md frontmatter carries runtime: <card-id>@<exact-version> copied from design §8; changing it is routed to design re-entry",
+          "Every card trap tagged [security] or [data] for the chosen stack appears as a row in spec §4 Security, each traced to at least one BHV scenario"
         ]
       }
     },
@@ -33,7 +35,8 @@
         "fires": true,
         "checks": [
           "Refuses to proceed: names the missing gate (design.md is draft, not approved) and instructs running/approving agent-cycle:design first",
-          "Writes NO spec.md and modifies NO files — verified on the filesystem afterward"
+          "Writes NO spec.md and modifies NO files — verified on the filesystem afterward",
+          "A design.md that is approved but has no §8 Stack decision (or a §8 without a chosen card) is a hard fail: nothing written, routed to design re-entry"
         ]
       }
     },
