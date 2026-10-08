@@ -17,7 +17,9 @@ inform judgment; none is required.
 ## Hard rules
 
 1. GATE FIRST: hard-fail if `docs/agent/design.md` is missing or not
-   `status: approved`. Write nothing. Name the gate.
+   `status: approved`. Also hard-fail when design §8 Stack decision is missing
+   or has no chosen stack (route to design's re-entry: re-open, run Phase E
+   only, bump version, re-approve). Write nothing. Name the gate.
 2. The design is settled law. Interview ONLY on its §7 open questions, one
    question per message. A request to change an approved design decision goes
    to the re-entry ladder (re-open design, bump version, re-approve) — never
@@ -33,7 +35,9 @@ inform judgment; none is required.
 7. ONE spec.md by default; split only if >~400 lines. Sections that don't
    apply collapse to one line with the reason — never padded.
 8. Artifact carries frontmatter `agent_name, version, status: draft, date,
-   design_version`. Approved ONLY at the explicit human gate. Never
+   design_version, runtime` (`runtime` copied verbatim from design §8
+   "Chosen"; §4 Security copies §8's mandatory security rows, each traced to a
+   BHV scenario). Approved ONLY at the explicit human gate. Never
    self-approve. Write ONLY `docs/agent/spec.md`.
 
 ## Workflow
@@ -58,3 +62,5 @@ inform judgment; none is required.
 - An untrusted surface with handling but no injection scenario (violates rule 5).
 - Padding non-applicable sections to look complete (violates rule 7).
 - Setting status: approved without the human gate (violates rule 8).
+- Writing a spec whose runtime differs from design §8, or omitting the chosen
+  stack's security/data traps from §4 (rules 1, 8).
