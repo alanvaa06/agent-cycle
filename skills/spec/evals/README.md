@@ -7,8 +7,10 @@ evidence, record per-check rows in `results.md`, fix-and-rerun on FAIL, dispute
 
 Case-specific setup:
 
-- **SPC-E01** needs a repo with an APPROVED `docs/agent/design.md`. The real
-  dogfood repo (`whatsapp-owner-assistant`) is the canonical run.
+- **SPC-E01** needs a repo with an APPROVED `docs/agent/design.md` that HAS a
+  §8 Stack decision with a chosen stack. The real dogfood repo
+  (`whatsapp-owner-assistant`) is the canonical run, after running design
+  re-entry on it (or use a copy with §8 added).
 - **SPC-E02** needs a repo whose `design.md` frontmatter says `status: draft`
   (copy the real one and flip the field in the copy).
 - **SPC-E03** needs a minimal approved design.md: one safe read-only tool, two
@@ -22,9 +24,10 @@ DISTINCT tool operations, not table rows: a row naming two tools (x / y) means
 two contracts. (The real design's harness line says "6" counting rows; the
 correct contract count there is 7.)
 
-Run SPC-E02 twice: once with design.md at status: draft, once with no
-docs/agent/ directory at all — both hard-fail branches must refuse and write
-nothing.
+Run SPC-E02 three times: (1) design.md at status: draft, (2) no docs/agent/
+directory at all, (3) an APPROVED design.md with §8 removed (expect a hard fail
+routed to design re-entry, nothing written) — every hard-fail branch must
+refuse and write nothing.
 
 Presence checks require judgment on substance — a Gherkin scenario that cannot
 fail, or a docstring that just restates the tool name, does NOT pass. For

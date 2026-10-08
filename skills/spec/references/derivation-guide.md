@@ -10,12 +10,11 @@ Read `docs/agent/design.md`. Hard-fail (write nothing, say why, stop) if:
   design gate first";
 - §8 Stack decision is missing, or has no "Chosen" stack (an approved design
   written before v0.11, or a §8 that never recorded a pick) → "design has no
-  stack decision; re-open design (re-entry: set status draft, run Phase E
-  only, bump its version, re-approve)";
+  stack decision; re-open design per agent-cycle:design's re-entry rule";
 Record `design_version` = the design's `version` field. Record `runtime` =
-the design §8 "Chosen" value, verbatim (`<card-id>@<version>`,
-`no-framework@n/a`, or `off-catalog:<name>@<version>`) — never re-pick or
-re-version it here. If the user asks to
+the value inside the backticks of design §8 "Chosen", nothing else
+(`<card-id>@<version>`, `no-framework@n/a`, or `off-catalog:<name>@<version>`)
+— never re-pick or re-version it here. If the user asks to
 change something the design already decided (scope, tools, deployment,
 NO-goals), do NOT fold it in here — that is the re-entry ladder: the design
 must be re-opened, bumped, and re-approved first.
@@ -49,6 +48,12 @@ Number BHV-NNN sequentially across the file. Quality bar per scenario:
   occurred / degraded flag set). A scenario that cannot fail does not count.
 Security scenarios are behavior too: every untrusted surface gets at least one
 injection-attempt scenario whose Then is "instructions treated as data".
+Every mandatory stack security row (the §8 list plus any rows added in Step 5)
+gets at least one BHV scenario with an observable Then. For a trap that only
+applies when a feature is used, the handling may read "feature not used:
+<guard>", with a BHV asserting the feature is absent (e.g. the guarded tool
+or option is never registered). Install-time rows are the one exception, see
+Step 5.
 
 ## Step 4 — Tool contracts
 
@@ -73,13 +78,21 @@ enforcement may be trusted by design). Also cover least-privilege scoping per
 credential and the PII/secrets outbound rules from the design's NO-goals.
 Stack traps: copy design §8 "Mandatory spec security rows" into §4 — one row
 each (handling = the obligation, e.g. "default trace exporter disabled"),
-each traced to at least one BHV scenario. Do not re-derive the list from the
-card; open `design/references/stacks/<card-id>.md` only to look up the
-card's wording and URL for a trap §8 already lists. `off-catalog:` stacks:
-the rows come from §8's cited cons. Data:
-schemas behind the repository interface named in the design's sessions seam;
-read §8 "Concrete per-seam binding" to name the chosen store (the interface
-itself stays stack-neutral).
+each traced to at least one BHV scenario (Step 3). Open the chosen card
+(the agent-cycle plugin's `skills/design/references/stacks/<card-id>.md`) to
+look up wording and URL for each listed trap, and check it for completeness:
+every `[security]`/`[data]` trap of the card that is missing from §8's list is
+ADDED as a row marked "not in design §8", and listed in the gate summary and
+in §7 open questions. This is additive; it does not force a design re-entry.
+Exception: an install-time supply-chain row (e.g. hash-pinning a package)
+traces to "build rule 9 hash pins + ship lockfile check" instead of a BHV
+scenario; no other row may use it. `off-catalog:` stacks: the rows are the §8
+cons that are security or data risks plus the egress switch-off row when Q4
+set an egress constraint (if §8's mandatory rows list is filled, copy it).
+Data: define the app-owned tables (dedupe, pending record, turns) behind the
+repository interface named in the design's sessions seam; for a
+framework-owned store, name it (from §8 "Concrete per-seam binding") and do
+not redefine its schema. The interface itself stays stack-neutral.
 
 ## Step 6 — Format tax check
 
@@ -91,6 +104,8 @@ lever, not aesthetics.
 
 Fill §6 with one row per BHV (eval/test columns em-dash). Write spec.md with
 status: draft. Present in chat: capability list, BHV count per capability,
-tier changes vs design, untrusted-surface table, open questions. Ask for
+tier changes vs design, the pinned `runtime`, the stack security rows table
+(flagging rows added as "not in design §8"), untrusted-surface table, open
+questions. Ask for
 approval. On explicit approval only → status: approved. Hand off:
 "Next: agent-cycle:evals reads this artifact."
