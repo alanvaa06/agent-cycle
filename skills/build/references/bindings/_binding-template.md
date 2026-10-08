@@ -39,15 +39,19 @@ per session); durability settings.
   the run's messages/state, writes or deletes the pending-approval record
   (`requested_at` = now, taken just before sending; the record is deleted in
   the SAME transaction that stores the resume's messages), sets the turn
-  status, and sets `processed_at` and the reply text on the ingress dedupe
+  status (`awaiting_approval` when the run ended in a pause), and sets
+  `processed_at`, the outcome and the reply text on the ingress dedupe
   record of the dequeued message; (b) send the prompt or reply; (c) ack the
   queue message. Checkpointer stacks: the checkpointer has committed during
   the run; then one repository transaction writes `requested_at` and the
-  dedupe record's `processed_at` and reply; then send; then ack. A pending
+  dedupe record's `processed_at`, outcome (`awaiting_approval` when the turn
+  ended in a pause) and reply; then send; then ack. A pending
   interrupt found with no record is handled as in the Pending-record lifecycle
   bullet below.
 - Redelivery: the ingress dedupe record (keyed by the channel message id)
-  carries `processed_at` and the reply text. On dequeue, a message whose
+  carries `processed_at`, the `outcome` (`awaiting_approval` for a message
+  whose turn ended in a pause, otherwise the turn's outcome) and the reply
+  text. On dequeue, a message whose
   record has `processed_at` set is not re-run: re-send the stored reply if the
   send may not have happened, then ack. Ingress dedupe alone only catches
   channel retries; this closes queue redelivery after a worker crash. The
@@ -67,7 +71,9 @@ per session); durability settings.
 - Crash marker (own-loop stacks): write the turn status `running` at turn
   start, after the repair, and overwrite it with the outcome on every exit.
   The repair treats `running` or a missing status row as a crash and writes
-  "outcome unknown", never "not executed".
+  "outcome unknown", never "not executed". A turn that ended in a pause has
+  the status `awaiting_approval`; the repair maps it to nothing (the pending
+  record owns it).
 - Every spike states its pass test and runs before build-guide Step 4. Every
   sessions/store spike, on failure, STOPS and raises a re-entry on the
   design's sessions seam; never a silent store swap. Other spikes state their
@@ -89,6 +95,11 @@ rules for work done before the pause.
   record is deleted only in the post-run transaction. Spike pass test: resume
   -> second pause -> second approval yields distinct keys and the second tool
   body runs.
+- Resume-started marker: before running a resume, set `resume_started` on the
+  pending record in a committed write (a resume may run tools and then crash).
+  If step 2a (expiry) or a deny later finds the flag set, the notice for the
+  pending calls is "outcome unknown - do not retry without the user", never
+  "was not run"; the flag is deleted with the record.
 - The decision value shape (approve / deny / edit); deny and expiry behavior.
 - If a message for a pending session does not parse as a decision: keep the
   interrupt pending and reply with the spec's pending-approval prompt (or deny
