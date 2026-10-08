@@ -22,3 +22,4 @@ Filter mapping used by design Phase E:
 | openai-agents-sdk | framework | none | any | none | native | pre-1.0 | tracing to OpenAI ON by default, inputs and outputs included | 2026-10-07 |
 | crewai | framework | none | any | client+server | native | fast-moving | anonymous telemetry ON by default; built-in tracing uploads to the CrewAI platform when enabled | 2026-10-07 |
 | claude-agent-sdk | harness | none | vendor-only (anthropic) | none | native | alpha | Anthropic usage metrics ON by default on the Claude API; CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1 switches off; OTel export opt-in | 2026-10-07 |
+| no-framework | none | none | any | client+server | native | own-code | none | 2026-10-07 |
