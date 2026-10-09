@@ -64,7 +64,9 @@ the commit before the build, so they must be in git before the build touches
 anything.
 - Not a git repo → ask the human whether to `git init`; no repo, no build.
 - `git status --porcelain -- <AGENT_ROOT>/docs/agent/design.md <AGENT_ROOT>/docs/agent/spec.md <AGENT_ROOT>/evals/`
-  prints anything, or `git ls-files` misses one -> commit exactly those paths
+  prints anything, or `git ls-files` misses one, or (workspace) `agent-cycle.yaml`
+  has an uncommitted entry for this agent even though those three paths are
+  clean -> commit exactly those paths
   (plus `agent-cycle.yaml` when this agent's entry is uncommitted):
   `git add -- <paths>` then
   `git commit -m "Approved design, spec and evals (<agent_name>)" -- <paths>`.
@@ -76,9 +78,11 @@ anything.
   seeded with this agent's prefix, and the pinned `python -I -S` registration
   in `.claude/settings.json` (written last), all committed together in ONE
   commit. If the
-  installed `HOOK_VERSION` is lower than the plugin's, STOP and ask the human
-  to upgrade it from their own terminal (rename to `.off`, copy the plugin's
-  file, rename back). Build never writes `.claude/hooks/` once the hook
+  installed `HOOK_VERSION` is lower than the plugin's (a hook with no
+  `HOOK_VERSION`, as every pre-v0.12 hook, counts as lower), STOP and ask the
+  human to upgrade it from their own terminal (rename to `.off`, copy the
+  plugin's file, rename back, then commit it with a subject starting
+  `agent-cycle: hook upgrade`). Build never writes `.claude/hooks/` once the hook
   exists. Otherwise verify it is active (a dummy edit to
   `<AGENT_ROOT>/evals/config.yaml` is blocked), and commit `built-agents.txt`
   when the hook has added this agent's line (forge-delegation.md). While any

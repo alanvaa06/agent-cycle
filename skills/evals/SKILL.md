@@ -15,6 +15,11 @@ red before green, at agent level.
    design_version is stale vs the design. Write nothing. Name the gate.
 2. The spec is settled law. Evals test the spec — they never reinterpret it.
    An ambiguous BHV is a dispute for the re-entry ladder, not a creative eval.
+   On an agent whose build has started, the hook blocks Claude's edits to its
+   design, spec and evals: that re-entry is the human's, from their own
+   terminal (the re-entry steps in the build skill's
+   `references/forge-delegation.md`), and while the hook is renamed to `.off`
+   every Claude tool call is blocked.
 3. FULL COVERAGE: every BHV gets a case (bhv_ref pins BHV-NNN@spec_version) or
    a written gap justification in config.yaml. Counts must reconcile.
 4. METHOD MIX is mandatory: deterministic where the Then is observable,

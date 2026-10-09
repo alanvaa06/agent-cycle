@@ -29,10 +29,12 @@ nested under their US-n, and stable IDs never renumbered. Derive mechanically:
    numbering stays canonical for its machinery; the BHV annotation keeps the
    pipeline's traceability chain intact (BHV → eval → AC → phase → test).
 4. `## Constraints`: runtime + target (spec/design), loop caps, the frozen-
-   artifact rule (evals/ and docs/agent/ are read-only for the forge run).
-5. `## Definition of Done`: the eval-runner command stated exactly (e.g.
-   `python -m evals.runner`), "exit code 0 with every case at its threshold",
-   plus the adapter smoke test.
+   artifact rule (`<AGENT_ROOT>/evals/`, `<AGENT_ROOT>/docs/agent/design.md`
+   and `spec.md` are read-only for the forge run: the hook freezes them).
+5. `## Definition of Done`: the eval-runner command stated exactly and run from
+   AGENT_ROOT (e.g. `python -m evals.runner`; in a workspace
+   `cd agents/<name> && python -m evals.runner`), "exit code 0 with every case
+   at its threshold", plus the adapter smoke test.
 
 Then follow forge-master's OWN two-gate process: `forge-master:prd-import` on
 the derived PRD (Human Gate 1 — the human approves the PRD) →
@@ -40,6 +42,15 @@ the derived PRD (Human Gate 1 — the human approves the PRD) →
 `forge-master:forge-run`. Never collapse or skip either gate. Forge's "green =
 test runner exit code" composes with the runner's "0 = every case at
 threshold" — no opinion anywhere in the chain.
+
+Forge under the persistent hook: once any agent is built, Claude cannot run
+`git merge`, `pull`, `rebase`, `stash push -u` and the other tree-rewriting
+verbs (see "The anti-gaming hook" below). The forge Run Config therefore sets
+`on_complete: pr` or `keep` (never `merge`) and `max_parallel: 1`; merging the
+result and forge's resume stash recovery are the human's, from their own
+terminal. Forge's default `isolation: worktree` runs outside the project
+directory, where the hook does not apply; for delegated builds /ship's diff
+audit is the protection there.
 
 ## The anti-gaming hook
 
@@ -83,8 +94,11 @@ updated by the human from their own terminal.
 
 Installed once per repository and kept (it is not removed after a build).
 Install when absent. If the installed file's `HOOK_VERSION` is lower than the
-plugin's, STOP and ask the human to upgrade it from their own terminal: rename
-it to `guard_artifacts.py.off`, copy the plugin's file, then rename it back.
+plugin's (a hook with no `HOOK_VERSION`, as every pre-v0.12 hook, counts as
+lower), STOP and ask the human to upgrade it from their own terminal: rename
+it to `guard_artifacts.py.off`, copy the plugin's file, rename it back, and
+commit the upgrade with a subject starting `agent-cycle: hook upgrade` (ship
+sanctions exactly that subject).
 Build never writes `.claude/hooks/` once the hook exists, because the hook
 protects that folder. Otherwise only verify it is active.
 
@@ -116,9 +130,12 @@ Always:
 - **Hook folder.** `.claude/hooks/` (hook and ratchet) is protected, and so is
   any file that is a hard link to a protected file.
 - **Settings.** `.claude/settings.json`, `settings.local.json` and the user's
-  `~/.claude/settings.json` must stay valid JSON. The pinned PreToolUse entry and the `env` key must not change,
-  and `disableAllHooks` must never be set. Any shell write whose target names
-  `.claude/settings` is blocked.
+  `~/.claude/settings.json` must stay valid JSON. In the project files the
+  pinned PreToolUse entry and the `env` key must not change; in the user's
+  file the `env` rule covers only its `PATH` and `PYTHON*` entries (they
+  steer the hook's interpreter), not the whole key. `disableAllHooks` must
+  never be set. Any shell write whose target names `.claude/settings` is
+  blocked.
 - **Shell writes.** The hook judges only write targets, parsed per command:
   - the verb is the word's basename, so `/bin/rm`, `rm.exe` and `"rm"` count;
   - the target is the destination of `cp`, `Copy-Item` or `robocopy`, the

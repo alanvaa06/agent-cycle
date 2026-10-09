@@ -85,9 +85,13 @@ coverage map.
 plus, when a commit in the range has a message starting `agent-cycle: workspace move`
 and `git show -M --name-status --format= <sha>` lists only `R100` entries plus
 `A agent-cycle.yaml` (the conversion creates it), the same three
-pre-move paths (repo root) in the pathspec, so the move shows as renames. That
-commit is sanctioned: record its sha. Apply the same pathspec to the
-"first entered git inside the range" check (`--diff-filter=A --find-renames`).
+pre-move paths (repo root) in the pathspec, so the move shows as renames. Each
+`R100` entry must map a path `p` to `agents/<AGENT_ROOT name>/p` exactly (for
+example `docs/agent/design.md` -> `agents/<name>/docs/agent/design.md`); an
+entry mapping anywhere else, an `R` below 100, or any other status is not a
+sanctioned move. A commit that passes is sanctioned: record its sha. Apply
+the same pathspec to the "first entered git inside the range" check
+(`--diff-filter=A --find-renames`).
 
 Mixed-agent commits (workspace only):
 `git log --format=%h <build_start>..HEAD -- <AGENT_ROOT>` then, per commit,
@@ -111,9 +115,18 @@ column is filled with the hook on: build.md must record the post-fill check (a
 dummy edit to `<AGENT_ROOT>/evals/config.yaml`, blocked); confirm it. Evidence
 that the builder disabled, renamed or moved the hook, edited its script, or
 removed this agent's line from `.claude/hooks/built-agents.txt` during the
-build (beyond the sanctioned one-commit install of an absent hook, or the
-commit adding this agent's own line) is a blocker routed to build, even with a
-clean diff.
+build is a blocker routed to build, even with a clean diff, beyond these
+sanctioned commits (record each sha): the one-commit install of an absent hook;
+the commit adding this agent's own line; (a) a commit whose subject starts
+`agent-cycle: hook upgrade` and touches only `.claude/hooks/guard_artifacts.py`
+(`HOOK_VERSION` raised or added) and/or `.claude/settings.json` (the guard
+command changed to the pinned
+`python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"` form),
+which is how the human upgrades the hook (a re-ship of a moved agent and any
+later hook upgrade pass through it); (b) a commit whose subject starts
+`agent-cycle: ratchet follows the move` and whose only change to
+`.claude/hooks/built-agents.txt` replaces the `.` line with
+`agents/<this agent>/`. Any other change in those commits is not sanctioned.
 
 ## Section 5 — Observability + alarm
 

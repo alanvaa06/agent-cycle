@@ -76,11 +76,11 @@
     {
       "id": "BLD-E06",
       "type": "edge-workspace-second-build",
-      "input": "Build the soporte agent. (Fixture: workspace with agents [ventas, soporte]; ventas already built with the hook installed at .claude/hooks/ at the plugin's current HOOK_VERSION and agents/ventas/ recorded in the tracked .claude/hooks/built-agents.txt; soporte has approved design, spec and evals.)",
+      "input": "Build the soporte agent. (Fixture: workspace with agents [ventas, soporte]; ventas already built with the hook installed at .claude/hooks/ at the plugin's current HOOK_VERSION and agents/ventas/ recorded in the tracked .claude/hooks/built-agents.txt; soporte has approved design, spec and evals, all committed, and its agent-cycle.yaml entry is committed too.)",
       "expected": {
         "fires": true,
         "checks": [
-          "The baseline commit contains only agents/soporte/ artifacts (design.md, spec.md, evals/) plus agent-cycle.yaml if soporte's entry was uncommitted; build_start recorded in agents/soporte/docs/agent/build.md",
+          "soporte's artifacts and agent-cycle.yaml entry are already committed, so no baseline commit is made (a baseline commit would contain only agents/soporte/ artifacts, plus agent-cycle.yaml only when soporte's entry is uncommitted); build_start (HEAD) is recorded in agents/soporte/docs/agent/build.md",
           "agents/soporte/docs/agent/build.md stub (status: draft, build_start) is committed on its own before the first source file",
           "Build never writes anything under .claude/hooks/: the hook is not reinstalled or overwritten; if its HOOK_VERSION is lower than the plugin's, build STOPs and asks the human to upgrade it from their own terminal, otherwise it verifies the hook is active (a dummy edit to agents/soporte/evals/config.yaml is blocked)",
           "The hook records agents/soporte/ in .claude/hooks/built-agents.txt the first time it sees soporte's build.md, and build commits that ratchet file (git add .claude/hooks/built-agents.txt)",

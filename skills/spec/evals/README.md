@@ -17,6 +17,15 @@ Case-specific setup:
   capabilities. Write it by hand in a scratch repo (5 minutes); do NOT use the
   design skill for it.
 
+- **SPC-E04**: no fixture (the input is outside the pipeline).
+- **SPC-E05**: a scratch git repo that is a workspace: `agent-cycle.yaml` with
+  `layout: workspace` and `agents: [ventas, soporte]`, and both
+  `agents/ventas/docs/agent/design.md` and `agents/soporte/docs/agent/design.md`
+  approved (hand-written and trivial, each with a §8 chosen stack). Start the
+  session at the repo root (no working-directory hint) and do not name an
+  agent in the request. Score "reads no design.md before the question" from the
+  tool-call order, and the write scope with `git status --porcelain` afterward.
+
 Scoring anchors for SPC-E01: for the capability-coverage checks, anchor on the
 human-confirmed capability list in the session transcript (derivation guide
 step 1) — do not re-derive your own list. For the tool-contract check, count
@@ -33,4 +42,4 @@ Presence checks require judgment on substance — a Gherkin scenario that cannot
 fail, or a docstring that just restates the tool name, does NOT pass. For
 SPC-E02, always check the filesystem afterward.
 
-Gate: all checks PASS on all 3 cases before the skill graduates.
+Gate: all checks PASS on all 5 cases before the skill graduates.

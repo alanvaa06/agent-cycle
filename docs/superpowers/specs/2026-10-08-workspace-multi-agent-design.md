@@ -69,7 +69,17 @@ Every skill cites it with one line before touching any path. `AGENT_ROOT` resolv
 5. Otherwise → ONE question listing the agents as lettered options.
 
 All existing skill paths (`docs/agent/…`, `evals/…`, `src/…`, `tests/…`) are relative to
-`AGENT_ROOT`. Git commands that take paths prefix them with `AGENT_ROOT`.
+`AGENT_ROOT`. Git commands that take paths prefix them with `AGENT_ROOT`; every non-git
+command (eval runner, package manager, smoke test, lockfile `grep`) runs from `AGENT_ROOT`.
+
+Exception: design creating a NEW agent skips the order; its `AGENT_ROOT` is
+`agents/<new name>/`, never an existing agent reached through steps 2-4. A workspace starts
+from scratch with the human creating `agent-cycle.yaml` (`layout: workspace`, `agents: []`,
+an empty list is valid); design appends each new agent. Beyond `AGENT_ROOT`, skills touch
+only: the `agent-cycle.yaml` append (design), build's baseline commit (may include
+`agent-cycle.yaml`), build's hook install and ratchet commits (`.claude/hooks/`,
+`.claude/settings.json`), and ship's reads of other agents' paths (mixed-commit detection),
+of the pre-move root paths and of the `.claude/hooks/` history.
 
 ### 4.3 Creating an agent in a workspace
 
@@ -80,14 +90,25 @@ an existing `agents/<name>/` → stop and ask.
 ### 4.4 Converting a single-agent repo
 
 When the user asks for a second agent in a single-agent repo, design does not move anything.
-It shows the conversion commands — `git mv` of the existing agent's files into
-`agents/<existing-name>/`, create `agent-cycle.yaml` — for the human to run as one dedicated
-commit, then stops; after that commit design runs again for the new agent. Ship accepts that pure-rename commit (detected with
-`--find-renames`) as sanctioned and records it. The commands start by upgrading an existing
-hook to the plugin's version (and its registration to the pinned `python -I -S` form), committed
-on its own, because an older hook does not protect `agents/*/`. They end by
+It shows the conversion commands for the human to run as one dedicated commit, then stops;
+after that commit design runs again for the new agent. Design substitutes the plugin's real
+path in the block and says it is bash (Git Bash on Windows). The move keeps the layout
+`agents/<existing-name>/docs/agent/...`: `mkdir -p agents/<existing-name>/docs`, then
+`git mv docs/agent agents/<existing-name>/docs/agent` (a plain `git mv docs/agent <dest>/`
+would land at `<dest>/agent`), then `git mv evals src tests ... agents/<existing-name>/`
+(plus the lockfile, pyproject, Dockerfile, compose and `.env.example` as present), and create
+`agent-cycle.yaml`. The commit subject starts `agent-cycle: workspace move`.
+
+Ship accepts that commit (detected with `--find-renames`) as sanctioned and records it only
+when `git show -M --name-status` lists nothing but `R100` entries and `A agent-cycle.yaml`,
+and every `R100` entry maps a path `p` to `agents/<existing-name>/p` exactly.
+
+The commands start by upgrading an existing hook to the plugin's version (and its registration
+to the pinned `python -I -S` form), committed on its own with a subject starting
+`agent-cycle: hook upgrade`, because an older hook does not protect `agents/*/`. They end by
 replacing the `.` line of the tracked `.claude/hooks/built-agents.txt` with
-`agents/<existing-name>/` and committing it.
+`agents/<existing-name>/` and committing it with a subject starting
+`agent-cycle: ratchet follows the move`.
 
 ## 5. One persistent hook for the workspace
 
@@ -156,9 +177,13 @@ Additional rules:
   only governs Claude's tool calls): rename the hook to `guard_artifacts.py.off`, make the
   change, remove the agent's line from `.claude/hooks/built-agents.txt` (needed when its
   `build.md` is deleted or moved; otherwise the hook records it again on the next call), then
-  rename the hook back.
-- Upgrading the hook is also the human's job. Build never writes `.claude/hooks/` because the
-  hook protects that folder (§6.1 step 3).
+  rename the hook back. On a built agent the hook blocks Claude's edits to its design, spec and
+  evals, and while the hook is renamed to `.off` every Claude tool call is blocked (the
+  registration points at a missing script), so design, spec and evals skills leave this
+  re-entry to the human.
+- Upgrading the hook is also the human's job, committed with a subject starting
+  `agent-cycle: hook upgrade`. Build never writes `.claude/hooks/` because the hook protects
+  that folder (§6.1 step 3).
 - Everything PR #1 added stays: `$CLAUDE_PROJECT_DIR` invocation, path resolution from the
   payload's `cwd`, folder-level shell-write blocking, UTF-8 stdin, fail-closed on unparseable
   calls. File-tool paths are canonicalised before they are judged: no `$VAR`/`~` expansion (the
@@ -221,13 +246,21 @@ Additional rules:
      `agents/<name>/` in a workspace);
    - merge the pinned registration into `.claude/settings.json`.
 
-   If the installed `HOOK_VERSION` is lower than the plugin's, STOP and ask the human to
-   upgrade it from their own terminal (rename to `.off`, copy the plugin's file, rename back).
-   Build never writes `.claude/hooks/` once the hook exists. When the hook is already
+   If the installed `HOOK_VERSION` is lower than the plugin's (a hook with no `HOOK_VERSION`,
+   as every pre-v0.12 hook, counts as lower), STOP and ask the human to upgrade it from their
+   own terminal (rename to `.off`, copy the plugin's file, rename back) and commit it with a
+   subject starting `agent-cycle: hook upgrade`. Build never writes `.claude/hooks/` once the hook exists. When the hook is already
    installed, it records X itself the first time it sees X's `build.md`, and build commits
    the updated ratchet file (`git add .claude/hooks/built-agents.txt`). Otherwise verify the
    hook is active: a dummy edit to X's `evals/config.yaml` must be blocked.
 4. Build writes only inside `AGENT_ROOT` (source, tests, lockfile, deploy recipe).
+   Delegated builds under the persistent hook: Claude cannot run `git merge`/`pull`/`rebase`/
+   `stash push -u`, so the forge Run Config sets `on_complete: pr` or `keep` (never `merge`)
+   and `max_parallel: 1`; merges and forge's resume stash recovery are the human's. Forge's
+   default `isolation: worktree` runs outside the project directory, where the hook does not
+   apply; for delegated builds ship's diff is the protection there. The PRD constraint names
+   `<AGENT_ROOT>/evals/`, `<AGENT_ROOT>/docs/agent/design.md` and `spec.md` as read-only, and
+   the Definition-of-Done runner command runs from `AGENT_ROOT`.
 5. Resource names carry the agent prefix: queue/stream name, database schema,
    `service.name`, so agents sharing one Postgres/Redis/collector cannot collide. Added to
    `skills/build/references/adapter-bindings.md` as a universal rule.
@@ -239,7 +272,15 @@ Additional rules:
   Other agents' commits in the range do not appear.
 - A commit in the range that touches X's paths AND another agent's paths is a finding routed
   to build. Commits touching only another agent are that agent's work and are ignored.
-- A pure-rename conversion commit (§4.4) is accepted as sanctioned and recorded.
+- A pure-rename conversion commit (§4.4) is accepted as sanctioned and recorded: subject
+  starts `agent-cycle: workspace move`, only `R100` entries plus `A agent-cycle.yaml`, and
+  each `R100` entry maps `p` to `agents/<X>/p` exactly.
+- Hook-tamper evidence has two more sanctioned commits, recorded by sha: subject starts
+  `agent-cycle: hook upgrade` and touches only `.claude/hooks/guard_artifacts.py`
+  (`HOOK_VERSION` raised or added) and/or `.claude/settings.json` (guard command changed to the
+  pinned form); and subject starts `agent-cycle: ratchet follows the move` whose only change
+  to `.claude/hooks/built-agents.txt` replaces the `.` line with `agents/<X>/`. Without them a
+  re-ship of a moved agent, or any human hook upgrade, would read as tampering.
 - The lockfile checked is the one under `AGENT_ROOT`.
 
 ### 6.3 Other skills

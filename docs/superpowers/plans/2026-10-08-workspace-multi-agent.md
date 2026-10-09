@@ -919,8 +919,9 @@ mv .claude/hooks/guard_artifacts.py .claude/hooks/guard_artifacts.py.off
 cp <plugin>/skills/build/assets/guard_artifacts.py .claude/hooks/guard_artifacts.py.off
 mv .claude/hooks/guard_artifacts.py.off .claude/hooks/guard_artifacts.py
 # 2. Move the existing agent:
-mkdir -p agents/<existing-name>
-git mv docs/agent evals src tests agents/<existing-name>/   # plus its lockfile, pyproject, Dockerfile, compose, .env.example as present
+mkdir -p agents/<existing-name>/docs
+git mv docs/agent agents/<existing-name>/docs/agent
+git mv evals src tests agents/<existing-name>/   # plus its lockfile, pyproject, Dockerfile, compose, .env.example as present
 printf 'layout: workspace\nagents: [<existing-name>]\n' > agent-cycle.yaml
 git add agent-cycle.yaml
 git commit -m "agent-cycle: workspace move <existing-name>"

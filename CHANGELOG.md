@@ -71,14 +71,27 @@ skill or new pipeline capability, patch = fixes.
 - Hook upgrades are a human step: build never writes `.claude/hooks/`. When
   the installed `HOOK_VERSION` is lower than the plugin's, build stops and
   asks you to rename the hook to `.off`, copy the plugin's file, and rename it
-  back. An older hook does not protect `agents/*/`, so upgrade before
+  back (a hook with no `HOOK_VERSION`, as every pre-v0.12 hook, counts as
+  lower). An older hook does not protect `agents/*/`, so upgrade before
   converting a repo to a workspace, and commit the upgrade on its own, before
-  the move commit.
+  the move commit, with a subject starting `agent-cycle: hook upgrade` (ship
+  sanctions that subject and records its sha).
 - Repos whose `.claude/settings.json` registers the hook without `-I -S`:
   update the command to
-  `python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"` and
-  commit `.claude/hooks/built-agents.txt` (both by hand; the hook blocks the
-  builder from doing either through its own registration).
+  `python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"` by
+  hand and commit it in the same `agent-cycle: hook upgrade` commit (the hook
+  blocks the builder from editing its own registration).
+- `.claude/hooks/built-agents.txt` is committed by build (it `git add`s the
+  file when the hook has added the agent's line; `git add` is not a write).
+  Only the line replacement after a workspace move is by hand: commit it with
+  a subject starting `agent-cycle: ratchet follows the move`.
+- The workspace-move commands put `docs/agent` at
+  `agents/<name>/docs/agent` (`mkdir -p agents/<name>/docs`, then
+  `git mv docs/agent agents/<name>/docs/agent`); ship accepts the move only
+  when every `R100` entry maps a path `p` to `agents/<name>/p`.
+- Forge-delegated builds under the persistent hook: set the forge Run Config
+  to `on_complete: pr` or `keep` and `max_parallel: 1`; merges and forge's
+  resume stash recovery are yours, from your own terminal.
 - Re-entry on a built agent: rename the hook to `.off`, make the change,
   remove the agent's line from `.claude/hooks/built-agents.txt` when its
   build.md is deleted or moved, then rename the hook back.

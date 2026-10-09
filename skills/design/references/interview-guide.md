@@ -184,8 +184,10 @@ Then:
 The repo has `docs/agent/` at its root and no `agent-cycle.yaml`. Do not move
 or create anything. Show the human these commands to run from their own
 terminal (the anti-gaming hook only governs Claude's tool calls), listing the
-existing agent's actual paths found in the repo. The move itself is ONE
-dedicated commit:
+existing agent's actual paths found in the repo. Design substitutes the
+plugin's real install path for `<plugin>` before showing the block, and says
+the block is bash (Git Bash on Windows). The move itself is ONE dedicated
+commit:
 
 ```bash
 # 1. If .claude/hooks/guard_artifacts.py exists, upgrade it to the plugin's
@@ -198,8 +200,9 @@ mv .claude/hooks/guard_artifacts.py.off .claude/hooks/guard_artifacts.py
 #    Commit the upgraded hook (and settings.json if changed) on their own:
 #    git commit -m "agent-cycle: hook upgrade" -- .claude/hooks/guard_artifacts.py .claude/settings.json
 # 2. Move the existing agent (nothing but renames and the new agent-cycle.yaml):
-mkdir -p agents/<existing-name>
-git mv docs/agent evals src tests agents/<existing-name>/   # plus its lockfile, pyproject, Dockerfile, compose, .env.example as present
+mkdir -p agents/<existing-name>/docs
+git mv docs/agent agents/<existing-name>/docs/agent
+git mv evals src tests agents/<existing-name>/   # plus its lockfile, pyproject, Dockerfile, compose, .env.example as present
 printf 'layout: workspace\nagents: [<existing-name>]\n' > agent-cycle.yaml
 git add agent-cycle.yaml
 git commit -m "agent-cycle: workspace move <existing-name>"

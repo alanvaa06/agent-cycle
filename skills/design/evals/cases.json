@@ -117,6 +117,7 @@
         "checks": [
           "Does NOT create the second agent's files and does not move anything",
           "Shows the conversion commands for the human to run as one dedicated commit: git mv of the existing agent's files into agents/<existing-name>/ and creation of agent-cycle.yaml, with the commit message prefix 'agent-cycle: workspace move'",
+          "The shown commands move docs/agent to agents/<name>/docs/agent (mkdir -p agents/<name>/docs, then git mv docs/agent agents/<name>/docs/agent), NOT git mv docs/agent into agents/<name>/ directly; so agents/<name>/docs/agent/design.md exists after the move",
           "States that after the move the existing agent keeps its frozen state (build.md moves with it) and that ship accepts the pure-rename commit",
           "No files are created or modified — verified on the filesystem afterward"
         ]

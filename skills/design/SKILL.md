@@ -35,7 +35,8 @@ none is required.
    chosen stack — the stack never sits in §7 open questions.
 8. Write ONLY `<AGENT_ROOT>/docs/agent/design.md`. In a workspace, a NEW agent
    also appends its name to `agents:` in `agent-cycle.yaml` (nothing else in
-   that file changes); a name already listed or an existing `agents/<name>/`
+   that file changes; an empty `agents: []` is valid, it is how a workspace
+   starts); a name already listed or an existing `agents/<name>/`
    -> stop and ask. In a one-agent repo that already holds an agent, a second
    agent is never created here: show the conversion (interview-guide
    "Second agent in a one-agent repo") and stop. Re-verification only reads.
@@ -43,10 +44,13 @@ none is required.
 ## Workflow
 
 0. Resolve AGENT_ROOT per the agent-cycle plugin's references/agent-root.md. In a
-   workspace, a new agent's AGENT_ROOT is agents/<agent_name>/.
+   workspace, a NEW agent's AGENT_ROOT is agents/<agent_name>/, never an
+   existing agent reached through the resolution order (an empty `agents: []`
+   is valid). Re-entry or re-verification of an existing design resolves
+   normally.
 1. Read `references/interview-guide.md`. Run phases A→F, one question at a time.
 2. Fill `references/artifact-template.md` with the answers.
-3. Write to `docs/agent/design.md` (target repo), frontmatter:
+3. Write to `<AGENT_ROOT>/docs/agent/design.md` (target repo), frontmatter:
    `agent_name, version: 1, status: draft, date`.
 4. Present the summary in chat: PEAS table, classification, harness, tool
    inventory (with tier guesses), deployment intent, stack decision (chosen,
@@ -55,6 +59,11 @@ none is required.
 5. On explicit approval → set `status: approved` and report done. On feedback →
    edit, re-present (stay at gate).
 6. Hand off: "Next phase: `agent-cycle:spec` reads this artifact."
+
+Re-entry on an agent whose build has started: the hook blocks Claude's edits
+to its design, spec and evals, so re-entry there is the human's, from their own
+terminal (the re-entry steps in the build skill's `references/forge-delegation.md`);
+while the hook is renamed to `.off`, every Claude tool call is blocked.
 
 Re-entry: an approved `design.md` without §8 → set `status: draft`, run Phase E
 only (plus Phase D seam neutrality if needed), bump `version`, set the
