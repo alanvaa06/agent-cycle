@@ -157,58 +157,58 @@ def test_shell_prebuild_evals_delete_allowed(tmp_path: Path) -> None:
 # --- workspace
 
 def test_workspace_freezes_per_agent(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
     assert run(tmp_path, "Write",
-               {"file_path": str(tmp_path / "agents/soporte/evals/config.yaml"), "content": "x\n"}) == []
+               {"file_path": str(tmp_path / "agents/agent-b/evals/config.yaml"), "content": "x\n"}) == []
 
 
 def test_workspace_root_level_evals_is_not_an_agent(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "approved"})
+    make_workspace(tmp_path, {"agent-a": "approved"})
     (tmp_path / "evals").mkdir()
     assert run(tmp_path, "Write", {"file_path": str(tmp_path / "evals/x.yaml"), "content": "x\n"}) == []
 
 
 def test_workspace_freeze_ignores_the_list(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    (tmp_path / "agent-cycle.yaml").write_text("layout: workspace\nagents: [soporte]\n", encoding="utf-8")
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    (tmp_path / "agent-cycle.yaml").write_text("layout: workspace\nagents: [agent-b]\n", encoding="utf-8")
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
 
 
 def test_workspace_test_column_per_agent(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": "approved"})
-    assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "agents/ventas/docs/agent/spec.md"), **TEST_FILL}) == []
-    assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "agents/soporte/docs/agent/spec.md"), **TEST_FILL})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": "approved"})
+    assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "agents/agent-a/docs/agent/spec.md"), **TEST_FILL}) == []
+    assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "agents/agent-b/docs/agent/spec.md"), **TEST_FILL})
 
 
 @pytest.mark.parametrize("command", [
-    "rm -rf agents/ventas",
+    "rm -rf agents/agent-a",
     "rm -rf agents",
-    "mv agents/ventas agents/old",
-    "cd agents/ventas && rm evals/config.yaml",
+    "mv agents/agent-a agents/old",
+    "cd agents/agent-a && rm evals/config.yaml",
     "echo x >> agent-cycle.yaml",
 ])
 def test_workspace_shell_writes_blocked(tmp_path: Path, command: str) -> None:
-    make_workspace(tmp_path, {"ventas": "draft"})
+    make_workspace(tmp_path, {"agent-a": "draft"})
     assert run(tmp_path, "Bash", {"command": command})
 
 
 def test_workspace_shell_write_in_other_agent_src_allowed(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "approved", "soporte": None})
-    assert run(tmp_path, "Bash", {"command": "echo hi > agents/soporte/src/notes.txt"}) == []
+    make_workspace(tmp_path, {"agent-a": "approved", "agent-b": None})
+    assert run(tmp_path, "Bash", {"command": "echo hi > agents/agent-b/src/notes.txt"}) == []
 
 
 # --- agent-cycle.yaml is append-only
 
 @pytest.mark.parametrize(("content", "allowed"), [
-    ("layout: workspace\nagents: [ventas, soporte, nuevo]\n", True),
-    ("layout: workspace\nagents: [ventas]\n", False),
-    ("layout: single\nagents: [ventas, soporte]\n", False),
-    ("layout: workspace\nagents: [ventas, soporte]\nowner: x\n", False),
-    ("layout: workspace\nagents:\n  - ventas\n", False),
+    ("layout: workspace\nagents: [agent-a, agent-b, agent-c]\n", True),
+    ("layout: workspace\nagents: [agent-a]\n", False),
+    ("layout: single\nagents: [agent-a, agent-b]\n", False),
+    ("layout: workspace\nagents: [agent-a, agent-b]\nowner: x\n", False),
+    ("layout: workspace\nagents:\n  - agent-a\n", False),
 ])
 def test_marker_is_append_only(tmp_path: Path, content: str, allowed: bool) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
     hits = run(tmp_path, "Write", {"file_path": str(tmp_path / "agent-cycle.yaml"), "content": content})
     assert (hits == []) is allowed
 
@@ -216,13 +216,13 @@ def test_marker_is_append_only(tmp_path: Path, content: str, allowed: bool) -> N
 def test_marker_creation_blocked_in_built_single_repo(tmp_path: Path) -> None:
     make_agent(tmp_path, status="draft")
     assert run(tmp_path, "Write",
-               {"file_path": str(tmp_path / "agent-cycle.yaml"), "content": "layout: workspace\nagents: [nuevo]\n"})
+               {"file_path": str(tmp_path / "agent-cycle.yaml"), "content": "layout: workspace\nagents: [agent-c]\n"})
 
 
 def test_marker_creation_allowed_in_unbuilt_single_repo(tmp_path: Path) -> None:
     make_agent(tmp_path)
     hits = run(tmp_path, "Write",
-               {"file_path": str(tmp_path / "agent-cycle.yaml"), "content": "layout: workspace\nagents: [nuevo]\n"})
+               {"file_path": str(tmp_path / "agent-cycle.yaml"), "content": "layout: workspace\nagents: [agent-c]\n"})
     assert hits == []
 
 
@@ -274,28 +274,28 @@ def _run_hook_bytes(payload: Mapping[str, object], project_dir: Path,
 # --- C1: the layout comes from directories, never from agent-cycle.yaml
 
 def test_deleting_the_marker_does_not_unfreeze_workspace_agents(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft"})
+    make_workspace(tmp_path, {"agent-a": "draft"})
     (tmp_path / "agent-cycle.yaml").unlink()
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
 
 
 def test_creating_the_marker_does_not_unfreeze_the_root_agent(tmp_path: Path) -> None:
     make_agent(tmp_path, status="draft")
-    (tmp_path / "agent-cycle.yaml").write_text("layout: workspace\nagents: [nuevo]\n", encoding="utf-8")
+    (tmp_path / "agent-cycle.yaml").write_text("layout: workspace\nagents: [agent-c]\n", encoding="utf-8")
     assert run(tmp_path, "Write", {"file_path": str(tmp_path / "evals/config.yaml"), "content": "x\n"})
     assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "docs/agent/spec.md"), **CAPABILITY_EDIT})
 
 
 def test_agent_dirs_freeze_without_any_marker(tmp_path: Path) -> None:
-    make_agent(tmp_path, "agents/ventas", "approved")
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    make_agent(tmp_path, "agents/agent-a", "approved")
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
 
 
 def test_longest_prefix_wins_over_a_built_root(tmp_path: Path) -> None:
     make_agent(tmp_path, status="approved")
-    make_agent(tmp_path, "agents/nuevo")
+    make_agent(tmp_path, "agents/agent-c")
     assert run(tmp_path, "Write",
-               {"file_path": str(tmp_path / "agents/nuevo/evals/config.yaml"), "content": "x\n"}) == []
+               {"file_path": str(tmp_path / "agents/agent-c/evals/config.yaml"), "content": "x\n"}) == []
     assert run(tmp_path, "Write", {"file_path": str(tmp_path / "evals/config.yaml"), "content": "x\n"})
 
 
@@ -305,7 +305,7 @@ def test_longest_prefix_wins_over_a_built_root(tmp_path: Path) -> None:
     "Rename-Item agent-cycle.yaml old.yaml",
 ])
 def test_marker_removal_by_shell_blocked(tmp_path: Path, command: str) -> None:
-    make_workspace(tmp_path, {"ventas": "draft"})
+    make_workspace(tmp_path, {"agent-a": "draft"})
     assert run(tmp_path, "Bash", {"command": command})
 
 
@@ -322,38 +322,38 @@ def test_ratchet_build_md_deleted_after_a_prior_call_stays_frozen(tmp_path: Path
 
 
 def test_ratchet_recorded_agent_without_build_md_blocks_test_column(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": None})
+    make_workspace(tmp_path, {"agent-a": None})
     (tmp_path / ".claude/hooks").mkdir(parents=True)
-    (tmp_path / ".claude/hooks/built-agents.txt").write_text("agents/ventas/\n", encoding="utf-8")
-    assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "agents/ventas/docs/agent/spec.md"), **TEST_FILL})
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    (tmp_path / ".claude/hooks/built-agents.txt").write_text("agents/agent-a/\n", encoding="utf-8")
+    assert run(tmp_path, "Edit", {"file_path": str(tmp_path / "agents/agent-a/docs/agent/spec.md"), **TEST_FILL})
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
 
 
 def test_ratchet_workspace_build_md_deleted_by_glob(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    assert run(tmp_path, "Bash", {"command": "rm agents/ventas/docs/agent/b*.md"})
-    (tmp_path / "agents/ventas/docs/agent/build.md").unlink()   # an invisible form did it
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Bash", {"command": "rm agents/agent-a/docs/agent/b*.md"})
+    (tmp_path / "agents/agent-a/docs/agent/build.md").unlink()   # an invisible form did it
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
     assert run(tmp_path, "Write",
-               {"file_path": str(tmp_path / "agents/soporte/evals/config.yaml"), "content": "x\n"}) == []
+               {"file_path": str(tmp_path / "agents/agent-b/evals/config.yaml"), "content": "x\n"}) == []
 
 
 def test_ratchet_renamed_agent_folder_stays_frozen(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "approved"})
+    make_workspace(tmp_path, {"agent-a": "approved"})
     assert run(tmp_path, "Bash", {"command": "ls"}) == []
-    (tmp_path / "agents/ventas").rename(tmp_path / "agents/old")
-    (tmp_path / "agents/ventas/evals").mkdir(parents=True)
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/ventas/evals/config.yaml"), "content": "x\n"})
+    (tmp_path / "agents/agent-a").rename(tmp_path / "agents/old")
+    (tmp_path / "agents/agent-a/evals").mkdir(parents=True)
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/agent-a/evals/config.yaml"), "content": "x\n"})
     assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/old/evals/config.yaml"), "content": "x\n"})
 
 
 def test_ratchet_file_lists_built_agents(tmp_path: Path) -> None:
     make_agent(tmp_path, status="draft")
-    make_agent(tmp_path, "agents/ventas", "approved")
-    make_agent(tmp_path, "agents/soporte")
+    make_agent(tmp_path, "agents/agent-a", "approved")
+    make_agent(tmp_path, "agents/agent-b")
     run(tmp_path, "Bash", {"command": "ls"})
     text = (tmp_path / ".claude/hooks/built-agents.txt").read_text(encoding="utf-8")
-    assert text.split() == [".", "agents/ventas/"]
+    assert text.split() == [".", "agents/agent-a/"]
 
 
 def test_ratchet_file_is_protected(tmp_path: Path) -> None:
@@ -499,9 +499,9 @@ def test_shell_detector_gaps_blocked(tmp_path: Path, command: str) -> None:
 
 
 def test_git_dash_c_resolves_from_its_dir(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    assert run(tmp_path, "Bash", {"command": "git -C agents/ventas checkout HEAD~1 -- evals/config.yaml"})
-    assert run(tmp_path, "Bash", {"command": "git -C agents/soporte checkout HEAD~1 -- evals/config.yaml"}) == []
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Bash", {"command": "git -C agents/agent-a checkout HEAD~1 -- evals/config.yaml"})
+    assert run(tmp_path, "Bash", {"command": "git -C agents/agent-b checkout HEAD~1 -- evals/config.yaml"}) == []
 
 
 # --- I3: no false blocks on everyday build commands
@@ -527,11 +527,11 @@ def test_everyday_build_shell_allowed(tmp_path: Path, command: str) -> None:
 
 
 @pytest.mark.parametrize("command", [
-    "uv run pytest agents/ventas 2>&1",
-    "cd agents/ventas && uv pip install -e . 2>&1",
+    "uv run pytest agents/agent-a 2>&1",
+    "cd agents/agent-a && uv pip install -e . 2>&1",
 ])
 def test_everyday_workspace_shell_allowed(tmp_path: Path, command: str) -> None:
-    make_workspace(tmp_path, {"ventas": "draft"})
+    make_workspace(tmp_path, {"agent-a": "draft"})
     assert run(tmp_path, "Bash", {"command": command}) == []
 
 
@@ -612,11 +612,11 @@ def test_shell_writes_on_settings_blocked(tmp_path: Path, command: str) -> None:
 # --- M1, M2: reading state
 
 def test_unreadable_marker_blocks_any_change(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": None})
-    (tmp_path / "agent-cycle.yaml").write_bytes(b"layout: workspace\nagents: [ventas]\n\xff\n")
+    make_workspace(tmp_path, {"agent-a": None})
+    (tmp_path / "agent-cycle.yaml").write_bytes(b"layout: workspace\nagents: [agent-a]\n\xff\n")
     assert run(tmp_path, "Write",
                {"file_path": str(tmp_path / "agent-cycle.yaml"),
-                "content": "layout: workspace\nagents: [ventas, nuevo]\n"})
+                "content": "layout: workspace\nagents: [agent-a, agent-c]\n"})
 
 
 def test_read_text_missing_vs_unreadable(tmp_path: Path) -> None:
@@ -641,11 +641,11 @@ def test_build_status_variants_read_as_draft(tmp_path: Path, frontmatter: str) -
 # --- M3, M5, M6
 
 def test_snapshot_keeps_the_on_disk_case(tmp_path: Path) -> None:
-    make_agent(tmp_path, "agents/Ventas", "draft")
+    make_agent(tmp_path, "agents/Agent-A", "draft")
     snapshot = guard.take_snapshot(str(tmp_path))
     folders = {agent.prefix: agent.folder for agent in snapshot.agents}
-    assert folders["agents/ventas/"] == "agents/Ventas/"
-    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/Ventas/evals/config.yaml"), "content": "x\n"})
+    assert folders["agents/agent-a/"] == "agents/Agent-A/"
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / "agents/Agent-A/evals/config.yaml"), "content": "x\n"})
 
 
 @pytest.mark.parametrize("tool_input", [
@@ -660,7 +660,7 @@ def test_non_string_inputs_fail_closed(tmp_path: Path, tool_input: dict[str, obj
 
 
 def test_one_disk_snapshot_per_call(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
     calls: list[str] = []
     original = guard.build_status
 
@@ -669,7 +669,7 @@ def test_one_disk_snapshot_per_call(tmp_path: Path, monkeypatch: pytest.MonkeyPa
         return original(root, folder)
 
     monkeypatch.setattr(guard, "build_status", counting)
-    assert run(tmp_path, "Bash", {"command": "rm a b c d e f g h agents/ventas/evals/config.yaml"})
+    assert run(tmp_path, "Bash", {"command": "rm a b c d e f g h agents/agent-a/evals/config.yaml"})
     assert len(calls) == 3
 
 
@@ -691,13 +691,13 @@ def test_main_reads_utf8_bytes_and_answers_in_ascii(tmp_path: Path) -> None:
 def test_main_resolves_from_the_payload_cwd(tmp_path: Path) -> None:
     repo = tmp_path / "repo"
     repo.mkdir()
-    make_workspace(repo, {"ventas": "draft", "soporte": None})
+    make_workspace(repo, {"agent-a": "draft", "agent-b": None})
     elsewhere = tmp_path / "elsewhere"
     elsewhere.mkdir()
-    blocked = {"tool_name": "Bash", "cwd": str(repo / "agents/ventas"),
+    blocked = {"tool_name": "Bash", "cwd": str(repo / "agents/agent-a"),
                "tool_input": {"command": "rm evals/config.yaml"}}
     assert _run_hook_bytes(blocked, repo, cwd=elsewhere).returncode == 2
-    allowed = {"tool_name": "Bash", "cwd": str(repo / "agents/soporte"),
+    allowed = {"tool_name": "Bash", "cwd": str(repo / "agents/agent-b"),
                "tool_input": {"command": "rm evals/config.yaml"}}
     assert _run_hook_bytes(allowed, repo, cwd=elsewhere).returncode == 0
 
@@ -756,8 +756,8 @@ def test_pathless_destructive_git_blocked(tmp_path: Path, command: str) -> None:
 
 
 def test_git_clean_in_an_agent_folder_blocked(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft"})
-    assert run(tmp_path, "Bash", {"command": "git clean -fd"}, cwd=tmp_path / "agents/ventas")
+    make_workspace(tmp_path, {"agent-a": "draft"})
+    assert run(tmp_path, "Bash", {"command": "git clean -fd"}, cwd=tmp_path / "agents/agent-a")
 
 
 @pytest.mark.parametrize("command", [
@@ -794,8 +794,8 @@ def test_scoped_or_safe_git_allowed(tmp_path: Path, command: str) -> None:
     "git stash apply",
 ])
 def test_tree_rewriting_git_blocked_while_built(tmp_path: Path, command: str) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    assert run(tmp_path, "Bash", {"command": command}, cwd=tmp_path / "agents/ventas")
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Bash", {"command": command}, cwd=tmp_path / "agents/agent-a")
 
 
 @pytest.mark.parametrize("command", [
@@ -906,10 +906,10 @@ def test_deep_globs_allowed_after_build(tmp_path: Path, command: str) -> None:
 @pytest.mark.parametrize("command", [
     "rm -rf agents/*/__pycache__",
     "rm -rf agents/*/node_modules",
-    "cd agents/ventas && rm -f *.log",
+    "cd agents/agent-a && rm -f *.log",
 ])
 def test_deep_globs_allowed_in_a_workspace(tmp_path: Path, command: str) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": "approved"})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": "approved"})
     assert run(tmp_path, "Bash", {"command": command}) == []
 
 
