@@ -3,6 +3,86 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill or new pipeline capability, patch = fixes.
 
+## [0.13.0] — 2026-10-08
+
+### Added
+- **Orchestrator agents:** an agent that delegates to other agents in the same
+  workspace, over the network only (A2A or HTTP). In-process composition of
+  components that are not agents stays as it was.
+- design §9 Delegation: the mechanical-routing check runs first and, when
+  routing is by channel or keyword, the verdict is "router without an LLM"
+  (plain code outside agent-cycle); this holds even when reuse is true,
+  because reuse justifies separate agents, not an LLM in front of them. Then
+  the justification test: an orchestrator needs at least one of four reasons
+  (reuse, separate permissions, context too large, different models or
+  costs), each backed by a concrete fact from the case. "One agent" and
+  "router without an LLM" are successful outcomes, not failures. Justified
+  designs get a delegate inventory; a helper that only serves this agent is an
+  internal subagent, not a delegate. A built delegate with no inbound
+  interface for the orchestrator draws a warning (build re-entry of that
+  delegate).
+- spec §8 Delegates: one row per delegate (delegate, used by, input, output,
+  contract version, on failure). Contract is `pending` until the delegate
+  publishes it, and ship is blocked until it is pinned. Each delegate's
+  replies are an untrusted surface in §4 with at least one injection-attempt
+  BHV, and each delegate credential is a least-privilege row.
+- evals: recorded delegate responses, so the suite never calls a live
+  delegate. Re-recording is a human re-entry of the evals phase, never in
+  place.
+- interop: Inbound contracts. When another workspace agent calls this one,
+  `interop.md` carries an Inbound contracts section in BOTH decisions (skip
+  or A2A; the skip path carries it too): caller, input and output schemas,
+  contract version `<agent>-contract@<n>` with the versions still served, and
+  one probe request (side-effect-free: no writes, no gated action). interop
+  finds its callers by reading other agents' design §9 and spec §8. A missing
+  handler is a build re-entry of the delegate (rule 7), never improvised.
+- ship, orchestrator side: the delegate gate sits in Section 0 / rule 1, so a
+  missing delegate refuses before the suite re-run, not mid-audit (every
+  delegate needs an approved `interop.md` publishing Inbound contracts for
+  this caller and an approved `ship-report.md`; the refusal names the
+  delegate). Contract match (the version in the delegate's `interop.md`
+  equals the spec §8 pin, with both greps cited) and a live probe: the
+  delegate's published probe request, never any other request, sent to its
+  deployed endpoint and validated against the pinned output schema. A probe
+  request is a read; it writes nothing. Delegate credentials join the
+  least-privilege diff.
+- ship, delegate side: contract-bump block. A Dependents check (workspace
+  only; a one-agent repo records "no other agents") greps every other agent's
+  spec §8 for `<this-agent>-contract@`; an orchestrator pinning a version this
+  ship no longer serves is a blocker.
+- ship verdict: any blocker-severity finding is NO-SHIP, not only the
+  enumerated ones (SHP-E07).
+- runbook: weekly live probe of each delegate against the pinned output
+  schema (drift is re-recorded through the evals phase, by a human), and the
+  orchestrator's path when a delegate's kill switch is used.
+- economics: delegate cost per call (calls per turn x delegate cost). The
+  figure is read from the delegate's own economics artifact when present
+  (read-only), otherwise it is an assumption in section 1.
+- blueprint: each delegate is one external node labeled with its contract
+  version, connected from the tools that call it.
+- agent-root read exceptions (`references/agent-root.md`), all read-only:
+  design of an orchestrator reads other agents' design.md and interop.md;
+  interop reads other agents' design §9 and spec §8; ship of an orchestrator
+  reads its delegates' interop.md and ship-report.md; ship of any agent reads
+  other agents' spec §8; economics of an orchestrator reads its delegates'
+  economics artifacts.
+- Eval cases DES-E09, DES-E10, SPC-E06, EVL-E05, ITP-E05, SHP-E06, SHP-E07.
+
+### Upgrade notes
+- Opt-in. One-agent repos and workspaces without orchestrators are unchanged.
+  The hook is unchanged (no `HOOK_VERSION` bump).
+- Existing `interop.md` files gain Inbound contracts only when an orchestrator
+  calls the agent, through interop re-entry of that agent.
+- Open question tracked in `todo.md`: when a delegate's recorded responses are
+  re-recorded. Today the trigger is the delegate's contract version, not its
+  ship tag, so a delegate that keeps the same shape but returns worse content
+  slips past ship; the weekly live probe is what catches it. Revisit if that
+  happens, or if the probe keeps finding drift (the alternative is pinning the
+  delegate's ship tag).
+
+### Pending graduation
+- A real orchestrator and two delegates taken through ship.
+
 ## [0.12.0] — 2026-10-08
 
 ### Added

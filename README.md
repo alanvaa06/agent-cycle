@@ -159,6 +159,19 @@ one-agent repo, run `design`: it shows the conversion commands (hook upgrade,
 then the workspace move) for you to run from your own terminal, and you run it
 again afterwards for the new agent.
 
+### Orchestrator agents
+
+An orchestrator is an agent that hands work to other agents in the same
+workspace, over the network (A2A or HTTP) only. A helper that only serves one
+agent is an internal subagent, not a delegate, and stays inside that agent.
+`design` §9 Delegation runs a justification test before any delegate is
+listed, and it can say no: if routing is mechanical the verdict is "router
+without an LLM" (plain code outside agent-cycle), and if no reason holds with
+a concrete fact it is "one agent". The agents it calls publish Inbound
+contracts with a version and a probe request in their `interop.md`; `ship`
+checks the pin and sends one live probe to each delegate. Opt-in: one-agent
+repos and workspaces without orchestrators are unchanged.
+
 ## Core contracts
 
 - **Disk-backed artifacts** land in the TARGET AGENT'S repo (`docs/agent/*`,
@@ -182,7 +195,7 @@ Semver, driven by `.claude-plugin/plugin.json`:
 
 See `CHANGELOG.md` for release history.
 
-**Status:** v0.12.0 — all 7 phases + 3 transversals + refresh. 11 skills. Built
+**Status:** v0.13.0 — all 7 phases + 3 transversals + refresh. 11 skills. Built
 skill-by-skill, each dogfooded on a real agent.
 
 ## License
