@@ -88,5 +88,5 @@ docs/agent/interop.md: frontmatter (agent_name, version, status: draft,
 date, spec_version, build_version), the entry-test table, per-relationship:
 card location, role(s), executor binding, registry decision, counterpart-security
 notes, and the Inbound contracts section when another workspace agent calls
-this one (entry-test "Inbound contracts"). Human gate → status: approved. Hand off: "/ship audits this record;
-cross-agent flows join the eval suite as untrusted-surface cases."
+this one (entry-test "Inbound contracts"). Human gate → status: approved.
+Hand off: "/ship audits this record; cross-agent flows join the eval suite as untrusted-surface cases."

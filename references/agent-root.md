@@ -51,7 +51,8 @@ another agent's folder or only one agent is listed.
   `docs/agent/interop.md`; interop reads other agents' design §9 and spec §8
   to find its callers; ship of an orchestrator reads its delegates'
   `docs/agent/interop.md` and `docs/agent/ship-report.md`; ship of any agent
-  reads other agents' spec §8 to find orchestrators that pin it.
+  reads other agents' spec §8 to find orchestrators that pin it; economics of
+  an orchestrator reads its delegates' economics artifacts.
 - The anti-gaming hook (the agent-cycle plugin's
   `skills/build/assets/guard_artifacts.py`) takes its agents from the
   directories (the repo root and every `agents/<dir>/`), never from this

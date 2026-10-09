@@ -14,8 +14,10 @@ The full chain, approved and version-consistent: design.md; spec.md
 docs/agent/build.md (approved, versions match); skills.md AND interop.md
 present with decisions recorded (none/skip are valid decisions — absence is
 not). Economics artifact read when present (its alarm threshold becomes
-Section 5's expected value). Any gap → refuse, name the phase to run,
-write nothing.
+Section 5's expected value). Orchestrators (spec §8 exists): every delegate
+has an approved `docs/agent/interop.md` publishing Inbound contracts for this
+caller and an approved `docs/agent/ship-report.md`. Any gap → refuse, name
+the phase to run (for a delegate, name the delegate too), write nothing.
 
 ## Section 1 — Suite re-run (the load-bearing section)
 
@@ -78,10 +80,8 @@ coverage map.
   requirements file carries hashes for the named dependency (command +
   output, for example the `--hash=` lines of that package). Missing hashes are
   a finding routed to build.
-- Delegates (orchestrators: spec §8 exists). Gate: each delegate has an
-  approved `docs/agent/interop.md` publishing Inbound contracts for this
-  caller and an approved `docs/agent/ship-report.md`; missing → refuse,
-  naming the delegate and its missing phase (Section 0 rule). Contract: the
+- Delegates (orchestrators: spec §8 exists). Gate: checked in Section 0
+  before anything runs. Contract: the
   version in the delegate's interop.md equals the spec §8 pin (cite the
   `grep` of both); mismatch → finding routed to this agent's spec re-entry.
   Live probe: send the delegate's published probe request — never any other
@@ -90,7 +90,8 @@ coverage map.
   output. Failure → finding routed to the delegate (down or off-contract) or
   to this agent (client wrong). This agent's delegate credentials are part of
   the least-privilege diff above.
-- Dependents (any agent). Read every other agent's spec §8
+- Dependents (workspace only; in a one-agent repo record "no other agents").
+  Read every other agent's spec §8
   (`grep -n "<this-agent>-contract@" agents/*/docs/agent/spec.md`). An
   orchestrator pinning a contract version that this ship's interop.md no
   longer lists as served → blocker, routed to that orchestrator (spec
@@ -169,7 +170,7 @@ fill. The auditor NEVER writes the runbook.
 
 - SHIP: every section green.
 - NO-SHIP: any release blocker red, any unsanctioned artifact change, any
-  missing chain link — each finding with severity (blocker / important /
+  missing chain link, any other finding of blocker severity — each finding with severity (blocker / important /
   minor) and its re-entry route (which phase re-opens). NO-SHIP is the
   pipeline catching what it was built to catch; write it that way.
 - Report: docs/agent/ship-report.md with frontmatter (agent_name, version,

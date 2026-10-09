@@ -47,7 +47,8 @@ success — authored interop without a flagged relationship is ceremony.
    this skill writes only inside it.
 1. Read `references/entry-test.md`; inventory relationships; run the test;
    record the table.
-2. Decision skip → interop.md (table, why, re-visit triggers) → gate.
+2. Decision skip → interop.md (table, why, re-visit triggers, plus Inbound
+   contracts when another workspace agent calls this one) → gate.
 3. Decision A2A → `references/a2a-guide.md` steps 1-5 for ONLY the flagged
    relationships → interop.md with card location, binding, registry,
    counterpart-security notes → gate.
