@@ -78,6 +78,23 @@ coverage map.
   requirements file carries hashes for the named dependency (command +
   output, for example the `--hash=` lines of that package). Missing hashes are
   a finding routed to build.
+- Delegates (orchestrators: spec §8 exists). Gate: each delegate has an
+  approved `docs/agent/interop.md` publishing Inbound contracts for this
+  caller and an approved `docs/agent/ship-report.md`; missing → refuse,
+  naming the delegate and its missing phase (Section 0 rule). Contract: the
+  version in the delegate's interop.md equals the spec §8 pin (cite the
+  `grep` of both); mismatch → finding routed to this agent's spec re-entry.
+  Live probe: send the delegate's published probe request — never any other
+  request — to its deployed endpoint (from the deploy configuration) and
+  validate the response against the pinned output schema; cite command and
+  output. Failure → finding routed to the delegate (down or off-contract) or
+  to this agent (client wrong). This agent's delegate credentials are part of
+  the least-privilege diff above.
+- Dependents (any agent). Read every other agent's spec §8
+  (`grep -n "<this-agent>-contract@" agents/*/docs/agent/spec.md`). An
+  orchestrator pinning a contract version that this ship's interop.md no
+  longer lists as served → blocker, routed to that orchestrator (spec
+  re-entry and re-recording) or to this agent (keep serving the version).
 
 ## Section 4 — Anti-gaming audit
 

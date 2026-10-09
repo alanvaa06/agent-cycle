@@ -41,6 +41,11 @@ Expected effect of each (what stops, what queues, what the user sees).
 - Mine corrections: user corrections from the week become candidate eval
   cases (via the evals phase, never edited in place).
 - Review token spend vs the economics estimate; recalibrate when >25% off.
+- Orchestrators: send each delegate's probe request to the deployed delegate
+  and compare with the pinned output schema; drift → re-record via the evals
+  phase (human re-entry), never in place.
+- Orchestrators: what this agent does when a delegate's kill switch is used
+  (its spec §8 On failure path), and who to tell.
 
 ## Contacts / escalation
 

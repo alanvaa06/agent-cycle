@@ -29,6 +29,11 @@ NO-SHIP is the pipeline working.
    with file:line; lockfile pins the spec's runtime framework at exactly the
    spec's version (no-framework: the binding's pins), with hashes where spec §4
    has an install-time supply-chain row.
+   Orchestrators (spec §8): every delegate has approved interop.md and
+   ship-report.md (else refuse, naming it), pinned contract versions match,
+   one live probe request per delegate validates against the pinned schema.
+   Any agent: an orchestrator that pins an older contract version this ship
+   no longer serves is a blocker (audit-guide Section 3).
 7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
    (the baseline committed before the build.md stub) to HEAD on <AGENT_ROOT>'s
    evals/, design.md and spec.md (workspace moves and mixed-agent commits per
