@@ -9,7 +9,7 @@ Case-specific setup:
 
 - **SPC-E01** needs a repo with an APPROVED `docs/agent/design.md` that HAS a
   §8 Stack decision with a chosen stack. The real dogfood repo
-  (`whatsapp-owner-assistant`) is the canonical run, after running design
+  (the dogfood agent, an external repo) is the canonical run, after running design
   re-entry on it (or use a copy with §8 added).
 - **SPC-E02** needs a repo whose `design.md` frontmatter says `status: draft`
   (copy the real one and flip the field in the copy).
@@ -19,8 +19,8 @@ Case-specific setup:
 
 - **SPC-E04**: no fixture (the input is outside the pipeline).
 - **SPC-E05**: a scratch git repo that is a workspace: `agent-cycle.yaml` with
-  `layout: workspace` and `agents: [ventas, soporte]`, and both
-  `agents/ventas/docs/agent/design.md` and `agents/soporte/docs/agent/design.md`
+  `layout: workspace` and `agents: [agent-a, agent-b]`, and both
+  `agents/agent-a/docs/agent/design.md` and `agents/agent-b/docs/agent/design.md`
   approved (hand-written and trivial, each with a §8 chosen stack). Start the
   session at the repo root (no working-directory hint) and do not name an
   agent in the request. Score "reads no design.md before the question" from the
@@ -50,10 +50,10 @@ Build every fixture in a scratch git repo (never this repo) with hand-written
 minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
-- **SPC-E06**: a workspace repo with `agents/recepcion/docs/agent/design.md`
-  approved, with a §8 chosen stack, its §4 tool inventory listing ventas and
-  soporte, and its §9 Delegation listing them as delegates; and
-  `agents/ventas/docs/agent/interop.md` approved with an Inbound contracts
-  entry for recepcion publishing `ventas-contract@1` (line
-  `Served: ventas-contract@1`). `agents/soporte/` has no `interop.md`.
-  Score that only `agents/recepcion/docs/agent/spec.md` was written.
+- **SPC-E06**: a workspace repo with `agents/orchestrator/docs/agent/design.md`
+  approved, with a §8 chosen stack, its §4 tool inventory listing agent-a and
+  agent-b, and its §9 Delegation listing them as delegates; and
+  `agents/agent-a/docs/agent/interop.md` approved with an Inbound contracts
+  entry for orchestrator publishing `agent-a-contract@1` (line
+  `Served: agent-a-contract@1`). `agents/agent-b/` has no `interop.md`.
+  Score that only `agents/orchestrator/docs/agent/spec.md` was written.

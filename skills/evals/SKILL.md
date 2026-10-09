@@ -63,7 +63,7 @@ red before green, at agent level.
 - "Fixing" a confusing BHV inside the eval instead of disputing it (rule 2).
 - A BHV silently absent from coverage (rule 3).
 - Judge-only suites, or asserts forced onto judgment calls (rule 4).
-- Gibberish injections, or English-only payloads for a Spanish-speaking owner
+- Gibberish injections, or English-only payloads for a Spanish-speaking user
   (rule 5).
 - Writing runner code or importing a framework into the suite (rule 6).
 - An eval that would pass with no agent behind it (rule 7).

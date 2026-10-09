@@ -31,7 +31,7 @@ Write `skills/ship/evals/cases.json`:
     {
       "id": "SHP-E01",
       "type": "positive",
-      "input": "Run the ship audit. (Run in a repo with the full chain approved: design, spec, evals, build, plus skills.md and interop.md decisions recorded — e.g. the real whatsapp-owner-assistant post-build.)",
+      "input": "Run the ship audit. (Run in a repo with the full chain approved: design, spec, evals, build, plus skills.md and interop.md decisions recorded — e.g. the real dogfood agent (external repo) post-build.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -442,7 +442,7 @@ git commit -m "feat(ship): SKILL.md — audit not fix, evidence per command, NO-
 ### Task 6 (Alan, interactive): eval runs + dogfood
 
 - [ ] SHP-E02 ×2, SHP-E03 (broken-agent fixture), SHP-E04 in scratch → rows in results.md.
-- [ ] SHP-E01 dogfood in `C:\Proyectos\Whatsapp_agent` — requires BLD-E01 green + SKL/ITP decisions first → tag `ship-v0.1`.
+- [ ] SHP-E01 dogfood in the external dogfood repo — requires BLD-E01 green + SKL/ITP decisions first → tag `ship-v0.1`.
 - [ ] Marketplace update + reinstall for v0.8.0.
 
 ---

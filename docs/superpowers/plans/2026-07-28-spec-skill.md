@@ -4,7 +4,7 @@
 
 **Goal:** Ship the second skill of the agent-cycle plugin — `agent-cycle:spec` — which turns an APPROVED `docs/agent/design.md` into an executable `docs/agent/spec.md` (Gherkin behavior scenarios with `BHV-NNN` ids, final tool contracts with action tiers, conversation flows, security policy, data schemas, traceability table), then release v0.2.0.
 
-**Architecture:** Same shape as the `design` skill: EDD cases first, then two reference files, then SKILL.md. Process-only markdown. The skill consumes the design artifact (hard-fails on missing/draft/stale), interviews ONLY on the design's open questions, and never reopens approved decisions — changes to the design go through the re-entry ladder, not through spec edits. DoD = dogfood: the real `whatsapp-owner-assistant` spec, approved by Alan without manual rework.
+**Architecture:** Same shape as the `design` skill: EDD cases first, then two reference files, then SKILL.md. Process-only markdown. The skill consumes the design artifact (hard-fails on missing/draft/stale), interviews ONLY on the design's open questions, and never reopens approved decisions — changes to the design go through the re-entry ladder, not through spec edits. DoD = dogfood: the real dogfood agent's spec (external repo), approved by Alan without manual rework.
 
 **Tech Stack:** Claude Code plugin format, Markdown/JSON only. Repo `C:\Proyectos\agent-cycle\` (branch `feature/spec-skill` off `main`).
 
@@ -31,7 +31,7 @@ Write `skills/spec/evals/cases.json`:
     {
       "id": "SPC-E01",
       "type": "positive",
-      "input": "Write the spec for this agent. The approved design is at docs/agent/design.md. (Run in a repo containing an APPROVED design.md, e.g. the real whatsapp-owner-assistant one.)",
+      "input": "Write the spec for this agent. The approved design is at docs/agent/design.md. (Run in a repo containing an APPROVED design.md, e.g. the real dogfood agent's design (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -41,8 +41,8 @@ Write `skills/spec/evals/cases.json`:
           "Each capability covers happy + wrong + edge (at least 3 scenarios per capability)",
           "Every tool from design §4 gets a contract: docstring-for-LLM, input/output schema with extra=forbid semantics, errors returned as observations (never raised)",
           "Every tool gets a FINAL action tier; any tier that differs from the design's guess carries a one-line justification",
-          "Conversation section covers 24h-window handling, fallback replies, and the non-owner / out-of-scope drop behavior from the design's NO-goals",
-          "Security section lists EVERY untrusted surface named in the design (e.g. inbound WhatsApp text, Notion content, calendar event text) with per-surface handling",
+          "Conversation section covers reply-window handling (where the channel has one), fallback replies, and the non-allowlisted-sender / out-of-scope drop behavior from the design's NO-goals",
+          "Security section lists EVERY untrusted surface named in the design (e.g. inbound message text, notes content, calendar event text) with per-surface handling",
           "Data section defines session/dedupe/state schemas behind a repository interface",
           "Format tax respected: clean Markdown headers; YAML only for schemas nested >3 deep; no giant inline JSON blobs in prose",
           "Traceability table maps every BHV-NNN to a future eval slot (empty eval column allowed; the row must exist)",
@@ -94,7 +94,7 @@ evidence, record per-check rows in `results.md`, fix-and-rerun on FAIL, dispute
 Case-specific setup:
 
 - **SPC-E01** needs a repo with an APPROVED `docs/agent/design.md`. The real
-  dogfood repo (`whatsapp-owner-assistant`) is the canonical run.
+  dogfood repo (the dogfood agent, an external repo) is the canonical run.
 - **SPC-E02** needs a repo whose `design.md` frontmatter says `status: draft`
   (copy the real one and flip the field in the copy).
 - **SPC-E03** needs a minimal approved design.md: one safe read-only tool, two
@@ -185,7 +185,7 @@ Scenario: <what goes wrong — bad input, API failure, ambiguity>
   Then <graceful behavior: fallback reply, no partial writes, degraded flag>
 
 # BHV-003 (edge)
-Scenario: <boundary: empty result, limit hit, stale data, 24h window edge>
+Scenario: <boundary: empty result, limit hit, stale data, reply-window edge>
   ...
 ```
 
@@ -211,10 +211,12 @@ caught inside the tool and returned as observations, never raised.
 
 ## 3. Conversation
 
-Channel mechanics the agent must respect. For WhatsApp: 24h service window
-behavior (what happens when it expires), fallback reply for unsupported input
-types, non-owner / out-of-scope drop behavior (mirror the design's NO-goals),
-debounce policy for rapid consecutive messages, language mirroring. For
+Channel mechanics the agent must respect. Reply-window behavior for channels
+with rules for business-initiated messages (e.g. a 24-hour reply window,
+template-only messages outside it): what happens when it expires. Fallback
+reply for unsupported input types, non-allowlisted-sender / out-of-scope drop
+behavior (mirror the design's NO-goals), debounce policy for rapid consecutive
+messages, language mirroring. For
 channel-less agents: one line — "not applicable because <reason>".
 
 ## 4. Security
@@ -224,7 +226,7 @@ channel-less agents: one line — "not applicable because <reason>".
 
 | Surface | Why untrusted | Handling |
 |---|---|---|
-| <e.g. inbound WhatsApp text> | <attacker-writable> | <extraction boundary, never in system prompt, sanitized echo> |
+| <e.g. inbound message text> | <attacker-writable> | <extraction boundary, never in system prompt, sanitized echo> |
 
 - **Least privilege:** scopes per credential, read provisioned separately from
   write.
@@ -293,7 +295,7 @@ must be re-opened, bumped, and re-approved first.
 Derive the capability list mechanically from the design: Actuators + Sensors
 define what the agent can do; the Performance metric defines what it is FOR.
 List capabilities as verb phrases ("answer calendar availability questions",
-"find and summarize Notion pages"). Show the list to the user as ONE
+"find and summarize notes"). Show the list to the user as ONE
 confirmation question — "these N capabilities, complete?" — before writing
 scenarios.
 
@@ -323,13 +325,13 @@ injection-attempt scenario whose Then is "instructions treated as data".
 One per design §4 tool, no more, no less (a new tool = design change → re-entry
 ladder). Docstring written for the model: what/when/when-NOT/returns. Schemas
 extra=forbid. Errors as observations. FINAL tier per tool: confront each design
-tier guess — if it changes (e.g. a WhatsApp send is irreversible), one-line
+tier guess — if it changes (e.g. a send on a messaging channel is irreversible), one-line
 justification. Tier → gate implication is mechanical: safe=auto,
 destructive=HITL never-cached.
 
 ## Step 5 — Conversation, Security, Data
 
-Conversation: channel mechanics from the design's Environment (24h window,
+Conversation: channel mechanics from the design's Environment (reply window where the channel has one,
 fallbacks, drop rules, debounce, language). Security: every untrusted surface
 from the design gets a handling row + a BHV scenario reference. Data: schemas
 behind the repository interface named in the design's sessions seam.
@@ -506,7 +508,7 @@ git commit -m "chore: release v0.2.0 (spec skill)"
 
 - [ ] SPC-E02: scratch repo with a draft-status design.md copy → skill must refuse and write nothing → record rows in results.md.
 - [ ] SPC-E03: scratch repo with a hand-written trivial approved design.md → proportional one-file spec → record rows.
-- [ ] SPC-E01 dogfood: run `spec` in `C:\Proyectos\Whatsapp_agent` — the interview agenda is the design's 9 open questions → `docs/agent/spec.md` approved without manual rework → record rows → tag `spec-v0.1`.
+- [ ] SPC-E01 dogfood: run `spec` in the external dogfood repo — the interview agenda is the design's 9 open questions → `docs/agent/spec.md` approved without manual rework → record rows → tag `spec-v0.1`.
 - [ ] Update marketplace + reinstall to pick up v0.2.0.
 
 ---

@@ -49,7 +49,7 @@ Write `skills/review/evals/cases.json`:
     {
       "id": "REV-E02",
       "type": "positive-pipeline-born",
-      "input": "Review this agent. (Run in a repo that HAS pipeline artifacts — approved design/spec/evals — plus agent source, e.g. the real whatsapp-owner-assistant post-build or a fixture.)",
+      "input": "Review this agent. (Run in a repo that HAS pipeline artifacts — approved design/spec/evals — plus agent source, e.g. the real dogfood agent (external repo) post-build or a fixture.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -168,7 +168,7 @@ does not. Never infer architecture from genre conventions.
 ## 1. Specification → fixes route: agent-cycle:design
 
 - Is there a stated purpose and a SUCCESS METRIC? Is the metric a property of
-  the ENVIRONMENT (booked appointments, resolved requests) or of agent
+  the ENVIRONMENT (tasks completed for the user, resolved requests) or of agent
   ACTIVITY (messages sent, tool calls)? Activity metrics are a finding.
 - Goodhart probe on any metric found: if the agent optimized ONLY this, what
   is the worst way to hit the number? No counterweight → finding.

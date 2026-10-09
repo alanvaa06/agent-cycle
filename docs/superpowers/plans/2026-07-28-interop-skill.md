@@ -31,7 +31,7 @@ Write `skills/interop/evals/cases.json`:
     {
       "id": "ITP-E01",
       "type": "positive-skip",
-      "input": "Does this agent need agent-to-agent interop? Run the interop phase. (Run in a repo with approved design+spec+build where all external relationships are bounded result-lookups, e.g. the real whatsapp-owner-assistant.)",
+      "input": "Does this agent need agent-to-agent interop? Run the interop phase. (Run in a repo with approved design+spec+build where all external relationships are bounded result-lookups, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -73,7 +73,7 @@ Write `skills/interop/evals/cases.json`:
     {
       "id": "ITP-E04",
       "type": "trigger-negative",
-      "input": "Integrate my app with the Stripe API — I need webhooks for payment events and a client wrapper.",
+      "input": "Integrate my app with a third-party REST API — I need webhooks for its events and a client wrapper.",
       "expected": {
         "fires": false,
         "checks": [
@@ -99,8 +99,8 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
-- **ITP-E01** is the real dogfood run: the whatsapp-owner-assistant's
-  relationships (Google Calendar, Notion, Supabase, Meta — all bounded
+- **ITP-E01** is the real dogfood run: the dogfood agent's (external repo)
+  relationships (calendar service, notes service, database, messaging channel — all bounded
   result-lookups behind tools) are expected to produce decision: skip. The
   per-relationship table is required — a bare "doesn't need A2A" is a FAIL
   even though the conclusion is right.
@@ -113,8 +113,8 @@ Case-specific setup:
 - **ITP-E04**: filesystem check afterward.
 
 Scoring anchors: the entry-test check requires one row per external system
-named in the spec's tools/security sections (for the real agent: Calendar,
-Notion, Supabase, Meta WhatsApp) — a missing row is a FAIL. The GOTO-problem
+named in the spec's tools/security sections (for the real agent: calendar
+service, notes service, database, messaging channel) — a missing row is a FAIL. The GOTO-problem
 check (E02) requires the words to appear with the reasoning, not as decoration.
 ```
 
@@ -417,7 +417,7 @@ git commit -m "feat(interop): SKILL.md — result vs responsibility, untrusted c
 ### Task 6 (Alan, interactive): eval runs + dogfood
 
 - [ ] ITP-E03 ×2, ITP-E04 in scratch; ITP-E02 with the hand-written delegation fixture → rows in results.md.
-- [ ] ITP-E01 dogfood in `C:\Proyectos\Whatsapp_agent` (post-build): expected decision skip with the 4-relationship table (Calendar, Notion, Supabase, Meta) → tag `interop-v0.1`.
+- [ ] ITP-E01 dogfood in the external dogfood repo (post-build): expected decision skip with the 4-relationship table (calendar service, notes service, database, messaging channel) → tag `interop-v0.1`.
 - [ ] Marketplace update + reinstall for v0.7.0.
 
 ---

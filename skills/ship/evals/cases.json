@@ -5,7 +5,7 @@
     {
       "id": "SHP-E01",
       "type": "positive",
-      "input": "Run the ship audit. (Run in a repo with the full chain approved: design, spec, evals, build, plus skills.md and interop.md decisions recorded — e.g. the real whatsapp-owner-assistant post-build.)",
+      "input": "Run the ship audit. (Run in a repo with the full chain approved: design, spec, evals, build, plus skills.md and interop.md decisions recorded — e.g. the real dogfood agent (external repo) post-build.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -62,44 +62,44 @@
     {
       "id": "SHP-E05",
       "type": "edge-workspace-ship",
-      "input": "Run the ship audit for soporte. (Fixture: workspace; soporte was first built at the repo root, so its build.md build_start is a pre-move SHA; ventas commits interleaved with soporte's build range; one commit in the range touches agents/soporte/src/ and agents/ventas/src/ together; the 'agent-cycle: workspace move' pure-rename commit lies inside build_start..HEAD.)",
+      "input": "Run the ship audit for agent-b. (Fixture: workspace; agent-b was first built at the repo root, so its build.md build_start is a pre-move SHA; agent-a commits interleaved with agent-b's build range; one commit in the range touches agents/agent-b/src/ and agents/agent-a/src/ together; the 'agent-cycle: workspace move' pure-rename commit lies inside build_start..HEAD.)",
       "expected": {
         "fires": true,
         "checks": [
-          "The anti-gaming diff covers only agents/soporte/evals/, docs/agent/design.md and docs/agent/spec.md (plus their pre-move root paths when a workspace-move commit is in range), command cited",
-          "Commits touching only agents/ventas/ are ignored",
+          "The anti-gaming diff covers only agents/agent-b/evals/, docs/agent/design.md and docs/agent/spec.md (plus their pre-move root paths when a workspace-move commit is in range), command cited",
+          "Commits touching only agents/agent-a/ are ignored",
           "The commit touching both agents is a finding routed to build",
-          "The pure-rename workspace-move commit is accepted as sanctioned and recorded, after checking that each R100 entry maps a root path p to agents/soporte/p exactly",
-          "The lockfile checked is agents/soporte/'s"
+          "The pure-rename workspace-move commit is accepted as sanctioned and recorded, after checking that each R100 entry maps a root path p to agents/agent-b/p exactly",
+          "The lockfile checked is agents/agent-b/'s"
         ]
       }
     },
     {
       "id": "SHP-E06",
       "type": "edge-orchestrator-delegates-gate",
-      "input": "Ship recepcion. (Fixture: workspace; recepcion fully through interop with spec §8 Delegates pinning ventas-contract@1 and soporte-contract@1; ventas has approved interop.md (ventas-contract@1) and approved ship-report.md; soporte has approved interop.md but no ship-report.md. Second run: soporte shipped too, both delegates deployed.)",
+      "input": "Ship orchestrator. (Fixture: workspace; orchestrator fully through interop with spec §8 Delegates pinning agent-a-contract@1 and agent-b-contract@1; agent-a has approved interop.md (agent-a-contract@1) and approved ship-report.md; agent-b has approved interop.md but no ship-report.md. Second run: agent-b shipped too, both delegates deployed.)",
       "expected": {
         "fires": true,
         "checks": [
-          "First run: refuses, naming soporte and the missing phase (its ship), and writes nothing",
+          "First run: refuses, naming agent-b and the missing phase (its ship), and writes nothing",
           "Second run: Section 3 Delegates checks each pinned contract version is among the versions on the Served: line of the delegate's interop.md (greps run from the repo root; cites the command and output)",
-          "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request), sent to the base URL from recepcion's deploy configuration (the key its delegate client reads) with recepcion's delegate credential; the response validates against the pinned output schema; command and output cited",
-          "Second run: recepcion's delegate credentials are included in the least-privilege diff",
-          "Second run: writes only agents/recepcion/docs/agent/ship-report.md, whose frontmatter records delegate_contracts [ventas-contract@1, soporte-contract@1] (the first run writes nothing)"
+          "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request), sent to the base URL from orchestrator's deploy configuration (the key its delegate client reads) with orchestrator's delegate credential; the response validates against the pinned output schema; command and output cited",
+          "Second run: orchestrator's delegate credentials are included in the least-privilege diff",
+          "Second run: writes only agents/orchestrator/docs/agent/ship-report.md, whose frontmatter records delegate_contracts [agent-a-contract@1, agent-b-contract@1] (the first run writes nothing)"
         ]
       }
     },
     {
       "id": "SHP-E07",
       "type": "edge-delegate-contract-bump",
-      "input": "Ship ventas. (Fixture: workspace; ventas's interop.md now publishes ventas-contract@2 and its Served: line no longer lists @1; agents/recepcion/docs/agent/spec.md §8 pins ventas-contract@1 and recepcion's latest approved ship-report pins it too: delegate_contracts [ventas-contract@1].)",
+      "input": "Ship agent-a. (Fixture: workspace; agent-a's interop.md now publishes agent-a-contract@2 and its Served: line no longer lists @1; agents/orchestrator/docs/agent/spec.md §8 pins agent-a-contract@1 and orchestrator's latest approved ship-report pins it too: delegate_contracts [agent-a-contract@1].)",
       "expected": {
         "fires": true,
         "checks": [
-          "From the repo root, reads every other agent's spec §8 and the frontmatter of its latest approved ship-report (read-only) and finds recepcion's shipped pin ventas-contract@1 (delegate_contracts)",
-          "Reports a blocker: shipping @2 while recepcion has shipped @1 and @1 is not served would break recepcion; routes to recepcion (re-entry of spec, then evals with re-recording, then build -- the human's, hook off -- and a ship of the new pin) or to ventas (keep serving @1)",
-          "Verdict is NO-SHIP while the blocker stands; with the fixture changed so ventas still serves @1, the check passes",
-          "Writes only agents/ventas/docs/agent/ship-report.md"
+          "From the repo root, reads every other agent's spec §8 and the frontmatter of its latest approved ship-report (read-only) and finds orchestrator's shipped pin agent-a-contract@1 (delegate_contracts)",
+          "Reports a blocker: shipping @2 while orchestrator has shipped @1 and @1 is not served would break orchestrator; routes to orchestrator (re-entry of spec, then evals with re-recording, then build -- the human's, hook off -- and a ship of the new pin) or to agent-a (keep serving @1)",
+          "Verdict is NO-SHIP while the blocker stands; with the fixture changed so agent-a still serves @1, the check passes",
+          "Writes only agents/agent-a/docs/agent/ship-report.md"
         ]
       }
     }

@@ -10,7 +10,7 @@
 
 v0.12 lets one repository hold several independent agents (`agents/<name>/`), but nothing
 connects them. The owner wants a multi-agent system: an agent that receives the user and
-delegates to the other agents of the workspace (`recepcion` → `ventas`, `soporte`).
+delegates to the other agents of the workspace (`orchestrator` → `agent-a`, `agent-b`).
 
 Two risks shape the design. First, multi-agent systems are often worse than one agent with
 more tools (lost context between agents, higher token cost, compounding errors), so the
@@ -112,11 +112,11 @@ New **spec.md §8 Delegates** (orchestrators only; one row per delegate):
 
 | Column | Content |
 |---|---|
-| Delegate | agent name, e.g. `ventas` |
+| Delegate | agent name, e.g. `agent-a` |
 | Used by | BHV ids that call it |
 | Input | schema of what the orchestrator sends |
 | Output | schema of what it expects back |
-| Contract | pinned contract version, one listed on the `Served:` line of the delegate's Inbound contracts entry for this caller, e.g. `ventas-contract@1` |
+| Contract | pinned contract version, one listed on the `Served:` line of the delegate's Inbound contracts entry for this caller, e.g. `agent-a-contract@1` |
 | On failure | what the orchestrator does when the delegate is down, times out or returns invalid output (retry, tell the user, hand to a human); one BHV per mode |
 
 Rules:

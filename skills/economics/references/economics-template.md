@@ -34,7 +34,7 @@ design_version: <version of the design.md consumed>
 |---|---|---|---|
 | <model> input / output per Mtok | ... | <vault article / provider page> | <date> |
 | <infra: VPS node / serverless unit> | ... | ... | <date> |
-| <channel fees, e.g. WhatsApp conversation> | ... | ... | <date> |
+| <channel fees, e.g. per-conversation messaging fee> | ... | ... | <date> |
 | <third-party tools> | ... | ... | <date> |
 
 Prices are dated inputs, not truths — stale rows invalidate totals, not the method.
@@ -68,7 +68,7 @@ economics artifact when present (read-only); otherwise it is an assumption in
 
 - Client-facing: monthly price to client → margin per scenario, floor price.
 - Internal: cost vs the design's own Performance metric monetized
-  (e.g. owner hours saved x hourly value) → cost per hour saved.
+  (e.g. user hours saved x hourly value) → cost per hour saved.
 
 ## 6. Cost controls
 

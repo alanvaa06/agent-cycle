@@ -51,7 +51,7 @@ pytest tests; eval cases; release v0.12.0.
 
 ```yaml
 layout: workspace
-agents: [ventas, soporte]      # each lives at agents/<name>/
+agents: [agent-a, agent-b]      # each lives at agents/<name>/
 ```
 
 The path is always `agents/<name>/`; `<name>` is the design's `agent_name` (kebab-case). No

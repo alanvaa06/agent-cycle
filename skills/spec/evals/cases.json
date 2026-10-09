@@ -5,7 +5,7 @@
     {
       "id": "SPC-E01",
       "type": "positive",
-      "input": "Write the spec for this agent. The approved design is at docs/agent/design.md. (Run in a repo containing an APPROVED design.md, e.g. the real whatsapp-owner-assistant one.)",
+      "input": "Write the spec for this agent. The approved design is at docs/agent/design.md. (Run in a repo containing an APPROVED design.md, e.g. the real dogfood agent's design (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -15,7 +15,7 @@
           "Each capability covers happy + wrong + edge (at least 3 scenarios per capability)",
           "EXACTLY the design's tool inventory gets contracts — none invented, none dropped (note: the real design counts session_read/session_write as TWO tools sharing one table row): docstring-for-LLM, input/output schema with extra=forbid semantics, errors returned as observations (never raised)",
           "Every tool gets a FINAL action tier; any tier that differs from the design's guess carries a one-line justification",
-          "Conversation section covers 24h-window handling, fallback replies, debounce policy for rapid consecutive messages, reply-language mirroring, and the non-owner drop behavior from the design's NO-goals",
+          "Conversation section covers reply-window handling (where the channel has one), fallback replies, debounce policy for rapid consecutive messages, reply-language mirroring, and the non-allowlisted-sender drop behavior from the design's NO-goals",
           "Security section lists EVERY untrusted surface named in the design (no more, no less — anchor on the design's own labels, not on generic examples) with per-surface handling AND at least one injection-attempt BHV scenario per surface whose outcome is instructions-treated-as-data",
           "Security section covers least-privilege scoping per credential and the PII/secrets outbound rules from the design's NO-goals (never emit credentials, tokens, internal IDs, raw payloads)",
           "Data section defines session/dedupe/state schemas behind a repository interface",
@@ -56,7 +56,7 @@
     {
       "id": "SPC-E04",
       "type": "trigger-negative",
-      "input": "How do I write good Gherkin scenarios for my e-commerce checkout tests? Given/When/Then examples please.",
+      "input": "How do I write good Gherkin scenarios for my web app's login tests? Given/When/Then examples please.",
       "expected": {
         "fires": false,
         "checks": [
@@ -68,7 +68,7 @@
     {
       "id": "SPC-E05",
       "type": "edge-workspace-ambiguous",
-      "input": "Write the spec. (Fixture: workspace with agents [ventas, soporte], both with approved design.md; session started at the repo root; the request names no agent.)",
+      "input": "Write the spec. (Fixture: workspace with agents [agent-a, agent-b], both with approved design.md; session started at the repo root; the request names no agent.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -80,16 +80,16 @@
     {
       "id": "SPC-E06",
       "type": "edge-orchestrator-delegates",
-      "input": "Write the spec for recepcion. (Fixture: workspace; agents/recepcion/docs/agent/design.md approved with §9 Delegation listing ventas and soporte; agents/ventas/docs/agent/interop.md approved with Inbound contracts publishing ventas-contract@1; soporte has no interop.md yet.)",
+      "input": "Write the spec for orchestrator. (Fixture: workspace; agents/orchestrator/docs/agent/design.md approved with §9 Delegation listing agent-a and agent-b; agents/agent-a/docs/agent/interop.md approved with Inbound contracts publishing agent-a-contract@1; agent-b has no interop.md yet.)",
       "expected": {
         "fires": true,
         "checks": [
           "spec.md §8 Delegates has one row per delegate with every column: Delegate, Used by (BHV ids), Input, Output, Contract, On failure",
-          "ventas's row pins Contract ventas-contract@1 (read from the Served: line of ventas's interop.md Inbound contracts entry); soporte's row reads Contract: pending and the spec states that evals refuses and ship is blocked until it is pinned",
-          "Each On failure entry names what recepcion does when the delegate is down, times out, or returns invalid output, and each mode has its own BHV listed in Used by",
+          "agent-a's row pins Contract agent-a-contract@1 (read from the Served: line of agent-a's interop.md Inbound contracts entry); agent-b's row reads Contract: pending and the spec states that evals refuses and ship is blocked until it is pinned",
+          "Each On failure entry names what orchestrator does when the delegate is down, times out, or returns invalid output, and each mode has its own BHV listed in Used by",
           "Each delegate has a §2 tool contract that references its §8 row",
           "Delegates are treated as untrusted: §4 lists each delegate's replies as an untrusted surface with handling, and the credential each delegate requires is a row in §4's least-privilege table",
-          "Writes only agents/recepcion/docs/agent/spec.md"
+          "Writes only agents/orchestrator/docs/agent/spec.md"
         ]
       }
     }

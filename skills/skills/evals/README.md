@@ -6,7 +6,7 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
-- **SKL-E01** is the real dogfood run: the whatsapp-owner-assistant's v1
+- **SKL-E01** is the real dogfood run: the dogfood agent's (external repo) v1
   surface (read-only, 5 capabilities, 7 tools) is expected to produce
   decision: none. Scoring the entry-test check requires the per-capability
   table — a bare "doesn't need skills" is a FAIL even if the conclusion is

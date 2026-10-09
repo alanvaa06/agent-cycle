@@ -24,7 +24,7 @@ must be re-opened, bumped, and re-approved first.
 Derive the capability list mechanically from the design: Actuators + Sensors
 define what the agent can do; the Performance metric defines what it is FOR.
 List capabilities as verb phrases ("answer calendar availability questions",
-"find and summarize Notion pages"). Show the list to the user as ONE
+"find and summarize notes"). Show the list to the user as ONE
 confirmation question — "these N capabilities, complete?" — before writing
 scenarios.
 
@@ -61,19 +61,19 @@ One per design §4 tool, no more, no less (a new tool = design change → re-ent
 ladder). Count DISTINCT tool operations, not table rows: a row naming two tools
 (e.g. `session_read / session_write`) needs two separate contracts. Docstring written for the model: what/when/when-NOT/returns. Schemas
 extra=forbid. Errors as observations. FINAL tier per tool: confront each design
-tier guess — if it changes (e.g. a WhatsApp send is irreversible), one-line
+tier guess — if it changes (e.g. a send on a messaging channel is irreversible), one-line
 justification. Tier → gate implication is mechanical: safe=auto,
 destructive=HITL never-cached.
 
 ## Step 5 — Conversation, Security, Data
 
-Conversation: channel mechanics from the design's Environment (24h window,
+Conversation: channel mechanics from the design's Environment (reply window where the channel has one,
 fallbacks, drop rules, language). Mechanics the design is silent on (e.g.
 debounce for rapid consecutive messages) are DECIDED here — ask the user (one
 question, counts as a spec-level open topic) and itemize them in the gate
 summary. Security: every untrusted surface from the design gets a handling row
 + a BHV scenario reference; untrusted status follows the DESIGN's threat model,
-not a blanket per-channel default (an owner-only channel with allowlist
+not a blanket per-channel default (a single-user channel with allowlist
 enforcement may be trusted by design). Also cover least-privilege scoping per
 credential and the PII/secrets outbound rules from the design's NO-goals.
 Stack traps: copy design §8 "Mandatory spec security rows" into §4 — one row

@@ -15,7 +15,7 @@ cross-agent reads of orchestrators, which run from the repo root (Rules).
 
   ```yaml
   layout: workspace
-  agents: [ventas, soporte]      # each lives at agents/<name>/
+  agents: [agent-a, agent-b]      # each lives at agents/<name>/
   ```
 
   `<name>` is the design's `agent_name` (kebab-case). The path is always

@@ -11,7 +11,7 @@
 
 No phase of the pipeline decides the agent's framework. `design` fixes topology, model tier,
 memory and deployment target (§5) but its template has no framework field; `spec` "fixes the
-runtime" without a procedure for choosing it. On the dogfood agent (`whatsapp-owner-assistant`)
+runtime" without a procedure for choosing it. On the dogfood agent (external repo)
 the framework sat as design open question 2 and spec settled it in passing (Pydantic AI). Build
 rule 2 ("THE SPEC'S RUNTIME IS LAW") therefore enforces a decision nobody made deliberately.
 

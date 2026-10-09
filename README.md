@@ -71,7 +71,7 @@ edits evals or specs — that path is mechanically blocked.
 **1 · `design` — decide WHAT you want and how you'll know it works.**
 It interviews you, one question at a time, and writes the blueprint. Like the
 floor plan of a house before laying a single brick. Example: "an assistant
-that saves me half the time I spend checking my calendar and Notion."
+that saves me half the time I spend checking my calendar and notes."
 It also picks the stack with you: filters out frameworks that can't meet your
 constraints, shows 2-3 with cited pros and cons, and you choose.
 *Use it when:* starting a new agent from an idea. *Skip it when:* you want to

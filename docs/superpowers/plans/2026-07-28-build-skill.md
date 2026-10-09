@@ -31,7 +31,7 @@ Write `skills/build/evals/cases.json`:
     {
       "id": "BLD-E01",
       "type": "positive",
-      "input": "Build the agent. (Run in a repo with approved design.md + spec.md + evals/config.yaml, e.g. the real whatsapp-owner-assistant.)",
+      "input": "Build the agent. (Run in a repo with approved design.md + spec.md + evals/config.yaml, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -495,7 +495,7 @@ Write `skills/build/SKILL.md`:
 ```markdown
 ---
 name: build
-description: "Phase 4 of the agent-cycle pipeline — the only phase that produces code: turn approved design.md + spec.md + evals/ into a running agent (invariant core + deployment adapter), an eval runner whose exit code is the pipeline's green, forge-master delegation for non-trivial builds, OTel telemetry with token counters. Use when the user wants to build/implement a pipelined agent — 'build the agent', 'siguiente fase del pipeline', 'implement the whatsapp agent'. Do NOT use without approved design+spec+evals (run the earlier phases first), nor for generic app development outside the pipeline, nor to modify evals or specs (frozen artifacts; re-entry ladder)."
+description: "Phase 4 of the agent-cycle pipeline — the only phase that produces code: turn approved design.md + spec.md + evals/ into a running agent (invariant core + deployment adapter), an eval runner whose exit code is the pipeline's green, forge-master delegation for non-trivial builds, OTel telemetry with token counters. Use when the user wants to build/implement a pipelined agent — 'build the agent', 'siguiente fase del pipeline', 'implement the agent'. Do NOT use without approved design+spec+evals (run the earlier phases first), nor for generic app development outside the pipeline, nor to modify evals or specs (frozen artifacts; re-entry ladder)."
 ---
 
 # agent-cycle:build — From Paper to Green
@@ -620,7 +620,7 @@ git commit -m "feat(build): SKILL.md — rails before code, runner as green, spe
 ### Task 7 (Alan, interactive): eval runs + dogfood
 
 - [ ] BLD-E02 ×2, BLD-E03, BLD-E04 in scratch → rows in results.md.
-- [ ] BLD-E01 dogfood in `C:\Proyectos\Whatsapp_agent`: Pydantic AI + VPS per the spec; forge delegation expected (7 tools, channel adapter, 34-case suite); the 34-case suite goes green via the runner → tag `build-v0.1`.
+- [ ] BLD-E01 dogfood in the external dogfood repo: Pydantic AI + VPS per the spec; forge delegation expected (7 tools, channel adapter, 34-case suite); the 34-case suite goes green via the runner → tag `build-v0.1`.
 - [ ] Marketplace update + reinstall for v0.5.0.
 
 ---

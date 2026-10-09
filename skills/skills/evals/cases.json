@@ -5,7 +5,7 @@
     {
       "id": "SKL-E01",
       "type": "positive-none",
-      "input": "Does this agent need skills? Run the skills phase. (Run in a repo with approved design+spec+build where every capability is covered by tools + static instructions, e.g. the real whatsapp-owner-assistant.)",
+      "input": "Does this agent need skills? Run the skills phase. (Run in a repo with approved design+spec+build where every capability is covered by tools + static instructions, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [

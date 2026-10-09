@@ -42,7 +42,7 @@ Scenario: <what goes wrong — bad input, API failure, ambiguity>
   Then <graceful behavior: fallback reply, no partial writes, degraded flag>
 
 # BHV-003 (edge)
-Scenario: <boundary: empty result, limit hit, stale data, 24h window edge>
+Scenario: <boundary: empty result, limit hit, stale data, reply-window edge>
   ...
 ```
 
@@ -68,10 +68,12 @@ caught inside the tool and returned as observations, never raised.
 
 ## 3. Conversation
 
-Channel mechanics the agent must respect. For WhatsApp: 24h service window
-behavior (what happens when it expires), fallback reply for unsupported input
-types, non-owner / out-of-scope drop behavior (mirror the design's NO-goals),
-debounce policy for rapid consecutive messages, language mirroring. For
+Channel mechanics the agent must respect. Reply-window behavior for channels
+with rules for business-initiated messages (e.g. a 24-hour reply window,
+template-only messages outside it): what happens when it expires. Fallback
+reply for unsupported input types, non-allowlisted-sender / out-of-scope drop
+behavior (mirror the design's NO-goals), debounce policy for rapid consecutive
+messages, language mirroring. For
 channel-less agents: one line — "not applicable because <reason>".
 
 ## 4. Security
@@ -81,7 +83,7 @@ channel-less agents: one line — "not applicable because <reason>".
 
 | Surface | Why untrusted | Handling |
 |---|---|---|
-| <e.g. inbound WhatsApp text> | <attacker-writable> | <extraction boundary, never in system prompt, sanitized echo> |
+| <e.g. inbound message text> | <attacker-writable> | <extraction boundary, never in system prompt, sanitized echo> |
 
 - **Stack security rows** — copied from design §8 "Mandatory spec security
   rows" (the chosen stack's `[security]`/`[data]` traps, plus the egress

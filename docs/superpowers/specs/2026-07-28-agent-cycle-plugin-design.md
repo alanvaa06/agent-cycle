@@ -8,7 +8,7 @@
 
 A Claude Code plugin that runs the **complete construction cycle of an AI agent** — from idea to shipped, evaluated, observable production agent — as a gated, disk-backed pipeline of skills. Built skill-by-skill with maximum depth per skill, each one dogfooded on a real project before the next begins.
 
-**First real agent (dogfood):** `whatsapp-owner-assistant` — a personal WhatsApp assistant over Google Calendar + Notion (read-only v1), self-hosted on a VPS. (Originally scoped as a client agent on AWS; the real design interview on 2026-07-28 landed on VPS — adapter order updated accordingly. AWS remains the second target.)
+**First real agent (dogfood):** the dogfood agent (external repo) — a single-user assistant on a messaging channel over a calendar service + a notes service (read-only v1), self-hosted on a VPS. (Originally scoped as a client agent on AWS; the real design interview on 2026-07-28 landed on VPS — adapter order updated accordingly. AWS remains the second target.)
 
 ## 2. Foundational decisions (settled during brainstorming)
 
@@ -17,7 +17,7 @@ A Claude Code plugin that runs the **complete construction cycle of an AI agent*
 | Framework scope | **Framework-agnostic, ADK 2.0 as first build target** | Clients may demand AWS or a VPS; design/spec/evals are framework-neutral by nature. ADK pinned at 2.0 (1.x session schema is incompatible). |
 | Relationship to forge-master | **Separate, composable plugin** | forge-master owns *how to execute software* (PRD → plan → run, proven on MAES). agent-cycle owns *what a correct agent is*. `/build` delegates execution to forge-master; the agent spec feeds the forge PRD. |
 | Build method | **Skill-by-skill, full pipeline as the goal** | Each skill gets research → EDD → SKILL.md → dogfood → iterate before the next starts. |
-| Dogfood cadence | **Per-skill, not at the end** | Each finished skill immediately produces its real artifact for the WhatsApp agent. DoD per skill = "produced the real artifact and Alan approved it without manual rework". |
+| Dogfood cadence | **Per-skill, not at the end** | Each finished skill immediately produces its real artifact for the dogfood agent. DoD per skill = "produced the real artifact and Alan approved it without manual rework". |
 | Design model | **PEAS + environment classification; BDI as an optional lens only** | PEAS is external specification (applies to every agent). BDI is internal deliberative architecture that modern LLM harnesses replace; its essence ("partially observable → belief state/memory") is already operationalized in the environment classification. BDI stays citable from the agent-design knowledge skill. |
 | Knowledge vs process | **The plugin references the existing `agent-design` skill, never copies it** | One source of truth. The diverged copy in `scaffold/templates/` is the anti-pattern this rule prevents. |
 
@@ -76,9 +76,9 @@ Every artifact carries frontmatter: `agent_name, version, status: draft|approved
 
 **Artifact `docs/agent/design.md`:** PEAS table (+ Goodhart notes) · environment classification (5 dims → implications) · harness decision · preliminary tool inventory (name + purpose, no schemas) · deployment intent + seams · NO-goals · open questions (input to `/spec`).
 
-**EDD cases:** positive ("WhatsApp appointment agent for a dentist" → full PEAS, env classified, single-agent, seams declared) · trigger-negative ("review this orchestration code" → does NOT fire; that is the knowledge skill alone) · edge (user brings partial PEAS → completes without re-asking what was given).
+**EDD cases:** positive ("appointment-booking agent on a messaging channel" → full PEAS, env classified, single-agent, seams declared) · trigger-negative ("review this orchestration code" → does NOT fire; that is the knowledge skill alone) · edge (user brings partial PEAS → completes without re-asking what was given).
 
-**DoD:** produced the real WhatsApp agent's design.md, approved without manual rework.
+**DoD:** produced the real dogfood agent's design.md, approved without manual rework.
 
 ### 4.2 `/agent-cycle:spec`
 
@@ -89,8 +89,8 @@ Every artifact carries frontmatter: `agent_name, version, status: draft|approved
 **Artifact — default a single `docs/agent/spec.md`** (split into a folder only when the agent warrants it):
 1. **Behavior** — Gherkin scenarios per capability, each with ID `BHV-NNN`; happy + wrong + edge.
 2. **Tools** — per-tool contract: docstring-for-LLM (the docstring IS the interface), Pydantic I/O schema `extra="forbid"`, errors-as-observations, and **action tier** (safe / reversible / destructive) mapping directly to HITL gates.
-3. **Conversation (WhatsApp)** — templates vs 24h window, fallbacks, human handoff, message debounce. Forces these decisions before build.
-4. **Security** — inbound messages are untrusted **by default**; a design whose threat model restricts the channel (e.g. owner-only with allowlist enforcement) may downgrade that surface explicitly. Injection surface, least privilege per tool, action gating, PII.
+3. **Conversation (messaging channel)** — template-only messages vs a 24-hour reply window, fallbacks, human handoff, message debounce. Forces these decisions before build.
+4. **Security** — inbound messages are untrusted **by default**; a design whose threat model restricts the channel (e.g. single-user with allowlist enforcement) may downgrade that surface explicitly. Injection surface, least privilege per tool, action gating, PII.
 5. **Data** — session/dedupe/profile schemas behind a repository interface (the design's seams landed).
 
 **Format tax rule (Google Day 5):** clean Markdown headers; YAML only for schemas nested >3 deep.
@@ -101,7 +101,7 @@ Every artifact carries frontmatter: `agent_name, version, status: draft|approved
 
 **EDD:** positive (approved design → full spec with tiers) · negative (draft design → refuses, demands the gate) · edge (single-tool agent → one-file spec, no ceremony).
 
-**DoD:** real WhatsApp agent spec approved.
+**DoD:** real dogfood agent spec approved.
 
 ### 4.3 `/agent-cycle:evals`
 
@@ -123,7 +123,7 @@ Every artifact carries frontmatter: `agent_name, version, status: draft|approved
 
 **EDD:** positive (approved spec → suite with full BHV coverage + pass^k on destructive) · negative (draft spec → refuses) · edge (non-automatable scenario, e.g. tone → LLM-judge rubric + explicit human-review flag, never silent omission).
 
-**DoD:** WhatsApp agent suite running red before `/build` exists.
+**DoD:** dogfood agent suite running red before `/build` exists.
 
 ### 4.4 `/agent-cycle:build`
 
@@ -149,7 +149,7 @@ Agent, evals, and instrumentation **never fork per cloud** — only the adapter 
 1. `/build` generates scaffold + a forge PRD derived mechanically: `BHV-NNN` = ACs verbatim; forge's test runner = the eval suite runner.
 2. Alan approves the forge plan → `forge-run` executes with proven machinery (junior/senior escalation, TDD Iron Law on heavy phases, disk-backed resume).
 3. **Anti-gaming enforced during the run**: PreToolUse hook blocks writes to `evals/` and `docs/agent/`.
-4. **When not to delegate:** small builds (few tools, all safe) → `/build` runs directly with TDD. The WhatsApp dogfood is mid-size — full delegation is tested there.
+4. **When not to delegate:** small builds (few tools, all safe) → `/build` runs directly with TDD. The dogfood agent is mid-size — full delegation is tested there.
 
 **Build DoD:** eval suite green locally (pass^k per tier) + adapter smoke test (container boots, `/ping` answers, simulated webhook roundtrip via SAM local / docker).
 
@@ -157,13 +157,13 @@ Agent, evals, and instrumentation **never fork per cloud** — only the adapter 
 
 **EDD:** positive (approved spec+evals → scaffold passing smoke) · negative (draft evals → refuses) · edge (trivial all-safe agent → direct build, no forge ceremony).
 
-**DoD:** WhatsApp agent running on AWS dev, suite green.
+**DoD:** dogfood agent running on AWS dev, suite green.
 
 ### 4.5 `/agent-cycle:skills` (conditional)
 
 Skills for the **target agent** (not the plugin's).
 
-- **Entry test:** is the capability on-demand procedural know-how (per-client policies, process variants), or does tool + static instruction suffice? Skills only for narrow action workflows; global context in static instructions. If not warranted (likely for WhatsApp v1) → emits justified "no skills needed" and passes. Zero ceremony skills — 19% of badly built skills subtract capability.
+- **Entry test:** is the capability on-demand procedural know-how (per-client policies, process variants), or does tool + static instruction suffice? Skills only for narrow action workflows; global context in static instructions. If not warranted (likely for the dogfood agent's v1) → emits justified "no skills needed" and passes. Zero ceremony skills — 19% of badly built skills subtract capability.
 - When warranted, per skill: EDD first (trigger positive/negative + execution cases) → SKILL.md with description-as-routing (when-to-use + when-NOT) → trigger eval ≥90% + **regression co-loaded** (suite runs with all skills loaded, never isolated).
 - **Authority ladder:** every new skill enters draft; action-allowed requires pass^k + Alan's approval. Same rail as tool tiers.
 
@@ -171,7 +171,7 @@ Skills for the **target agent** (not the plugin's).
 
 - **Entry test (A2A vs tool):** does the other system need to *take responsibility* (unbounded domain, multi-turn, can pause and consult) or just *return a result*? Only the former is A2A; wrapping a collaborator as a tool injects the GOTO problem. Result → MCP tool, phase does not apply.
 - When it applies: Agent Card (capabilities, security, schemas) + executor (ADK `LlmAgent` + `Runner` is the A2A executor's reasoning core) + registry if enterprise/marketplace.
-- WhatsApp dogfood: **skip**, one-line justification. The phase exists for the enterprise client who asks.
+- Dogfood agent: **skip**, one-line justification. The phase exists for the enterprise client who asks.
 
 ### 4.7 `/agent-cycle:ship`
 
@@ -187,10 +187,10 @@ Mechanical audit, not a creative phase:
 
 ### 5.1 `/agent-cycle:economics`
 
-Financial estimate of running the agent monthly — tokens, cloud infra, WhatsApp fees, third-party tools. CFA-grade; no other plugin in the ecosystem has this.
+Financial estimate of running the agent monthly — tokens, cloud infra, messaging-channel fees, third-party tools. CFA-grade; no other plugin in the ecosystem has this.
 
 - **Inputs by moment:** post-spec → band estimate from design (harness, deployment intent) + spec (turns/conversation, tools/turn) + vault unit prices (tokens dominate 70–90%; AWS/GCP infra $5–75/mo; VPS €10–12 flat; Haiku vs Sonnet 5–10×). Post-build → **recalibration with real runner data** (the eval runner already traces tokens/turn).
-- **Output:** monthly cost table per volume scenario (low/medium/high) × cloud target (multi-cloud matrix) · breakdown tokens/infra/WhatsApp/third-party · model sensitivity · **break-even vs client price**.
+- **Output:** monthly cost table per volume scenario (low/medium/high) × cloud target (multi-cloud matrix) · breakdown tokens/infra/channel/third-party · model sensitivity · **break-even vs client price**.
 - **Artifact:** `docs/agent/<agent_name>-economics.md`.
 - **Hooks into the pipeline:** post-spec invocation acts as a viability gate (worth building?); `/ship` calibrates the token-spend alarm against the estimate — real >> estimate = drift detected.
 
@@ -247,7 +247,7 @@ references and the owner may retire).
 | Plugin area | Vault articles |
 |---|---|
 | design | PEAS Framework · agent-design skill (knowledge base) · The New SDLC with Vibe Coding (Google) — 5 agent parts |
-| spec | Spec-Driven Production-Grade Development (Google) — SDD, BDD, format tax · WhatsApp Business Cloud API |
+| spec | Spec-Driven Production-Grade Development (Google) — SDD, BDD, format tax · a messaging channel's business API |
 | evals | Agent Skills (Google Whitepaper) — EDD, pass^k · Vibe Coding Agent Security and Evaluation (Google) — 7 dimensions, method mix · AI Agent Evaluation Tools (2026) |
 | build | Google ADK (adk-python) · Multi-Cloud Agent Deployment Patterns — 5-binding adapter surface · Deploying AI Agents on AWS (2026) · Forge Master |
 | skills | Agent Skills (Google Whitepaper) — trigger gate, authority ladder |
@@ -259,15 +259,15 @@ references and the owner may retire).
 
 ## 8. Build roadmap (skill-by-skill order)
 
-1. `/design` → dogfood: WhatsApp agent design.md
-2. `/spec` → dogfood: WhatsApp agent spec.md
-3. `/economics` → dogfood: quote the WhatsApp agent to the client (small skill, data ready, immediate value)
+1. `/design` → dogfood: the dogfood agent's design.md
+2. `/spec` → dogfood: the dogfood agent's spec.md
+3. `/economics` → dogfood: quote the dogfood agent to the client (small skill, data ready, immediate value)
 4. `/evals` → dogfood: suite running red
 5. `/build` (vps adapter) → dogfood: agent green on VPS dev
 6. `/blueprint` → dogfood: client-facing HTML of the real agent
 7. `/skills` → dogfood: likely "no skills needed" — validates the entry test
 8. `/interop` → dogfood: skip with justification — validates the entry test
-9. `/ship` → dogfood: WhatsApp agent shipped
+9. `/ship` → dogfood: the dogfood agent shipped
 10. Later: aws/ and gcp/ adapters; plugin marketplace packaging.
 
 Each skill: research from vault → EDD (3+ eval cases for the skill itself) → SKILL.md → dogfood → iterate → next.

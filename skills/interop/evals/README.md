@@ -6,12 +6,12 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
-- The real whatsapp-owner-assistant fixture is pre-v0.11: it has no design
+- The real dogfood agent fixture (external repo) is pre-v0.11: it has no design
   §8 and no spec `runtime`. It needs design re-entry (Phase E) and a spec
   version bump with `runtime` before ITP-E01 can run (or use a copy with §8 +
   `runtime` added).
-- **ITP-E01** is the real dogfood run: the whatsapp-owner-assistant's
-  relationships (Google Calendar, Notion, Supabase, Meta — all bounded
+- **ITP-E01** is the real dogfood run: the dogfood agent's (external repo)
+  relationships (calendar service, notes service, database, messaging channel — all bounded
   result-lookups behind tools) are expected to produce decision: skip. The
   per-relationship table is required — a bare "doesn't need A2A" is a FAIL
   even though the conclusion is right.
@@ -26,8 +26,8 @@ Case-specific setup:
 - **ITP-E04**: filesystem check afterward.
 
 Scoring anchors: the entry-test check requires one row per external system
-named in the spec's tools/security sections (for the real agent: Calendar,
-Notion, Supabase, Meta WhatsApp) — a missing row is a FAIL. The GOTO-problem
+named in the spec's tools/security sections (for the real agent: calendar
+service, notes service, database, messaging channel) — a missing row is a FAIL. The GOTO-problem
 check (E02) requires the words to appear with the reasoning, not as decoration.
 
 ## Orchestrator cases (v0.13)
@@ -36,9 +36,9 @@ Build every fixture in a scratch git repo (never this repo) with hand-written
 minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
-- **ITP-E05**: a workspace repo with ventas built and approved: its
+- **ITP-E05**: a workspace repo with agent-a built and approved: its
   `design.md`, `spec.md` and `build.md` hand-written and approved under
-  `agents/ventas/docs/agent/`; and `agents/recepcion/docs/agent/design.md`
-  with a §9 Delegation naming ventas as a delegate (one question in, one
-  answer out). Score that only `agents/ventas/docs/agent/interop.md` (plus
+  `agents/agent-a/docs/agent/`; and `agents/orchestrator/docs/agent/design.md`
+  with a §9 Delegation naming agent-a as a delegate (one question in, one
+  answer out). Score that only `agents/agent-a/docs/agent/interop.md` (plus
   agent-card/executor config if the verdict is A2A) was written.

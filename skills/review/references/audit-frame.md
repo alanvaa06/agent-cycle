@@ -9,7 +9,7 @@ does not. Never infer architecture from genre conventions.
 
 - Is there a stated purpose and a SUCCESS METRIC? NO metric found at all is
   itself a finding (critical for write-capable agents) — route design. When
-  one exists: is it a property of the ENVIRONMENT (booked appointments,
+  one exists: is it a property of the ENVIRONMENT (tasks completed for the user,
   resolved requests) or of agent ACTIVITY (messages sent, tool calls)?
   Activity metrics are a finding.
 - Goodhart probe on any metric found: if the agent optimized ONLY this, what

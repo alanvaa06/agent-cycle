@@ -5,7 +5,7 @@
     {
       "id": "BLP-E01",
       "type": "positive-progressive",
-      "input": "Generate the agent blueprint. (Run in a repo with approved design+spec+evals+economics but NO build yet, e.g. the real whatsapp-owner-assistant pre-build.)",
+      "input": "Generate the agent blueprint. (Run in a repo with approved design+spec+evals+economics but NO build yet, e.g. the real dogfood agent (external repo) pre-build.)",
       "expected": {
         "fires": true,
         "checks": [
