@@ -441,8 +441,8 @@ def _short_name(path: Path) -> str | None:
 
 
 def test_short_8dot3_name_resolves(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"customer-support": "draft"})
-    short = _short_name(tmp_path / "agents/customer-support")
+    make_workspace(tmp_path, {"orchestrator": "draft"})
+    short = _short_name(tmp_path / "agents/orchestrator")
     if short is None:
         pytest.skip("8.3 names are not available on this volume")
     assert run(tmp_path, "Write", {"file_path": short + "\\evals\\config.yaml", "content": "x\n"})
