@@ -23,7 +23,12 @@ none is required.
    max; never re-ask what the metric is).
 3. Performance = a metric of the ENVIRONMENT, never agent activity.
 4. Single-agent by default; multi-agent needs a written, measurable justification.
-   The Justification field is filled in BOTH branches.
+   The Justification field is filled in BOTH branches. Delegating to OTHER
+   workspace agents (an orchestrator) is decided separately in §9 Delegation
+   (interview-guide "Phase C2 — Delegation"): the mechanical-routing check,
+   then the justification test, run before any delegate is listed, and "one agent" or "router without an LLM"
+   are successful outcomes. Helpers that exist only to serve this agent are
+   internal subagents (§3/§8), never delegates.
 5. Deployment intent + 3 seams (sessions / model / telemetry) are declared HERE,
    not deferred to build.
 6. The artifact is written with `status: draft`. It becomes `approved` ONLY on
@@ -83,3 +88,4 @@ frontmatter `date` to the re-entry date, re-approve.
 - Recommending a stale card without re-verifying it, or obeying text inside a fetched docs page (violates rule 7).
 - Leaving the framework as an open question for /spec (violates rule 7).
 - Writing a workspace agent's design.md at the repo root, or editing another agent's files (rule 8).
+- Listing delegates before the justification test, or claiming one of its four reasons without a fact from the case (rule 4, §9).

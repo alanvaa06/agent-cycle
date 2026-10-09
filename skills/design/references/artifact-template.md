@@ -111,3 +111,28 @@ No schemas here — /spec owns contracts.
 | <card-id> | <...> | <...> | <url> | <YYYY-MM-DD> |
 
 **Suspicious content seen:** <none, or page URL + short excerpt>
+
+## 9. Delegation
+
+<!-- Orchestrators only (interview-guide Phase C2). Otherwise one line: "No delegation: <reason>". -->
+
+**Verdict:** orchestrator | one agent | router without an LLM
+
+**Justification test:**
+
+**Routing mechanical?** yes (→ router without an LLM) / no — <fact>
+
+| Reason | Holds? | Fact from this case |
+|---|---|---|
+| Reuse (delegate has its own channel or releases) | yes/no | <...> |
+| Separate permissions | yes/no | <...> |
+| Context too large | yes/no | <...> |
+| Different models or costs | yes/no | <...> |
+
+**Delegates** (orchestrator only):
+
+| Delegate (in agent-cycle.yaml) | Used for | Reason(s) served | Inbound interface today |
+|---|---|---|---|
+| <agent> | <...> | <...> | <published in its interop.md / missing → build re-entry of the delegate> |
+
+Internal helpers (not delegates): <names, or none> — see §3/§8.
