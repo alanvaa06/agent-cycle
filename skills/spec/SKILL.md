@@ -24,6 +24,11 @@ inform judgment; none is required.
    question per message. A request to change an approved design decision goes
    to the re-entry ladder (re-open design, bump version, re-approve) — never
    folded silently into the spec.
+   On an agent whose build has started, the hook blocks Claude's edits to its
+   design, spec and evals: that re-entry is the human's, from their own
+   terminal (the re-entry steps in the build skill's
+   `references/forge-delegation.md`), and while the hook is renamed to `.off`
+   every Claude tool call is blocked.
 3. Every capability gets happy + wrong + edge Gherkin with unique sequential
    BHV-NNN ids. A scenario that cannot fail does not count.
 4. Tools: exactly the design's inventory. Docstring is the interface. Schemas

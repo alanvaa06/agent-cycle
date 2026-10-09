@@ -13,7 +13,7 @@
           "The eval suite is RE-RUN during the audit via the build's runner — exit code cited from this run, pass^k tiers and every release blocker verified from this run's output; build.md's own claim is treated as claim, not evidence",
           "End-to-end traceability table verified: every BHV → eval id(s) → test/phase → status in the audit's own run — complete, or gaps justified in writing",
           "Security re-verified with evidence per command: adversarial cases green in the audit run; least-privilege diff (the adapter's REAL scopes/credentials vs the spec's security table); secret scan over the repo and git history; ingress spot-checks (signature-over-raw-body, allowlist, dedupe present in code)",
-          "Anti-gaming audit executed mechanically: git diff --word-diff from build.md's build_start (the baseline committed before the hook) to HEAD for evals/**, design.md and spec.md (minus the sanctioned allow-list); a missing baseline is a blocker — zero unsanctioned changes, command cited; build.md's post-fill hook check (dummy evals edit blocked after the Test column fill) confirmed",
+          "Anti-gaming audit executed mechanically: git diff --word-diff from build.md's build_start (the baseline committed before this agent's build.md stub; the hook may already be active) to HEAD for evals/**, design.md and spec.md (minus the sanctioned allow-list); a missing baseline is a blocker — zero unsanctioned changes, command cited; build.md's post-fill hook check (dummy evals edit blocked after the Test column fill) confirmed",
           "Observability verified with evidence: traces arriving at the adapter's backend (or exporter log), token counters present on spans, token-spend alarm configured at the economics threshold when an economics artifact exists",
           "Runbook verified against the minimums (queue/DLQ drain, rollback, kill switch, weekly ritual scheduled); a missing or thin runbook is a FINDING with the template referenced — never silence, never auditor-authored",
           "Explicit verdict: SHIP or NO-SHIP; every finding carries a severity and its re-entry route (which phase re-opens); NO-SHIP framed as the pipeline working, not as failure",
@@ -62,14 +62,14 @@
     {
       "id": "SHP-E05",
       "type": "edge-workspace-ship",
-      "input": "Run the ship audit for soporte. (Fixture: workspace; ventas commits interleaved with soporte's build range; one commit in the range touches agents/soporte/src/ and agents/ventas/src/ together; one earlier 'agent-cycle: workspace move' pure-rename commit.)",
+      "input": "Run the ship audit for soporte. (Fixture: workspace; soporte was first built at the repo root, so its build.md build_start is a pre-move SHA; ventas commits interleaved with soporte's build range; one commit in the range touches agents/soporte/src/ and agents/ventas/src/ together; the 'agent-cycle: workspace move' pure-rename commit lies inside build_start..HEAD.)",
       "expected": {
         "fires": true,
         "checks": [
           "The anti-gaming diff covers only agents/soporte/evals/, docs/agent/design.md and docs/agent/spec.md (plus their pre-move root paths when a workspace-move commit is in range), command cited",
           "Commits touching only agents/ventas/ are ignored",
           "The commit touching both agents is a finding routed to build",
-          "The pure-rename workspace-move commit is accepted as sanctioned and recorded",
+          "The pure-rename workspace-move commit is accepted as sanctioned and recorded, after checking that each R100 entry maps a root path p to agents/soporte/p exactly",
           "The lockfile checked is agents/soporte/'s"
         ]
       }
