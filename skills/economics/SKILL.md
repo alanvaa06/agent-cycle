@@ -38,7 +38,7 @@ estimate (post-design/spec) and calibrated (post-build, with real telemetry).
 ## Workflow
 
 0. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md` (one
-   question when several agents match); every path below is relative to it and
+   question when several agents match); every path in this skill is relative to it and
    this skill writes only inside it.
 1. Read `references/costing-guide.md`; run steps 0→8 (step 7 only in
    calibration mode).
