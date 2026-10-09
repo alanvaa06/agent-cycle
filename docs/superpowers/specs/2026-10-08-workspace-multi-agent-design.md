@@ -1,7 +1,7 @@
 # agent-cycle v0.12 — Workspace mode (several agents per repo)
 
 **Date:** 2026-10-08
-**Status:** draft — pending Alan's review
+**Status:** released in v0.12.0 (approved by the owner)
 **Author:** Alan Vazquez + Claude (brainstorming session)
 **Builds on:** v0.11 (stack decision, catalog, per-stack bindings, refresh) — branch
 `feat/v0.11-stack-decision`, PR alanvaa06/agent-cycle#3. This work is branched from it
