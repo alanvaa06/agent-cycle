@@ -74,7 +74,8 @@ anything.
   existence freezes this agent's evals, design and spec.
 - Hook: install when absent: the script, `.claude/hooks/built-agents.txt`
   seeded with this agent's prefix, and the pinned `python -I -S` registration
-  in `.claude/settings.json`, all committed together in ONE commit. If the
+  in `.claude/settings.json` (written last), all committed together in ONE
+  commit. If the
   installed `HOOK_VERSION` is lower than the plugin's, STOP and ask the human
   to upgrade it from their own terminal (rename to `.off`, copy the plugin's
   file, rename back). Build never writes `.claude/hooks/` once the hook
@@ -82,7 +83,7 @@ anything.
   `<AGENT_ROOT>/evals/config.yaml` is blocked), and commit `built-agents.txt`
   when the hook has added this agent's line (forge-delegation.md). While any
   agent is built, the git verbs that rewrite the tree (merge, pull, rebase,
-  revert, cherry-pick, apply, am, reset --hard, stash pop/apply) are the
+  revert, cherry-pick, apply, am, reset --hard, stash pop/apply/branch) are the
   human's.
 
 ## Step 3 — Scaffold: core/adapter split
