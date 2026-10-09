@@ -14,7 +14,10 @@ success — authored interop without a flagged relationship is ceremony.
    consistent. Stale → re-entry.
 2. ENTRY TEST FIRST, per external relationship, table recorded (relationship
    → verdict → reason). Inventory comes from the spec (tools, security,
-   integrations) plus anticipated collaborations — no missing rows.
+   integrations, §8 Delegates) plus anticipated collaborations plus every
+   workspace agent whose design §9 or spec §8 names this agent (read-only) —
+   no missing rows. A caller that needs an interface gets an Inbound contracts
+   entry (entry-test "Inbound contracts").
 3. Results are tools — bounded, fire-and-forget, MCP territory, already the
    spec's domain. A2A only for counterparts that reason, pause, consult, or
    negotiate multi-turn. Wrapping a collaborator as a tool = the GOTO
