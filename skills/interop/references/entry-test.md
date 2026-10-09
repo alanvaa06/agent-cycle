@@ -43,6 +43,8 @@ deliverable — a bare conclusion fails the phase's own eval.
 Expected for most agents, and a SUCCESS. Record in docs/agent/interop.md:
 - the per-relationship table;
 - why nothing needs a responsibility-taking counterpart;
+- the Inbound contracts section when another workspace agent calls this one
+  (below);
 - **re-visit triggers**: an enterprise client asks this agent to delegate to
   or accept work from their agents; a flow outgrows bounded semantics
   (multi-turn negotiation with an external party); listing the agent on a

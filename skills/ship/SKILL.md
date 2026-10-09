@@ -12,10 +12,12 @@ NO-SHIP is the pipeline working.
 
 1. FULL-CHAIN GATE: design, spec, evals, build approved and version-
    consistent; skills.md and interop.md present with recorded decisions
-   (none/skip valid; absence is not); economics read when present. Any gap →
-   refuse, name the phase, write nothing.
+   (none/skip valid; absence is not); economics read when present.
+   Orchestrators: every delegate's interop.md and ship-report.md approved.
+   Any gap → refuse, name the phase (and the delegate), write nothing.
 2. THE AUDITOR ONLY WRITES docs/agent/ship-report.md. Nothing else — not a
-   fix, not a runbook, not a config touch-up. Findings route to the re-entry
+   fix, not a runbook, not a config touch-up. (A delegate probe request is a
+   read sent to another service; it writes nothing.) Findings route to the re-entry
    ladder with the owning phase named.
 3. EVIDENCE PER COMMAND: every check cites the literal command it ran and a
    summary of its output. No command, no check. Claims in build.md are
@@ -29,8 +31,7 @@ NO-SHIP is the pipeline working.
    with file:line; lockfile pins the spec's runtime framework at exactly the
    spec's version (no-framework: the binding's pins), with hashes where spec §4
    has an install-time supply-chain row.
-   Orchestrators (spec §8): every delegate has approved interop.md and
-   ship-report.md (else refuse, naming it), pinned contract versions match,
+   Orchestrators (spec §8): pinned contract versions match,
    one live probe request per delegate validates against the pinned schema.
    Any agent: an orchestrator that pins an older contract version this ship
    no longer serves is a blocker (audit-guide Section 3).
