@@ -131,7 +131,8 @@ Additional rules:
   `PYTHON*` environment variables and the user site; `-S` skips `site`.
   - A file-tool write to `.claude/settings.json` or `.claude/settings.local.json` (and to the
     user's `~/.claude/settings.json`) is blocked when the result is not valid JSON, changes the
-    guard's `PreToolUse` entry in any way, changes the `env` key, or sets `disableAllHooks`.
+    guard's `PreToolUse` entry in any way, changes the `env` key (in the user's file, only its
+    `PATH` and `PYTHON*` entries, which steer the hook's interpreter), or sets `disableAllHooks`.
     An entry with the flags stripped counts as dropping the guard.
   - Installing the pinned entry where none exists is allowed.
   - Existing installs registered without `-I -S` are updated by the human from their own
