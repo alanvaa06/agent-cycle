@@ -36,6 +36,10 @@ remediation map comes out — and the map is the pipeline proposal.
 
 ## Workflow
 
+0. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md` (one
+   question when several agents match); every path below is relative to it and
+   this skill writes only inside it.
+   In a workspace, review assesses one agent at a time.
 1. Identify and read the target (gate). Note reviewed_commit.
 2. Walk `references/audit-frame.md` — all eight dimensions, probes as
    listed, evidence as found.

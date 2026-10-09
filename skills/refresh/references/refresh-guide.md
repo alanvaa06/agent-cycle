@@ -46,6 +46,8 @@ Only for agent project paths the user gave. In each, read ONLY:
 - `docs/agent/build.md`: spike records ("binding defect: STOP" entries, and
   spikes run on a version other than the binding's `version_pinned`) and any
   "Off-catalog binding" section (seeds a draft card's research).
+In a workspace project, harvest every `agents/*/docs/agent/design.md` and
+`agents/*/docs/agent/build.md` (same claims rules).
 Also collect defects the maintainer states in chat. Every item is a CLAIM
 keyed by its card; merge identical claims across projects. Verify each
 against the source at the tag; if only a spike can confirm a defect, do not
