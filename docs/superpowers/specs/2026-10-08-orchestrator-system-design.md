@@ -132,8 +132,9 @@ Re-recording is a human re-entry (§3).
 ### 7.1 Ship of an orchestrator
 
 New sub-section in audit-guide Section 3 ("Delegates"), run when spec §8 exists:
-- **Gate:** each delegate has an approved `interop.md` that publishes the inbound contract
-  and an approved `ship-report.md`. Missing → refuse, naming the delegate and the phase.
+- **Gate** (in Section 0 with the rest of the chain, before the suite re-run): each delegate
+  has an approved `interop.md` that publishes the inbound contract and an approved
+  `ship-report.md`. Missing → refuse, naming the delegate and the phase.
 - **Contract:** the contract version in the delegate's `interop.md` equals the version pinned
   in spec §8. Mismatch → finding routed to the orchestrator's spec re-entry.
 - **Live call:** one real call per delegate against its deployed endpoint (from the deploy
