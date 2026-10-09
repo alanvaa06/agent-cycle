@@ -30,9 +30,10 @@ NO-SHIP is the pipeline working.
    spec's version (no-framework: the binding's pins), with hashes where spec §4
    has an install-time supply-chain row.
 7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
-   (the baseline committed before the hook) to HEAD on evals/, design.md and
-   spec.md minus the sanctioned allow-list; no recorded baseline is a
-   blocker; build.md's post-fill hook check (dummy evals edit blocked after
+   (the baseline committed before the build.md stub) to HEAD on <AGENT_ROOT>'s
+   evals/, design.md and spec.md (workspace moves and mixed-agent commits per
+   audit-guide Section 4) minus the sanctioned allow-list; no recorded
+   baseline is a blocker; build.md's post-fill hook check (dummy evals edit blocked after
    the Test column fill) confirmed.
 8. Observability: spans with token counters evidenced; token-spend alarm
    matches the economics threshold when economics exists. Runbook verified
@@ -45,8 +46,9 @@ NO-SHIP is the pipeline working.
 
 ## Workflow
 
-1. Read `references/audit-guide.md`; run sections 0→7 in order, completing
-   all sections regardless of reds.
+1. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md`
+   (every path in this skill is relative to it). Read `references/audit-guide.md`;
+   run sections 0→7 in order, completing all sections regardless of reds.
 2. Write docs/agent/ship-report.md (frontmatter: agent_name, version,
    status: draft, date, design_version, spec_version, evals_config_date,
    build_version) with every section's commands and evidence.

@@ -6,6 +6,9 @@ even after a red — the report is a full picture, not a first-failure abort.
 
 ## Section 0 — Gate
 
+Resolve AGENT_ROOT per the agent-cycle plugin's references/agent-root.md; every
+path below is relative to it.
+
 The full chain, approved and version-consistent: design.md; spec.md
 (design_version matches); evals/config.yaml (spec_version matches);
 docs/agent/build.md (approved, versions match); skills.md AND interop.md
@@ -42,8 +45,8 @@ coverage map.
   allowlist before the loop, dedupe on the channel message id — present in
   the code, cite file:line.
 - Runtime pin: read spec.md's frontmatter `runtime`, strip a leading
-  `off-catalog:` prefix and split on the LAST `@`. Show the lockfile entry
-  (command + output) for the form the spec uses:
+  `off-catalog:` prefix and split on the LAST `@`. Show the entry in the
+  lockfile under `<AGENT_ROOT>` (command + output) for the form the spec uses:
   - `<card-id>@<version>`: the lockfile entry for the card's package (the
     `package:` field in the frontmatter of the agent-cycle plugin's
     `skills/design/references/stacks/<card-id>.md`; the binding's "Pinned
@@ -56,7 +59,7 @@ coverage map.
     not findings), and every lockfile entry carries hashes (the binding
     requires it).
   - `off-catalog:<name>@<version>`: the named package is exactly that version.
-  Lockfile = the one the deploy recipe/Dockerfile installs from (`uv.lock`,
+  Lockfile = the one under `<AGENT_ROOT>` that the deploy recipe/Dockerfile installs from (`uv.lock`,
   `poetry.lock`, or a compiled `requirements.txt`; `package-lock.json` or
   `pnpm-lock.yaml` for an npm-scoped off-catalog name). `uv.lock` or
   `poetry.lock`: `grep -n -i -A1 '^name = "<normalized-pkg>"$' <lockfile>`
@@ -78,21 +81,38 @@ coverage map.
 
 ## Section 4 — Anti-gaming audit
 
-`git diff --word-diff <build_start>..HEAD -- evals/ docs/agent/design.md docs/agent/spec.md`
-minus the sanctioned allow-list (the spec §6 Test column), where
-`<build_start>` is build.md's frontmatter value: the commit that holds the
-approved artifacts, taken before the hook went in. The range ends at HEAD so
-nothing after the build slips past; it covers design.md and spec.md rather
-than all of docs/agent/ because later phases add their own files there
-(skills.md, interop.md, blueprint.html). No `build_start` in build.md, or any
-of those artifacts first entering git inside the range
-(`git log --diff-filter=A --format=%h <build_start>..HEAD -- evals/ docs/agent/design.md docs/agent/spec.md`
-prints something) → there is no baseline to compare against: blocker, routed
-to build. Zero unsanctioned changes. Cite the commit range and the diff
-summary. The Test column is filled with the hook on: build.md must record the
-post-fill check (a dummy edit to `evals/config.yaml`, blocked); confirm it.
-Evidence that the builder disabled, renamed or moved the hook during the
-build is a blocker routed to build, even with a clean diff.
+`git diff --word-diff --find-renames <build_start>..HEAD -- <AGENT_ROOT>/evals/ <AGENT_ROOT>/docs/agent/design.md <AGENT_ROOT>/docs/agent/spec.md`
+plus, when a commit in the range has a message starting `agent-cycle: workspace move`
+and `git show --name-status <sha>` lists only `R100` entries, the same three
+pre-move paths (repo root) in the pathspec, so the move shows as renames. That
+commit is sanctioned: record its sha. Apply the same pathspec to the
+"first entered git inside the range" check (`--diff-filter=A --find-renames`).
+
+Mixed-agent commits (workspace only):
+`git log --format=%h <build_start>..HEAD -- <AGENT_ROOT>` then, per commit,
+`git show --name-only --format= <sha>`: a commit that touches `<AGENT_ROOT>`
+and any other `agents/<name>/` is a finding routed to build. Commits touching
+only other agents are their work and are ignored.
+
+The diff is taken minus the sanctioned allow-list (the spec §6 Test column),
+where `<build_start>` is build.md's frontmatter value: the commit that holds
+the approved artifacts, taken before this agent's build.md stub went in (the
+hook may already be active, installed by an earlier agent's build). The range
+ends at HEAD so nothing after the build slips past; it covers design.md and
+spec.md rather than all of docs/agent/ because later phases add their own
+files there (skills.md, interop.md, blueprint.html). No `build_start` in
+build.md, or any of those artifacts first entering git inside the range
+(`git log --diff-filter=A --find-renames --format=%h <build_start>..HEAD -- <AGENT_ROOT>/evals/ <AGENT_ROOT>/docs/agent/design.md <AGENT_ROOT>/docs/agent/spec.md`
+prints something, with the pre-move paths added for a sanctioned move) →
+there is no baseline to compare against: blocker, routed to build. Zero
+unsanctioned changes. Cite the commit range and the diff summary. The Test
+column is filled with the hook on: build.md must record the post-fill check (a
+dummy edit to `<AGENT_ROOT>/evals/config.yaml`, blocked); confirm it. Evidence
+that the builder disabled, renamed or moved the hook, edited its script, or
+removed this agent's line from `.claude/hooks/built-agents.txt` during the
+build (beyond the sanctioned one-commit install of an absent hook, or the
+commit adding this agent's own line) is a blocker routed to build, even with a
+clean diff.
 
 ## Section 5 — Observability + alarm
 
