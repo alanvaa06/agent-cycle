@@ -699,7 +699,7 @@ if __name__ == "__main__":
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `python -m pytest tests -q`
-Expected: `194 passed` (39 existing + 155 hook tests). The listing above is the hook's first version (42 tests, `81 passed`). The hardening follow-up replaced it: layout from directories, the build.md ratchet, path canonicalisation, detector gaps, false blocks, and settings protection. The current source is `skills/build/assets/guard_artifacts.py`. If a test fails, fix the hook — never weaken a test without reporting it.
+Expected: `300 passed` (39 existing + 261 hook tests). The listing above is the hook's first version (42 tests, `81 passed`). Two hardening follow-ups replaced it: layout from directories, the build.md ratchet, path canonicalisation, detector gaps, false blocks and settings protection; then write targets parsed per command, human-only git verbs, glob depth, hard links and the pinned `-I -S` registration. The current source is `skills/build/assets/guard_artifacts.py`. If a test fails, fix the hook — never weaken a test without reporting it.
 
 - [ ] **Step 6: Mutation spot-check**
 
@@ -924,8 +924,9 @@ git mv docs/agent evals src tests agents/<existing-name>/   # plus its lockfile,
 printf 'layout: workspace\nagents: [<existing-name>]\n' > agent-cycle.yaml
 git add agent-cycle.yaml
 git commit -m "agent-cycle: workspace move <existing-name>"
-# 3. If .claude/hooks/built-agents.txt has a "." line, delete that line (the
-#    moved agent is recorded again as agents/<existing-name>/ on the next call).
+# 3. If .claude/hooks/built-agents.txt has a "." line, replace it with
+#    agents/<existing-name>/ and commit the file (it is tracked):
+#    git commit -m "agent-cycle: ratchet follows the move" -- .claude/hooks/built-agents.txt
 ```
 
 Say: the existing agent keeps its frozen state (its build.md moves with it);
@@ -951,9 +952,13 @@ git commit -m "feat(design): workspace agents and one-agent-repo conversion"
 
 ````markdown
 The hook is the agent-cycle plugin's `skills/build/assets/guard_artifacts.py`
-(tested in the plugin's `tests/test_guard_artifacts.py`). Build copies it to
-the TARGET repo's `.claude/hooks/guard_artifacts.py` (script first), then
-merges `.claude/settings.json`:
+(tested in the plugin's `tests/test_guard_artifacts.py`). Installing it writes
+three things in the TARGET repo and commits them together in ONE commit:
+1. the script, at `.claude/hooks/guard_artifacts.py`;
+2. the ratchet `.claude/hooks/built-agents.txt`, seeded with this agent's prefix
+   (`.` in a one-agent repo, `agents/<name>/` in a workspace);
+3. the registration, merged into `.claude/settings.json` with exactly this
+   command:
 
 ```json
 {
@@ -964,7 +969,7 @@ merges `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py\""
+            "command": "python -I -S \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py\""
           }
         ]
       }
@@ -974,14 +979,26 @@ merges `.claude/settings.json`:
 ```
 
 The script path goes through `$CLAUDE_PROJECT_DIR` because hooks run from the
-session's current directory, which moves with `cd`.
+session's current directory, which moves with `cd`. `-I` ignores `PYTHON*`
+environment variables and the user site; `-S` skips `site`.
+
+The hook pins this exact entry. After install, any change to it or to the
+`env` key of `.claude/settings*.json` is blocked; an entry with the flags
+stripped counts as dropping the hook. A repo registered without `-I -S` is
+updated by the human from their own terminal.
 
 Installed once per repository and kept (it is not removed after a build).
 Install when absent. If the installed file's `HOOK_VERSION` is lower than the
 plugin's, STOP and ask the human to upgrade it from their own terminal: rename
 it to `guard_artifacts.py.off`, copy the plugin's file, then rename it back.
-Build never writes `.claude/hooks/` because the hook protects that folder.
-Otherwise only verify it is active.
+Build never writes `.claude/hooks/` once the hook exists, because the hook
+protects that folder. Otherwise only verify it is active.
+
+`built-agents.txt` is tracked. When the hook already exists, it records a newly
+built agent itself the first time it sees that agent's build.md. Commit the
+updated file with the next commit (`git add .claude/hooks/built-agents.txt`;
+`git add` is not a write). A fresh clone therefore stays frozen, and
+`git clean` cannot remove the file.
 
 What it freezes, per agent (layouts per the plugin's `references/agent-root.md`):
 
@@ -1000,16 +1017,38 @@ Always:
 - **Ratchet.** The hook records every agent whose build.md it has seen in
   `.claude/hooks/built-agents.txt` (`.` for the root). A recorded agent whose
   build.md is gone stays frozen: evals, design, spec, the build.md path, and no
-  Test column. Deleting build.md by any route never unfreezes an agent.
-- **Hook folder.** `.claude/hooks/` (hook and ratchet) is protected.
+  Test column. Deleting build.md by any route never unfreezes an agent, and
+  the file is tracked.
+- **Hook folder.** `.claude/hooks/` (hook and ratchet) is protected, and so is
+  any file that is a hard link to a protected file.
 - **Settings.** `.claude/settings.json` and `settings.local.json` must stay
-  valid JSON, keep this hook's PreToolUse entry unchanged, and never set
-  `disableAllHooks`. Any shell write naming `.claude/settings` is blocked.
-- **Shell writes.** Blocked when a destructive verb (`rm`, `mv`,
-  `Remove-Item`, `robocopy`, `git clean/rm/mv`, `find -delete`, ...) targets a
-  folder holding frozen files: the repo root, `agents/`, an agent folder, its
-  `docs`, `docs/agent` or `evals`. Also blocked: any write from inside a frozen
-  folder, and any write or glob that reaches a frozen path.
+  valid JSON. The pinned PreToolUse entry and the `env` key must not change,
+  and `disableAllHooks` must never be set. Any shell write whose target names
+  `.claude/settings` is blocked.
+- **Shell writes.** The hook judges only write targets, parsed per command:
+  - the verb is the word's basename, so `/bin/rm`, `rm.exe` and `"rm"` count;
+  - the target is the destination of `cp`, `Copy-Item` or `robocopy`, the
+    `-Path` of `Set-Content`, a redirect's target, or every argument of `rm`,
+    `mv`, `touch` and `tee`.
+
+  Reading a frozen file is not a write. Blocked:
+  - a write whose target is a frozen path;
+  - a destructive verb (`rm`, `mv`, `Remove-Item`, `robocopy /MIR`,
+    `git clean/rm/mv`, `find -delete`, ...) whose target is a folder holding
+    frozen files: the repo root, `agents/`, an agent folder, its `docs`,
+    `docs/agent` or `evals`;
+  - a glob that reaches one by depth: a protected file at its own depth, a
+    protected folder at its depth or deeper, a holder at its depth or above.
+- **Git (the human runs these while any agent is built).** Blocked outright:
+  - `git apply`, `am`, `revert`, `cherry-pick`, `merge`, `pull`, `rebase`;
+  - `git reset --hard`, `git stash pop`/`apply`;
+  - `git checkout`/`restore` from another commit (`<tree-ish> --`,
+    `--source`/`-s`) over `.`, `:/`, a holder or a frozen path.
+
+  Path-less `git clean`, `git stash -u`/`-a` and `git reset --hard` act on the
+  current directory, so they are blocked at the root and in an agent folder.
+  Still allowed: `git checkout <branch>`, `git checkout -b`, `git switch`,
+  `git restore src/app.py`, `git checkout -- src/x`, `git clean -fd src`.
 - **Here-documents.** Their bodies are data, except when they feed a shell or
   interpreter.
 - **Unreadable calls** are blocked.
@@ -1026,14 +1065,22 @@ whose only write is a redirect is judged by its target alone, so
 `pytest evals/ > results.txt` passes. Commit messages that name frozen paths
 pass too.
 
-Still blocked: a destructive verb on a holder folder (`find . -name x -delete`
--> use `find src ...`), and reading a frozen file through a write verb
-(`cp evals/x /tmp/` -> `cat evals/x > /tmp/y`).
+Still blocked:
+- a destructive verb on a holder folder: `find . -name x -delete`,
+  `... | xargs rm` from the root, path-less `git clean` at the root. Narrow it
+  (`find src ...`, `git clean -fd src`).
+- the git verbs above while built.
 
-What it cannot see: a script that writes (`python fix.py`, `python -c`), a
-path assembled in a variable, backslash escapes inside a name, brace
-expansion, encoded commands. /ship's diff audit from `build_start` covers
-those, and the ratchet covers build.md.
+What it cannot see:
+- a script that writes (`python fix.py`, `python -c`);
+- a path assembled in a variable, backslash escapes inside a name, brace
+  expansion, encoded commands;
+- a tool that rewrites files in place (`ruff format .`, `prettier --write .`
+  over frozen files).
+
+The hook is the first layer. /ship's diff audit from `build_start` and ship's
+re-run of the suite from the committed tree (rule 4) are the second layer and
+catch those effects. The ratchet covers build.md.
 
 The Test column is filled at build Step 9 AFTER green, WITH THE HOOK ON:
 (1) announce the sanctioned edit; (2) make the column edit; (3) confirm the
@@ -1053,17 +1100,23 @@ or unregisters the hook; re-entry and upgrades are the human's (steps above).
 - Write `<AGENT_ROOT>/docs/agent/build.md` as a stub (`status: draft`,
   `build_start`) and commit it alone. Its existence freezes this agent's
   evals, design and spec.
-- Hook: install when absent. If the installed `HOOK_VERSION` is lower than
-  the plugin's, STOP and ask the human to upgrade it from their own terminal
-  (rename to `.off`, copy the plugin's file, rename back). Build never
-  writes `.claude/hooks/`. Otherwise verify it is active (forge-delegation.md).
+- Hook: install when absent: the script, `.claude/hooks/built-agents.txt`
+  seeded with this agent's prefix, and the pinned `python -I -S` registration
+  in `.claude/settings.json`, all committed together in ONE commit. If the
+  installed `HOOK_VERSION` is lower than the plugin's, STOP and ask the human
+  to upgrade it from their own terminal (rename to `.off`, copy the plugin's
+  file, rename back). Build never writes `.claude/hooks/` once the hook
+  exists. Otherwise verify it is active, and commit `built-agents.txt` when
+  the hook has added this agent's line (forge-delegation.md). While any agent
+  is built, the git verbs that rewrite the tree (merge, pull, rebase, revert,
+  cherry-pick, apply, am, reset --hard, stash pop/apply) are the human's.
 ```
 
 In Step 3 add: `Every file this build writes lives inside AGENT_ROOT (source, tests, lockfile, deploy recipe). Shared infrastructure is reached through configuration, never written outside AGENT_ROOT.`
 
 - [ ] **Step 3: adapter-bindings.md.** Add to the universal rules: `- In a workspace, every resource name carries the agent prefix: queue/stream name, database schema, service.name (telemetry), so agents sharing one Postgres, Redis or collector cannot collide.`
 
-- [ ] **Step 4: SKILL.md.** Rule 3: replace the hook parenthetical with `(freezes this agent's evals/, design.md and spec.md once its build.md exists; per forge-delegation.md)`. Rule 10 (writes): prefix every path with `AGENT_ROOT/` and add `.claude/hooks/ and .claude/settings.json only when installing an absent hook (upgrades are the human's)`. Add the Step 0 resolution line to the workflow.
+- [ ] **Step 4: SKILL.md.** Rule 3: replace the hook parenthetical with `(freezes this agent's evals/, design.md and spec.md once its build.md exists; per forge-delegation.md)`. Rule 10 (writes): prefix every path with `AGENT_ROOT/` and add `.claude/hooks/ (script + seeded built-agents.txt) and .claude/settings.json only when installing an absent hook, in one commit (upgrades and registration changes are the human's)`. Add the Step 0 resolution line to the workflow.
 
 - [ ] **Step 5: Verify no stale hook wording.** Run: `grep -n "BLOCKED_PREFIXES\|blocks evals/ and docs/agent/" skills/build/` — expected: no output.
 
@@ -1156,14 +1209,22 @@ git commit -m "feat: every skill resolves AGENT_ROOT first"
 - **build.md ratchet:** the hook records every built agent in
   `.claude/hooks/built-agents.txt`, so deleting or moving a build.md by any
   route never unfreezes the agent.
-- **Settings protection:** the hook blocks edits that unregister it from
-  `.claude/settings.json` / `settings.local.json` or set `disableAllHooks`.
+- **Settings protection:** the hook is registered as
+  `python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"`. It
+  blocks any change to that entry or to the `env` key of
+  `.claude/settings.json` / `settings.local.json`, and `disableAllHooks`.
+- **Tracked ratchet and human-only git:** `built-agents.txt` is committed with
+  the hook, so a fresh clone stays frozen. While any agent is built, merge,
+  pull, rebase, revert, cherry-pick, apply, am, reset --hard, stash pop/apply,
+  and checkout/restore from another commit over protected paths are the
+  human's.
 - **Hardened paths and shell reading:** file-tool paths are canonicalised
   (junctions, 8.3 names, `\\?\`, trailing dots, NTFS streams). More write
   forms are recognised: PowerShell aliases, `sed`/`perl`/`awk` in-place,
-  `git -C`, interpreter here-docs, `bash -c`, globs. Everyday build commands
-  (`2>&1`, `> results.txt`, commit messages naming frozen paths) no longer
-  trip it.
+  `git -C`, interpreter here-docs, `bash -c`, globs matched by depth, hard
+  links. Only write targets are judged, so reading frozen files (`2>&1`,
+  `> results.txt`, `cp evals/x /tmp/`, commit messages naming frozen paths)
+  no longer trips it.
 - design: new agents in a workspace; conversion commands for a one-agent repo.
 - Eval cases DES-E07, DES-E08, SPC-E05, BLD-E06, SHP-E05.
 
@@ -1182,6 +1243,11 @@ git commit -m "feat: every skill resolves AGENT_ROOT first"
   asks you to rename the hook to `.off`, copy the plugin's file, and rename it
   back. An older hook does not protect `agents/*/`, so upgrade before
   converting a repo to a workspace.
+- Repos whose `.claude/settings.json` registers the hook without `-I -S`:
+  update the command to
+  `python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"` and
+  commit `.claude/hooks/built-agents.txt` (both by hand; the hook blocks the
+  builder from doing either through its own registration).
 - Re-entry on a built agent: rename the hook to `.off`, make the change,
   remove the agent's line from `.claude/hooks/built-agents.txt` when its
   build.md is deleted or moved, then rename the hook back.
@@ -1197,7 +1263,7 @@ Replace `<release date>` with the commit date.
 
 - [ ] **Step 4: Full verification**
 
-Run the three checks from Conventions. Expected: `194 passed`; `PASS: 9 card(s); ...`; `[ok] all cases.json parse`.
+Run the three checks from Conventions. Expected: `300 passed`; `PASS: 9 card(s); ...`; `[ok] all cases.json parse`.
 
 - [ ] **Step 5: Commit**
 
