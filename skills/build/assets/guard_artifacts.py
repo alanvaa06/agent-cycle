@@ -1,9 +1,11 @@
 """agent-cycle anti-gaming hook for Claude Code (PreToolUse).
 
 Reads the tool call JSON on stdin; exit 2 blocks the call, exit 0 lets it
-through. agent-cycle:build copies this file to <repo>/.claude/hooks/ and
-registers it through $CLAUDE_PROJECT_DIR (forge-delegation.md). Upgrading it
-is a human step: build never writes .claude/hooks/.
+through. agent-cycle:build copies this file to <repo>/.claude/hooks/, seeds
+.claude/hooks/built-agents.txt, registers the hook in .claude/settings.json
+with exactly GUARD_COMMAND (python -I -S, through $CLAUDE_PROJECT_DIR) and
+commits the three together (forge-delegation.md). Upgrading the hook is a
+human step: build never writes .claude/hooks/ once the hook exists.
 
 What is frozen is decided from each agent's state on disk at call time:
 - Agents: the repo root ("") and every directory agents/<name>/, always --
@@ -13,19 +15,28 @@ What is frozen is decided from each agent's state on disk at call time:
   docs/agent/design.md and docs/agent/spec.md are frozen. While build.md says
   status: draft, the spec's section 6 Test column may be filled and build.md
   may be edited with file tools; shell writes never touch build.md.
-- Ratchet: every agent whose build.md the hook has seen is recorded in
-  .claude/hooks/built-agents.txt (one prefix per line, "." for the root). A
-  recorded agent whose build.md is gone stays frozen as if its status were
-  unreadable. Human re-entry: rename this file to guard_artifacts.py.off,
-  make the change, remove the agent's line from built-agents.txt, rename back.
-- agent-cycle.yaml is append-only; .claude/hooks/ is always protected;
-  .claude/settings.json and settings.local.json must keep this hook's
-  PreToolUse entry and may not set disableAllHooks.
+- Ratchet: every agent whose build.md the hook has seen is recorded in the
+  tracked file .claude/hooks/built-agents.txt (one prefix per line, "." for
+  the root). A recorded agent whose build.md is gone stays frozen as if its
+  status were unreadable. Human re-entry: rename this file to
+  guard_artifacts.py.off, make the change, remove the agent's line from
+  built-agents.txt, rename back.
+- agent-cycle.yaml is append-only; .claude/hooks/ is always protected; a
+  file that is a hard link to a protected file is protected too.
+- .claude/settings.json and settings.local.json: the guard's PreToolUse entry
+  and the env key may not change, disableAllHooks may not be set.
+- While any agent is built, git verbs that rewrite the working tree from
+  another commit (apply, am, revert, cherry-pick, merge, pull, rebase,
+  reset --hard, stash pop/apply, checkout/restore from a tree-ish over a
+  protected path) are the human's.
 
-Shell commands are read heuristically. Known blind spots (ship's diff from
-build_start covers them; the ratchet covers build.md): a script that writes
-(python fix.py, python -c), paths assembled in variables, backslash escapes
-inside names, brace expansion, encoded commands.
+Shell commands are read heuristically: per command, the writing verb and its
+write targets are parsed from the words; sources that are only read are not
+judged. Known blind spots (ship's diff from build_start and ship's re-run of
+the suite from the committed tree cover them; the ratchet covers build.md):
+a script that writes (python fix.py, python -c), paths assembled in
+variables, backslash escapes inside names, brace expansion, encoded
+commands, tools that rewrite files in place (ruff format ., prettier --write).
 """
 from __future__ import annotations
 
@@ -37,13 +48,15 @@ import os
 import re
 import sys
 import tempfile
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import cast
 
 HOOK_VERSION = 2
 HOOK_FILE = "guard_artifacts.py"
+GUARD_MATCHER = "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell"
+GUARD_COMMAND = 'python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"'
 MARKER = "agent-cycle.yaml"
 AGENTS_DIR = "agents"
 CLAUDE_DIR = ".claude"
@@ -59,24 +72,6 @@ FILE_TOOLS = ("Edit", "MultiEdit", "Write")
 AGENT_NAME = re.compile(r"[a-z0-9]+(-[a-z0-9]+)*")
 RATCHET_LINE = re.compile(r"agents/[^/\s]+/")
 
-_GIT = r"\bgit(?:\s+(?:-C|-c|--git-dir|--work-tree)\s*\S+|\s+--[\w-]+)*\s+"
-_LEAD = r"(?:^|[\s;&|(`])"
-WRITE = re.compile(
-    _LEAD + r"(?:tee|cp|mv|rm|rmdir|touch|truncate|del|erase|rd|move|copy|ren|rename|ri|rni"
-    r"|rename-item|remove-item|move-item|mi|copy-item|cpi|set-content|sc|add-content|ac"
-    r"|clear-content|clc|out-file|new-item|ni|robocopy|xcopy|ln|mklink|unlink|shred|rsync|dd)(?:\s|$)"
-    + r"|" + _GIT + r"(?:checkout|restore|rm|mv|clean|reset|revert|stash|apply|am|switch"
-    r"|cherry-pick|merge|pull)\b"
-    r"|\bsed\b[^\n;&|]*?\s(?:-[a-zA-Z]*i|--in-place)"
-    r"|\bperl\b[^\n;&|]*?\s-[a-zA-Z]*i"
-    r"|\bg?awk\s+(?:[^\n;&|]*?\s)?-i\b"
-    r"|\s-delete\b"
-    r"|\]::(?:Write|Append|Delete|Move|Copy|Create|Replace|Open)", re.IGNORECASE)
-# Removing or moving one of these takes whatever it holds along.
-DESTRUCTIVE = re.compile(
-    _LEAD + r"(?:rm|rmdir|mv|move|ren|rename|rename-item|ri|rni|remove-item|move-item|mi|del"
-    r"|erase|rd|robocopy|unlink|shred)(?:\s|$)"
-    + r"|" + _GIT + r"(?:clean|rm|mv)\b|\s-delete\b", re.IGNORECASE)
 # Redirects that only move or drop a stream write no file: 2>&1, >/dev/null, 2>NUL.
 FD_REDIRECT = re.compile(
     r"(?:\d|&|\*)?>>?\s*(?:/dev/null|nul|\$null)(?![\w./:-])|(?:\d|\*)?>&\s*(?:\d+|-)(?![\w.])",
@@ -84,6 +79,7 @@ FD_REDIRECT = re.compile(
 CD = ("cd", "pushd", "chdir", "set-location", "sl", "push-location")
 SHELLS = ("bash", "sh", "zsh", "dash", "ksh", "pwsh", "powershell", "cmd")
 SHELL_FLAGS = ("-c", "-command", "/c", "/k")
+EVAL_VERBS = frozenset({"eval", "iex", "invoke-expression"})
 INTERPRETER = re.compile(
     r"(?:^|[\s|(/])(?:bash|sh|zsh|dash|ksh|pwsh|powershell|python[\d.]*|node|perl|ruby)"
     r"(?:\.exe)?(?=\s|$)", re.IGNORECASE)
@@ -95,10 +91,45 @@ TOKEN = re.compile(
     r"|(?P<pipe>\|)"
     r"|(?P<redir>(?:\d|&|\*)?>>?[|&]?)"
     r"|(?P<input><<-?|<)"
+    r"|\$'(?P<ansi>[^']*)'"
     r"|\"(?P<dq>[^\"]*)\"|'(?P<sq>[^']*)'"
-    r"|(?P<bare>[^\s\"'`;|&()<>=,]+)"
+    r"|(?P<bare>[^\s\"'`;|&()<>,]+)"
     r"|(?P<other>\S)")
 GLOB = re.compile(r"[*?\[]")
+ASSIGNMENT = re.compile(r"[A-Za-z_]\w*=")
+DOTNET = re.compile(r"\]::(Write|Append|Delete|Move|Copy|Create|Replace|Open)", re.IGNORECASE)
+CMD_FLAG = re.compile(r"/[a-z?+-]+(?::[^/]*)?", re.IGNORECASE)   # /y, /MIR, /R:3
+
+# Words in front of the real verb, with their flags that take a value.
+WRAPPERS: dict[str, frozenset[str]] = {
+    "sudo": frozenset({"-u", "-g", "-h", "-p", "-C", "-D", "-U", "-r", "-t"}),
+    "doas": frozenset({"-u", "-C"}),
+    "env": frozenset({"-u", "-C", "-S"}),
+    "nice": frozenset({"-n"}),
+    "ionice": frozenset({"-c", "-n"}),
+    "stdbuf": frozenset({"-i", "-o", "-e"}),
+    "timeout": frozenset({"-s", "-k"}),
+    "xargs": frozenset({"-I", "-n", "-P", "-L", "-s", "-E", "-d", "-a"}),
+    "exec": frozenset({"-a"}),
+    **{name: frozenset() for name in ("nohup", "time", "command", "builtin", "!", "{", "}", "if",
+                                      "then", "else", "elif", "do", "while", "until")},
+}
+# Every argument of these is a write target; the first two kinds remove or move it.
+DELETE_VERBS = frozenset({"rm", "rmdir", "del", "erase", "rd", "unlink", "shred", "remove-item", "ri"})
+MOVE_VERBS = frozenset({"mv", "move", "ren", "rename", "rename-item", "rni", "move-item", "mi"})
+OPERAND_VERBS = frozenset({"touch", "truncate", "tee", "ln", "mklink", "fsutil", "new-item", "ni",
+                           "clear-content", "clc"})
+# PowerShell content cmdlets write their -Path (or first positional) only.
+CONTENT_VERBS = frozenset({"set-content", "sc", "add-content", "ac", "out-file"})
+PS_SWITCHES = frozenset({"-force", "-append", "-noclobber", "-nonewline", "-passthru", "-whatif",
+                         "-confirm", "-recurse", "-container", "-asbytestream"})
+PATH_FLAGS = ("-path", "-literalpath", "-filepath", "-pspath", "-lp")
+DEST_FLAGS = ("-destination",)
+# git: global options that take a value; verbs that rewrite the tree (the human's once built).
+GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace"})
+GIT_TREE_VERBS = frozenset({"apply", "am", "revert", "cherry-pick", "merge", "pull", "rebase"})
+STASH_ACTIONS = frozenset({"push", "save", "pop", "apply", "branch", "drop", "list", "show", "clear",
+                           "create", "store"})
 
 
 class Rule(Enum):
@@ -138,10 +169,14 @@ class Snapshot:
     """The repo's state, read once per call."""
     root: str
     agents: tuple[Agent, ...]            # longest prefix first; the root last
-    holders: frozenset[str]
-    frozen_dirs: tuple[str, ...]
+    holders: frozenset[str]            # folders a destructive verb may not take along
+    protected_dirs: tuple[str, ...]     # frozen folders: nothing inside may be written
+    protected_files: tuple[str, ...]    # single frozen or content-checked files
     protected_strings: tuple[str, ...]
-    protected_paths: tuple[str, ...]
+
+    @property
+    def any_built(self) -> bool:
+        return any(agent.built for agent in self.agents)
 
     def agent_for(self, rel: str) -> Agent:
         return next(agent for agent in self.agents if rel.startswith(agent.prefix))
@@ -160,8 +195,15 @@ class Word:
 @dataclass(frozen=True)
 class Segment:
     raw: str
-    words: tuple[Word, ...]
-    targets: tuple[Word, ...]            # redirect targets
+    commands: tuple[tuple[Word, ...], ...]     # split on pipes, ( ) and backticks
+    targets: tuple[Word, ...]                  # redirect targets
+
+    @property
+    def words(self) -> tuple[Word, ...]:
+        return tuple(word for command in self.commands for word in command)
+
+
+DOT = Word(".", quoted=False)
 
 
 # --- paths
@@ -335,17 +377,17 @@ def take_snapshot(root: str) -> Snapshot:
         key=lambda agent: (-len(agent.prefix), agent.prefix)))
     built = [agent.prefix for agent in agents if agent.built]
     holders = {"", CLAUDE_DIR, HOOKS_DIR}
-    frozen_dirs = [HOOKS_DIR]
+    dirs = [HOOKS_DIR]
     strings = [HOOKS_DIR, ".claude/settings", MARKER]
-    paths = [HOOKS_DIR, *SETTINGS, MARKER]
+    files = [*SETTINGS, MARKER]
     for prefix in built:
         holders |= {prefix.rstrip("/"), prefix + "docs", prefix + DOCS_AGENT, prefix + EVALS_DIR}
         if prefix:
             holders.add(AGENTS_DIR)
-        frozen_dirs += [prefix + EVALS_DIR, prefix + DOCS_AGENT]
+        dirs += [prefix + EVALS_DIR, prefix + DOCS_AGENT]
         strings += [prefix + EVALS_DIR + "/", prefix + DESIGN_MD, prefix + SPEC_MD, prefix + BUILD_MD]
-        paths += [prefix + EVALS_DIR, prefix + DESIGN_MD, prefix + SPEC_MD, prefix + BUILD_MD]
-    return Snapshot(root, agents, frozenset(holders), tuple(frozen_dirs), tuple(strings), tuple(paths))
+        files += [prefix + DESIGN_MD, prefix + SPEC_MD, prefix + BUILD_MD]
+    return Snapshot(root, agents, frozenset(holders), tuple(dirs), tuple(files), tuple(strings))
 
 
 def classify(rel: str, snap: Snapshot) -> Rule:
@@ -477,8 +519,12 @@ def guard_entries(settings: object) -> set[tuple[str, str, str]]:
     return entries
 
 
+PINNED_ENTRY = (json.dumps(GUARD_MATCHER), json.dumps("command"), GUARD_COMMAND)
+
+
 def settings_change_ok(current: str | None, new: str | None) -> bool:
-    """Valid JSON that keeps every guard entry and does not disable hooks."""
+    """Valid JSON; the guard entries and env unchanged (or the pinned entry
+    installed where there was none); hooks not disabled."""
     if new is None:
         return False
     try:
@@ -488,10 +534,52 @@ def settings_change_ok(current: str | None, new: str | None) -> bool:
     if not isinstance(proposed, dict) or proposed.get("disableAllHooks", False) is not False:
         return False
     try:
-        before = guard_entries(json.loads(current)) if current else set()
+        existing = json.loads(current) if current else {}
     except ValueError:
-        before = set()                 # an invalid file registers nothing to drop
-    return before <= guard_entries(proposed)
+        existing = {}                  # an invalid file registers nothing
+    if not isinstance(existing, dict):
+        existing = {}
+    if proposed.get("env") != existing.get("env"):
+        return False
+    before, after = guard_entries(existing), guard_entries(proposed)
+    return after == before or (not before and after == {PINNED_ENTRY})
+
+
+def frozen_files(snap: Snapshot) -> Iterator[str]:
+    """Every file a hard link must not reach."""
+    yield os.path.join(snap.root, MARKER)
+    for name in SETTINGS:
+        yield os.path.join(snap.root, name)
+    folders = [HOOKS_DIR]
+    for agent in snap.agents:
+        if agent.built:
+            folders.append(agent.folder + EVALS_DIR)
+            for sub in (DESIGN_MD, SPEC_MD, BUILD_MD):
+                yield os.path.join(snap.root, agent.folder, sub)
+    for folder in folders:
+        for current, _, names in os.walk(os.path.join(snap.root, folder)):
+            for name in names:
+                yield os.path.join(current, name)
+
+
+def hard_link_hit(path: str, snap: Snapshot) -> str | None:
+    """The protected file that path is another name for, if any."""
+    try:
+        info = os.stat(path)
+    except (OSError, ValueError):
+        return None
+    if info.st_nlink < 2:
+        return None
+    for frozen in frozen_files(snap):
+        try:
+            other = os.stat(frozen)
+        except OSError:
+            continue
+        if (other.st_dev, other.st_ino) == (info.st_dev, info.st_ino):
+            target = canonical(frozen)
+            if os.path.normcase(target) != os.path.normcase(path):
+                return rel_to_repo(target, snap.root) or target
+    return None
 
 
 def user_settings(path: str) -> bool:
@@ -530,6 +618,9 @@ def file_hits(call: Call, snap: Snapshot) -> list[str]:
             hits.append("unsafe path " + raw)
             continue
         path = file_tool_path(raw, call.cwd)
+        link = hard_link_hit(path, snap)
+        if link is not None:
+            hits.append("a hard link to " + link)
         rel = rel_to_repo(path, snap.root)
         if rel is None:
             if user_settings(path) and not content_change_ok(Rule.SETTINGS, call, path, snap):
@@ -547,9 +638,10 @@ def interpreter_heredoc(match: re.Match[str]) -> bool:
 
 
 def segments(command: str) -> list[Segment]:
-    """Split on ; && || & and newlines (a pipeline stays one segment)."""
+    """Split on ; && || & and newlines; a segment's commands split on pipes,
+    parentheses and backticks. Adjacent quoted and bare pieces join into one word."""
     found: list[Segment] = []
-    words: list[Word] = []
+    commands: list[list[Word]] = [[]]
     targets: list[Word] = []
     pieces: list[tuple[str, bool]] = []
     start, last_end, want_target = 0, -1, False
@@ -558,36 +650,45 @@ def segments(command: str) -> list[Segment]:
         nonlocal want_target
         if pieces:
             word = Word("".join(text for text, _ in pieces), len(pieces) == 1 and pieces[0][1])
-            words.append(word)
             if want_target:
                 targets.append(word)
                 want_target = False
+            else:
+                commands[-1].append(word)
             pieces.clear()
+
+    def end_command() -> None:
+        flush_word()
+        if commands[-1]:
+            commands.append([])
 
     def flush_segment(end: int) -> None:
         nonlocal want_target
         flush_word()
-        if words or targets:
-            found.append(Segment(command[start:end], tuple(words), tuple(targets)))
-        words.clear()
+        found_commands = tuple(tuple(words) for words in commands if words)
+        if found_commands or targets:
+            found.append(Segment(command[start:end], found_commands, tuple(targets)))
+        commands[:] = [[]]
         targets.clear()
         want_target = False
 
     for match in TOKEN.finditer(command):
         kind = match.lastgroup
-        if kind in ("dq", "sq", "bare"):
+        if kind in ("ansi", "dq", "sq", "bare"):
             if match.start() != last_end:
                 flush_word()
             pieces.append((match.group(kind), kind != "bare"))
             last_end = match.end()
             continue
-        flush_word()
         last_end = -1
         if kind == "sep":
             flush_segment(match.start())
             start = match.end()
-        elif kind == "redir":
-            want_target = True
+        elif kind == "pipe" or (kind == "other" and match.group() in "()`"):
+            end_command()
+        else:
+            flush_word()
+            want_target = want_target or kind == "redir"
     flush_segment(len(command))
     return found
 
@@ -604,26 +705,251 @@ def segment_dirs(segment: Segment, dirs: list[str]) -> None:
             dirs.append(shell_paths(words[i + 1].text, dirs[-1])[0])
 
 
-def glob_reaches(pattern: str, target: str) -> bool:
-    """Could a glob path reach target, a path inside it, or a folder holding it?"""
-    return all(fnmatch.fnmatchcase(part, glob)
-               for glob, part in zip(pattern.split("/"), target.split("/"), strict=False))
+def verb_name(text: str) -> str:
+    """rm for rm, /bin/rm, rm.exe, RM, C:/Windows/System32/rm.exe."""
+    return text.lower().rsplit("/", 1)[-1].removesuffix(".exe")
 
 
-def word_hits(word: Word, dirs: list[str], snap: Snapshot, destructive: bool) -> list[str]:
+def split_command(words: Sequence[Word]) -> tuple[str, tuple[Word, ...], bool]:
+    """(verb, its arguments, fed by xargs) after assignments and wrappers."""
+    i, fed = 0, False
+    while i < len(words):
+        word = words[i]
+        name = verb_name(word.text)
+        if not word.quoted and ASSIGNMENT.match(word.text):
+            i += 1
+            continue
+        if name not in WRAPPERS:
+            return name, tuple(words[i + 1:]), fed
+        fed = fed or name == "xargs"
+        i += 1
+        while i < len(words) and words[i].text.startswith("-") and len(words[i].text) > 1:
+            i += 2 if words[i].text in WRAPPERS[name] else 1
+        if name == "timeout" and i < len(words):
+            i += 1                     # the duration
+    return "", (), fed
+
+
+def ps_args(words: Sequence[Word]) -> tuple[list[Word], dict[str, list[Word]]]:
+    """PowerShell-style (positional, named) arguments; -Name:value is accepted."""
+    positional: list[Word] = []
+    named: dict[str, list[Word]] = {}
+    i = 0
+    while i < len(words):
+        word = words[i]
+        text = word.text.lower()
+        if not word.quoted and text.startswith("-") and len(text) > 1:
+            name, colon, _ = text.partition(":")
+            if colon:
+                named.setdefault(name, []).append(Word(word.text[len(name) + 1:], quoted=False))
+            elif name not in PS_SWITCHES and i + 1 < len(words):
+                named.setdefault(name, []).append(words[i + 1])
+                i += 1
+        else:
+            positional.append(word)
+        i += 1
+    return positional, named
+
+
+def named_values(named: dict[str, list[Word]], flags: Sequence[str]) -> list[Word]:
+    """Values of the named arguments that abbreviate one of flags."""
+    return [value for name, values in named.items() if any(flag.startswith(name) for flag in flags)
+            for value in values]
+
+
+def cp_target(args: Sequence[Word]) -> list[Word]:
+    positional: list[Word] = []
+    i = 0
+    while i < len(args):
+        text = args[i].text
+        if text.startswith("--target-directory="):
+            return [Word(text.split("=", 1)[1], args[i].quoted)]
+        if re.fullmatch(r"-[a-zA-Z]*t|--target-directory", text) and i + 1 < len(args):
+            return [args[i + 1]]
+        if text in ("-S", "--suffix"):
+            i += 2
+            continue
+        if not (text.startswith("-") and len(text) > 1):
+            positional.append(args[i])
+        i += 1
+    return positional[-1:]
+
+
+def find_writes(args: Sequence[Word]) -> tuple[list[Word], bool, bool]:
+    """find's starting points are the targets of -delete or -exec <write verb>."""
+    i = 0
+    while i < len(args) and not args[i].text.startswith(("-", "!")):
+        i += 1
+    paths = list(args[:i]) or [DOT]
+    expression = args[i:]
+    for k, word in enumerate(expression):
+        text = word.text.lower()
+        if text == "-delete":
+            return paths, True, True
+        if text in ("-exec", "-execdir", "-ok", "-okdir") and k + 1 < len(expression):
+            verb, rest, _ = split_command(expression[k + 1:])
+            _, destructive, is_write = verb_writes(verb, rest)
+            if is_write or verb == "git":
+                return paths, destructive or verb == "git", True
+    return [], False, False
+
+
+def verb_writes(verb: str, args: Sequence[Word]) -> tuple[list[Word], bool, bool]:
+    """(write targets, destructive, is a write) for one command. Sources a
+    command only reads are not targets."""
+    if verb in DELETE_VERBS or verb in MOVE_VERBS:
+        return list(args), True, True
+    if verb in OPERAND_VERBS:
+        return list(args), False, True
+    if verb in CONTENT_VERBS:
+        positional, named = ps_args(args)
+        return named_values(named, PATH_FLAGS) or positional[:1], False, True
+    if verb == "cp":
+        return cp_target(args), False, True
+    if verb in ("copy", "copy-item", "cpi", "xcopy"):
+        positional, named = ps_args(args)
+        positional = [w for w in positional if not CMD_FLAG.fullmatch(w.text)]
+        destination = named_values(named, DEST_FLAGS)
+        if verb == "xcopy":
+            return positional[1:2] or [DOT], False, True
+        return destination or (positional[-1:] if len(positional) > 1 else [DOT]), False, True
+    if verb == "robocopy":
+        flags = {w.text.lower() for w in args if CMD_FLAG.fullmatch(w.text)}
+        positional = [w for w in args if not CMD_FLAG.fullmatch(w.text)]
+        moving = bool(flags & {"/mov", "/move"})
+        return positional[1:2] + (positional[:1] if moving else []), moving or bool(flags & {"/mir", "/purge"}), True
+    if verb == "rsync":
+        texts = [w.text for w in args]
+        positional = [w for w in args if not w.text.startswith("-")]
+        if "--remove-source-files" in texts:
+            return positional, True, True
+        return positional[-1:], any(t.startswith("--delete") for t in texts), True
+    if verb == "dd":
+        return [Word(w.text.split("=", 1)[1], w.quoted) for w in args if w.text.lower().startswith("of=")], False, True
+    in_place = {"sed": r"-[a-zA-Z]*i|--in-place", "perl": r"-[a-zA-Z]*i", "awk": r"-i$", "gawk": r"-i$"}
+    if verb in in_place and any(re.match(in_place[verb], w.text) for w in args if not w.quoted):
+        return list(args), False, True
+    if verb == "find":
+        return find_writes(args)
+    return [], False, False
+
+
+def git_tree_and_paths(sub: str, before: Sequence[Word], after: Sequence[Word],
+                       dashdash: bool) -> tuple[bool, list[Word]]:
+    """(reads from another commit, pathspec) of git checkout / restore."""
+    tree, branching, positional = False, False, []
+    i = 0
+    while i < len(before):
+        text = before[i].text
+        if sub == "restore" and text in ("--source", "-s"):
+            tree, i = True, i + 2
+            continue
+        if sub == "restore" and text.startswith("--source="):
+            tree = True
+        elif sub == "checkout" and text in ("-b", "-B", "--orphan"):
+            branching, i = True, i + 2
+            continue
+        elif not text.startswith("-") or text == "-":
+            positional.append(before[i])
+        i += 1
+    if sub == "restore":
+        return tree, positional + list(after)
+    if dashdash:
+        return bool(positional), positional[1:] + list(after)
+    if branching:
+        return True, []
+    if len(positional) >= 2:
+        return True, positional[1:]
+    return False, positional       # one word: a branch or a path; judged as a path
+
+
+def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[list[Word], bool, list[str]]:
+    """(write targets, destructive, outright blocks) of one git command."""
+    i = 0
+    while i < len(args) and args[i].text.startswith("-"):
+        i += 2 if args[i].text in GIT_VALUE_OPTIONS else 1
+    if i >= len(args):
+        return [], False, []
+    sub, rest = args[i].text.lower(), args[i + 1:]
+    texts = [w.text for w in rest]
+    dashdash = "--" in texts
+    before = rest[:texts.index("--")] if dashdash else rest
+    after = rest[texts.index("--") + 1:] if dashdash else ()
+    flags = [w.text for w in before if w.text.startswith("-")]
+    human = [f"git {sub} while an agent is built (the human runs it)"] if snap.any_built else []
+    if sub in ("rm", "mv"):
+        return [w for w in rest if not w.text.startswith("-")], True, []
+    if sub == "clean":                 # path-less: the current directory
+        paths = list(after) or [w for k, w in enumerate(before) if not w.text.startswith("-")
+                                and (k == 0 or before[k - 1].text not in ("-e", "--exclude"))]
+        return paths or [DOT], True, []
+    if sub == "stash":
+        words = [w for k, w in enumerate(before) if not w.text.startswith("-")
+                 and (k == 0 or before[k - 1].text not in ("-m", "--message"))]
+        action = words[0].text.lower() if words and words[0].text.lower() in STASH_ACTIONS else "push"
+        if action in ("pop", "apply", "branch"):
+            return [], False, human
+        if action not in ("push", "save"):
+            return [], False, []
+        untracked = any(f in ("--include-untracked", "--all") or re.fullmatch(r"-[a-zA-Z]*[ua][a-zA-Z]*", f)
+                        for f in flags)
+        return (list(after) or [DOT]) if untracked else list(after), untracked, []
+    if sub == "reset":
+        if "--hard" in flags:
+            return [DOT], True, human
+        return [w for w in before if not w.text.startswith("-")] + list(after), False, []
+    if sub in ("checkout", "restore"):
+        tree, pathspec = git_tree_and_paths(sub, before, after, dashdash)
+        if tree and snap.any_built and any(
+                w.text.startswith(":") or target_hits(w, dirs, snap, destructive=True) for w in pathspec):
+            return [], False, [f"git {sub} from another commit over protected paths while an agent is "
+                               "built (the human runs it)"]
+        return pathspec, False, []
+    if sub in GIT_TREE_VERBS:
+        return [], False, human
+    return [], False, []
+
+
+def glob_hits(pattern: str, snap: Snapshot, destructive: bool) -> list[str]:
+    """A glob reaches a protected file at its own depth, a protected folder at
+    its depth or deeper, and (destructive verbs) a holder at its depth or above."""
+    parts = pattern.split("/")
+
+    def reaches(target: str) -> bool:
+        return all(fnmatch.fnmatchcase(part, glob)
+                   for glob, part in zip(parts, target.split("/"), strict=False))
+
+    def depth(target: str) -> int:
+        return target.count("/") + 1
+
+    reached = [f for f in snap.protected_files if depth(f) == len(parts) and reaches(f)]
+    reached += [d for d in snap.protected_dirs if depth(d) <= len(parts) and reaches(d)]
+    if destructive:
+        reached += [h for h in snap.holders if h and len(parts) <= depth(h) and reaches(h)]
+    return [f"a shell glob reaching {target}" for target in reached]
+
+
+def target_hits(word: Word, dirs: list[str], snap: Snapshot, destructive: bool) -> list[str]:
+    """Why writing (or, destructive, removing) word would touch a protected path."""
     hits: list[str] = []
+    if not word.quoted:
+        hits += [f"a shell write naming {s}" for s in snap.protected_strings if s in word.text.lower()]
+    texts = [word.text]
+    if "=" in word.text[1:]:
+        texts.append(word.text.split("=", 1)[1])        # --file=evals/x
     for folder in dirs:
-        for path in shell_paths(word.text, folder):
-            rel = rel_to_repo(path, snap.root)
-            if rel is None:
-                continue
-            if GLOB.search(rel):
-                reach = list(snap.protected_paths)
-                if destructive:
-                    reach += [holder for holder in snap.holders if holder]
-                hits += [f"a shell glob reaching {target}" for target in reach if glob_reaches(rel, target)]
-            if classify(rel, snap) is not Rule.FREE or (destructive and rel in snap.holders):
-                hits.append("a shell write on " + (rel or "the repo root"))
+        for text in texts:
+            for path in shell_paths(text, folder):
+                link = hard_link_hit(path, snap)
+                if link is not None:
+                    hits.append("a shell write through a hard link to " + link)
+                rel = rel_to_repo(path, snap.root)
+                if rel is None:
+                    continue
+                if GLOB.search(rel):
+                    hits += glob_hits(rel, snap, destructive)
+                if classify(rel, snap) is not Rule.FREE or (destructive and rel in snap.holders):
+                    hits.append("a shell write on " + (rel or "the repo root"))
     return hits
 
 
@@ -638,28 +964,33 @@ def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
     dirs = list(dirs)
     for segment in segments(command):
         segment_dirs(segment, dirs)
-        words = segment.words
-        for i, word in enumerate(words[:-1]):          # bash -c "...", pwsh -Command "..."
-            name = os.path.basename(word.text.lower()).removesuffix(".exe")
-            if name in SHELLS:
-                flag = next((j for j in range(i + 1, len(words)) if words[j].text.lower() in SHELL_FLAGS), None)
-                if flag is not None and flag + 1 < len(words):
-                    hits += command_hits(words[flag + 1].text, dirs, snap)
-        if WRITE.search(segment.raw):
-            checked = words
-            destructive = DESTRUCTIVE.search(segment.raw) is not None
-            for folder in dirs:                        # cd evals && rm config.yaml
-                rel = rel_to_repo(folder, snap.root)
-                if rel is not None and any(under(rel, d) for d in snap.frozen_dirs):
-                    hits.append("a shell write from inside " + rel)
-        elif segment.targets:                          # a redirect is the only write
-            checked, destructive = segment.targets, False
-        else:
-            continue
-        for word in checked:
-            if not word.quoted:
-                hits += [f"a shell write naming {s}" for s in snap.protected_strings if s in word.text.lower()]
-            hits += word_hits(word, dirs, snap, destructive)
+        writes: list[tuple[Word, bool]] = [(word, False) for word in segment.targets]
+        for words in segment.commands:
+            verb, args, fed = split_command(words)
+            if verb in SHELLS:                         # bash -c "...", pwsh -Command "..."
+                flag = next((j for j, w in enumerate(args) if w.text.lower() in SHELL_FLAGS), None)
+                if flag is not None and flag + 1 < len(args):
+                    hits += command_hits(args[flag + 1].text, dirs, snap)
+                continue
+            if verb in EVAL_VERBS:
+                hits += command_hits(" ".join(w.text for w in args), dirs, snap)
+                continue
+            if verb == "git":
+                targets, destructive, blocked = git_writes(args, dirs, snap)
+                hits += blocked
+                is_write = bool(targets)
+            else:
+                targets, destructive, is_write = verb_writes(verb, args)
+            if is_write and (fed or not targets):      # targets arrive through a pipe or (...)
+                others = [w for other in segment.commands if other is not words for w in other]
+                targets = [*targets, *others, *([DOT] if destructive else [])]
+            writes += [(target, destructive) for target in targets]
+        dotnet = DOTNET.search(segment.raw)
+        if dotnet is not None:
+            removing = dotnet.group(1).lower() in ("delete", "move")
+            writes += [(word, removing) for word in segment.words]
+        for word, destructive in writes:
+            hits += target_hits(word, dirs, snap, destructive)
     return hits
 
 
@@ -672,7 +1003,7 @@ def shell_hits(call: Call, snap: Snapshot) -> list[str]:
     return command_hits(command, [canonical(call.cwd)], snap)
 
 
-def evaluate(payload: dict[str, object], project_dir: str | None) -> list[str]:
+def evaluate(payload: Mapping[str, object], project_dir: str | None) -> list[str]:
     tool, tool_input = payload.get("tool_name", ""), payload.get("tool_input") or {}
     cwd = payload.get("cwd") or os.getcwd()
     if not isinstance(tool, str) or not isinstance(tool_input, dict) or not isinstance(cwd, str):
