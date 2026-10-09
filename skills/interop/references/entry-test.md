@@ -21,7 +21,9 @@ security/credential, and conversation/channel sections (the channel counts:
 it is an external party even when it only carries the human), PLUS any
 collaboration the design/spec anticipates. Internal-but-credentialed stores
 (e.g. the session DB) get a row too — their verdict is trivially "tool", but
-the row proves they were considered.
+the row proves they were considered. In a workspace, also add one row per
+agent whose design §9 or spec §8 names THIS agent as a delegate (inbound),
+and one row per delegate in this agent's spec §8 (outbound).
 For each, in order; first "yes" decides:
 
 1. **Single request → single result, semantics fixed?** → tool (already in
@@ -51,3 +53,18 @@ Expected for most agents, and a SUCCESS. Record in docs/agent/interop.md:
 
 Only for the flagged relationships. Proceed to `references/a2a-guide.md`.
 Never author a card "for the future" — the future has a re-visit trigger.
+
+## Inbound contracts (delegates)
+
+When another workspace agent calls this one, `docs/agent/interop.md` carries
+an **Inbound contracts** section in BOTH decisions (skip or A2A), one entry
+per caller:
+- caller (agent name), input schema, output schema;
+- contract version `<this-agent>-contract@<n>`; any change to the input or
+  output shape bumps `<n>`, and the entry states which versions are still
+  served;
+- one **probe request**: side-effect-free (no writes, no gated action), with
+  its expected response shape. The caller's ship and weekly ritual use it.
+
+No handler for the interface in the built code → BUILD re-entry of this agent
+(rule 7), never improvised here.
