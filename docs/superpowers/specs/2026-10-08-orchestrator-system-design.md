@@ -135,7 +135,9 @@ New sub-section in audit-guide Section 3 ("Delegates"), run when spec §8 exists
 - **Contract:** the contract version in the delegate's `interop.md` equals the version pinned
   in spec §8. Mismatch → finding routed to the orchestrator's spec re-entry.
 - **Live call:** one real call per delegate against its deployed endpoint (from the deploy
-  configuration); the response validates against the pinned output schema. Cite the command
+  configuration), using the side-effect-free **probe request** the delegate publishes in its
+  inbound contract (§8) — never a request that writes or triggers a gated action; the
+  response validates against the pinned output schema. Cite the command
   and output. A failure is a finding (route: delegate if it is down or off-contract;
   orchestrator if its client is wrong).
 - **Credentials:** the orchestrator's delegate credentials are included in Section 3's least
@@ -158,12 +160,16 @@ used (its "On failure" path).
 
 - **interop (delegate side):** the inbound relationship "orchestrator X calls me" is recorded
   like any other relationship row. When it warrants an interface, `interop.md` gains an
-  **Inbound contracts** section: caller, input schema, output schema, contract version. A
-  shape change bumps the version.
+  **Inbound contracts** section (written in both the skip and the A2A decision): caller,
+  input schema, output schema, contract version, and one side-effect-free probe request
+  with its expected response shape, used by the caller's ship and weekly live check. A shape
+  change bumps the version. The delegate's relationship inventory includes every workspace
+  agent whose design §9 or spec §8 names it (read-only).
 - **interop (orchestrator side):** each delegate gets the existing entry test (A2A vs simple
   call); the verdict is recorded with the pinned contract.
 - **references/agent-root.md:** new read-only cross-agent exceptions: design of an
-  orchestrator reads other agents' `design.md` and `interop.md`; ship of an orchestrator
+  orchestrator reads other agents' `design.md` and `interop.md`; interop reads other agents'
+  design §9 and spec §8 to find its callers; ship of an orchestrator
   reads its delegates' `interop.md` and `ship-report.md`; ship of any agent reads other
   agents' spec §8 tables.
 - **economics:** an orchestrator's cost per turn includes its delegates' cost per call times
