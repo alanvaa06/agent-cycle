@@ -44,7 +44,7 @@ inform judgment; none is required.
 ## Workflow
 
 0. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md` (one
-   question when several agents match); every path below is relative to it and
+   question when several agents match); every path in this skill is relative to it and
    this skill writes only inside it.
 1. Read `references/derivation-guide.md`; run steps 0→7 in order.
 2. Step 0 gate check → step 1 capability confirmation (one question) → step 2
