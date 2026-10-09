@@ -60,9 +60,9 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
   "expected": {
     "fires": true,
     "checks": [
-      "Runs the justification test before inventorying delegates and records it in design.md §9 Delegation",
-      "Concludes 'router without an LLM' (routing is mechanical by keyword) or 'one agent', with the reason written from a fact of this case; no reason from the four (reuse, separate permissions, context too large, different models or costs) is claimed without a concrete fact",
-      "No delegate inventory is written and no orchestrator design is produced; for 'router without an LLM' it states that this lives outside agent-cycle and stops",
+      "Runs the mechanical-routing check first, before the four reasons and before inventorying delegates, and records it in design.md §9 Delegation",
+      "Concludes 'router without an LLM' because routing is by keyword, even though the reuse reason holds (ventas and soporte have their own channels); states that reuse justifies separate agents, not an LLM in front of them",
+      "No delegate inventory is written and no orchestrator design is produced; it states that the router lives outside agent-cycle and stops",
       "Does not modify anything under agents/ventas/ or agents/soporte/"
     ]
   }
@@ -158,7 +158,7 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
       "Second run: Section 3 Delegates compares each pinned contract version with the delegate's interop.md (cites the command and output)",
       "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request); the response validates against the pinned output schema; command and output cited",
       "Second run: recepcion's delegate credentials are included in the least-privilege diff",
-      "Writes only agents/recepcion/docs/agent/ship-report.md"
+      "Second run: writes only agents/recepcion/docs/agent/ship-report.md (the first run writes nothing)"
     ]
   }
 },
@@ -252,8 +252,8 @@ New:
 4. Single-agent by default; multi-agent needs a written, measurable justification.
    The Justification field is filled in BOTH branches. Delegating to OTHER
    workspace agents (an orchestrator) is decided separately in §9 Delegation
-   (interview-guide "Phase C2 — Delegation"): the justification test runs
-   before any delegate is listed, and "one agent" or "router without an LLM"
+   (interview-guide "Phase C2 — Delegation"): the mechanical-routing check,
+   then the justification test, run before any delegate is listed, and "one agent" or "router without an LLM"
    are successful outcomes. Helpers that exist only to serve this agent are
    internal subagents (§3/§8), never delegates.
 ```
@@ -276,23 +276,26 @@ Runs only when this agent would hand work to other agents listed in
 workspace agents: in a one-agent repo, show the conversion ("Second agent in a
 one-agent repo") and stop.
 
-1. **Justification test first.** An orchestrator is justified only when at
+1. **Mechanical routing first.** If deciding which agent gets each message is
+   mechanical (by channel or keyword), record "router without an LLM" in §9:
+   plain code outside agent-cycle; design names it and stops. This holds even
+   when the reasons below are true (reuse justifies separate agents, not an
+   LLM in front of them).
+2. **Justification test.** An orchestrator is justified only when at
    least one reason holds, each written with a concrete fact from this case:
    reuse (the delegate already exists with its own channel or releases);
    separate permissions (one merged agent would need credentials it should not
    hold); context too large (one agent would carry too many tools or
    conflicting instructions); different models or costs.
-2. **No reason holds** → record "one agent" in §9 with the reason (add the
+3. **No reason holds** → record "one agent" in §9 with the reason (add the
    tools to an existing agent via its design re-entry, or design one agent)
-   and stop delegation. **Routing is mechanical** (by channel or keyword) →
-   record "router without an LLM" in §9: plain code outside agent-cycle;
-   design names it and stops.
-3. **Justified** → inventory each delegate: name (must be in
+   and stop delegation.
+4. **Justified** → inventory each delegate: name (must be in
    `agent-cycle.yaml`), what it is used for, the reason(s) it serves. Read the
    other agents' `docs/agent/design.md` and `docs/agent/interop.md`
    (read-only). A helper that only serves this agent is NOT a delegate; it
    stays an internal subagent/subgraph (§3/§8).
-4. **Built delegate without an inbound interface** for this agent (its
+5. **Built delegate without an inbound interface** for this agent (its
    `interop.md` has no Inbound contracts row for this caller) → warn: adding
    it is a build re-entry of that delegate (interop rule 7). Advise designing
    the orchestrator before building its delegates; do not require it.
@@ -308,6 +311,8 @@ one-agent repo") and stop.
 **Verdict:** orchestrator | one agent | router without an LLM
 
 **Justification test:**
+
+**Routing mechanical?** yes (→ router without an LLM) / no — <fact>
 
 | Reason | Holds? | Fact from this case |
 |---|---|---|
