@@ -82,22 +82,22 @@
         "fires": true,
         "checks": [
           "First run: refuses, naming soporte and the missing phase (its ship), and writes nothing",
-          "Second run: Section 3 Delegates compares each pinned contract version with the delegate's interop.md (cites the command and output)",
-          "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request); the response validates against the pinned output schema; command and output cited",
+          "Second run: Section 3 Delegates checks each pinned contract version is among the versions on the Served: line of the delegate's interop.md (greps run from the repo root; cites the command and output)",
+          "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request), sent to the base URL from recepcion's deploy configuration (the key its delegate client reads) with recepcion's delegate credential; the response validates against the pinned output schema; command and output cited",
           "Second run: recepcion's delegate credentials are included in the least-privilege diff",
-          "Second run: writes only agents/recepcion/docs/agent/ship-report.md (the first run writes nothing)"
+          "Second run: writes only agents/recepcion/docs/agent/ship-report.md, whose frontmatter records delegate_contracts [ventas-contract@1, soporte-contract@1] (the first run writes nothing)"
         ]
       }
     },
     {
       "id": "SHP-E07",
       "type": "edge-delegate-contract-bump",
-      "input": "Ship ventas. (Fixture: workspace; ventas's interop.md now publishes ventas-contract@2 and its Inbound contracts no longer serve @1; agents/recepcion/docs/agent/spec.md §8 pins ventas-contract@1.)",
+      "input": "Ship ventas. (Fixture: workspace; ventas's interop.md now publishes ventas-contract@2 and its Served: line no longer lists @1; agents/recepcion/docs/agent/spec.md §8 pins ventas-contract@1 and recepcion's latest approved ship-report pins it too: delegate_contracts [ventas-contract@1].)",
       "expected": {
         "fires": true,
         "checks": [
-          "Reads every other agent's spec §8 (read-only) and finds recepcion pinning ventas-contract@1",
-          "Reports a blocker: shipping @2 while @1 is pinned and not served would break recepcion; routes to recepcion (spec re-entry and re-recording) or to ventas (keep serving @1)",
+          "From the repo root, reads every other agent's spec §8 and the frontmatter of its latest approved ship-report (read-only) and finds recepcion's shipped pin ventas-contract@1 (delegate_contracts)",
+          "Reports a blocker: shipping @2 while recepcion has shipped @1 and @1 is not served would break recepcion; routes to recepcion (re-entry of spec, then evals with re-recording, then build -- the human's, hook off -- and a ship of the new pin) or to ventas (keep serving @1)",
           "Verdict is NO-SHIP while the blocker stands; with the fixture changed so ventas still serves @1, the check passes",
           "Writes only agents/ventas/docs/agent/ship-report.md"
         ]

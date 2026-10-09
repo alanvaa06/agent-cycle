@@ -66,8 +66,8 @@
         "checks": [
           "The relationship inventory includes 'recepcion calls ventas', found by reading recepcion's design §9 (read-only)",
           "The entry test gives that relationship a verdict with a reason (single request -> single result here, so a simple call, not A2A)",
-          "interop.md has an Inbound contracts section with caller, input schema, output schema, contract version ventas-contract@1, and one side-effect-free probe request with its expected response shape",
-          "If ventas has no handler for that interface, it is routed to a build re-entry of ventas, not improvised",
+          "interop.md has an Inbound contracts section with caller, input schema, output schema, protocol verdict, contract version ventas-contract@1 with the line 'Served: ventas-contract@1', and one side-effect-free probe request with its expected response",
+          "If ventas has no handler for that interface (or its spec lacks the ingress, the untrusted surface for its callers, or the probe's no-side-effect BHV), it is routed to a spec re-entry of ventas (spec, then evals, then build, then interop publishes), the human's with the hook off because ventas is built; not improvised and not a build re-entry alone",
           "Writes only agents/ventas/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
         ]
       }

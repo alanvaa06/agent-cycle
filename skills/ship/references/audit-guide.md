@@ -14,10 +14,14 @@ The full chain, approved and version-consistent: design.md; spec.md
 docs/agent/build.md (approved, versions match); skills.md AND interop.md
 present with decisions recorded (none/skip are valid decisions — absence is
 not). Economics artifact read when present (its alarm threshold becomes
-Section 5's expected value). Orchestrators (spec §8 exists): every delegate
-has an approved `docs/agent/interop.md` publishing Inbound contracts for this
-caller and an approved `docs/agent/ship-report.md`. Any gap → refuse, name
-the phase to run (for a delegate, name the delegate too), write nothing.
+Section 5's expected value). Orchestrators (spec §8 lists at least one
+delegate): every delegate has an approved `docs/agent/interop.md` publishing
+Inbound contracts for this caller and an approved `docs/agent/ship-report.md`
+that covers its current interop: the ship-report's frontmatter
+`interop_version` equals the delegate's interop.md `version` (older → refuse:
+the delegate must re-ship). These cross-agent reads run from the repo root
+(see Section 3). Any gap → refuse, name the phase to run (for a delegate, name
+the delegate too), write nothing.
 
 ## Section 1 — Suite re-run (the load-bearing section)
 
@@ -80,22 +84,51 @@ coverage map.
   requirements file carries hashes for the named dependency (command +
   output, for example the `--hash=` lines of that package). Missing hashes are
   a finding routed to build.
-- Delegates (orchestrators: spec §8 exists). Gate: checked in Section 0
-  before anything runs. Contract: the
-  version in the delegate's interop.md equals the spec §8 pin (cite the
-  `grep` of both); mismatch → finding routed to this agent's spec re-entry.
-  Live probe: send the delegate's published probe request — never any other
-  request — to its deployed endpoint (from the deploy configuration) and
-  validate the response against the pinned output schema; cite command and
-  output. Failure → finding routed to the delegate (down or off-contract) or
-  to this agent (client wrong). This agent's delegate credentials are part of
-  the least-privilege diff above.
+Cross-agent reads and greps (the Delegates, Inbound contracts and Dependents
+checks below, and Section 0's delegate gate) run from the REPO ROOT, not from
+`<AGENT_ROOT>`. In a workspace, a cross-agent grep that matches nothing is an
+error to report (wrong directory or missing artifact), never a pass. The one
+legitimate empty result is Dependents ("no orchestrator pins this agent"),
+and it counts only when the audit also lists the files the grep searched
+(`ls agents/*/docs/agent/spec.md` from the repo root, showing the other
+agents' specs); a glob that expands to nothing is the error above.
+
+- Delegates (orchestrators: spec §8 lists at least one delegate). Gate:
+  checked in Section 0 before anything runs. Contract: a spec §8 pin that
+  reads `pending` → blocker; otherwise the pin must be AMONG the versions on
+  the `Served:` line of the delegate's Inbound contracts entry for this caller
+  (cite `grep -n "<delegate>-contract@" agents/<this-agent>/docs/agent/spec.md`
+  and `grep -n "^Served:" agents/<delegate>/docs/agent/interop.md`); a pin not
+  served → blocker. Both route to this agent's re-entry: spec, then evals,
+  then build (the human's, hook off). Live probe: send the delegate's
+  published probe request — never any other request — to the delegate's base
+  URL from THIS agent's deploy configuration (the env/config key its delegate
+  client reads; cite the key), authenticated with this agent's delegate
+  credential, and validate the response against the pinned output schema;
+  cite command and output. Failure → finding routed to the delegate (down or
+  off-contract) or to this agent (client wrong). This agent's delegate
+  credentials are part of the least-privilege diff above. The pins validated
+  here go into the report frontmatter `delegate_contracts` (Section 7).
+- Inbound contracts (any agent whose interop.md has an Inbound contracts
+  section). For each entry, cite the handler file:line in `<AGENT_ROOT>`'s
+  code (show the line) and the BHV in this agent's spec covering the probe's
+  no-side-effect claim, with its eval status in Section 1's run. Missing →
+  finding routed to this agent's spec re-entry (spec, evals, build, then
+  interop publishes).
 - Dependents (workspace only; in a one-agent repo record "no other agents").
-  Read every other agent's spec §8
-  (`grep -n "<this-agent>-contract@" agents/*/docs/agent/spec.md`). An
-  orchestrator pinning a contract version that this ship's interop.md no
-  longer lists as served → blocker, routed to that orchestrator (spec
-  re-entry and re-recording) or to this agent (keep serving the version).
+  What counts is what each orchestrator has SHIPPED. From the repo root, find
+  the orchestrators that name this agent
+  (`grep -n "<this-agent>-contract@" agents/*/docs/agent/spec.md`), then read
+  the frontmatter of each one's latest approved ship-report
+  (`grep -n "delegate_contracts" agents/<orchestrator>/docs/agent/ship-report.md`).
+  A version pinned there that this ship's interop.md no longer lists on its
+  `Served:` line → blocker, routed to that orchestrator (re-entry of spec,
+  then evals with re-recording, then build — the human's, hook off — and a
+  ship of the new pin) or to this agent (keep serving the version). A pin
+  only in an orchestrator's spec, not yet shipped, is noted, not a blocker:
+  that orchestrator's own ship checks it. Order of a bump: this agent serves
+  both versions → the orchestrator ships the new pin → this agent drops the
+  old version.
 
 ## Section 4 — Anti-gaming audit
 
@@ -162,6 +195,10 @@ Verify docs/runbook.md (or the repo's stated location) against the minimums:
 queue/DLQ drain steps, rollback (how to return to the previous version),
 kill switch (how to stop the agent NOW), weekly ritual scheduled (suite
 re-run + judge spot-validation + corrections mined into new eval cases).
+Orchestrators (spec §8 lists at least one delegate) add: the weekly probe per
+delegate compared with the pinned schema and the recorded golden probe
+response, and this agent's On failure path when a delegate's kill switch is
+used.
 Missing or thin → FINDING that references
 `references/runbook-template.md` for the owner (or a build re-entry) to
 fill. The auditor NEVER writes the runbook.
@@ -175,6 +212,9 @@ fill. The auditor NEVER writes the runbook.
   pipeline catching what it was built to catch; write it that way.
 - Report: docs/agent/ship-report.md with frontmatter (agent_name, version,
   status: draft, date, design_version, spec_version, evals_config_date,
-  build_version) + the seven sections, each with its commands and evidence.
+  build_version, interop_version — the interop.md version this ship covers —
+  and, for orchestrators, `delegate_contracts: [<agent>-contract@<n>, ...]`,
+  the pins this ship validated) + the seven sections, each with its commands
+  and evidence.
 - The auditor's ONLY write is this report. Human sign-off at the gate →
   status: approved = SHIPPED. Suggest the release tag.

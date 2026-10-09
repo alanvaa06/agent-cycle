@@ -13,8 +13,12 @@ NO-SHIP is the pipeline working.
 1. FULL-CHAIN GATE: design, spec, evals, build approved and version-
    consistent; skills.md and interop.md present with recorded decisions
    (none/skip valid; absence is not); economics read when present.
-   Orchestrators: every delegate's interop.md and ship-report.md approved.
-   Any gap → refuse, name the phase (and the delegate), write nothing.
+   Orchestrators (spec §8 lists at least one delegate): every delegate has an
+   approved interop.md publishing Inbound contracts for this caller, and an
+   approved ship-report.md whose `interop_version` equals that interop.md's
+   version (older → the delegate must re-ship). Cross-agent reads run from the
+   repo root. Any gap → refuse, name the phase (and the delegate), write
+   nothing.
 2. THE AUDITOR ONLY WRITES docs/agent/ship-report.md. Nothing else — not a
    fix, not a runbook, not a config touch-up. (A delegate probe request is a
    read sent to another service; it writes nothing.) Findings route to the re-entry
@@ -31,10 +35,18 @@ NO-SHIP is the pipeline working.
    with file:line; lockfile pins the spec's runtime framework at exactly the
    spec's version (no-framework: the binding's pins), with hashes where spec §4
    has an install-time supply-chain row.
-   Orchestrators (spec §8): pinned contract versions match,
-   one live probe request per delegate validates against the pinned schema.
-   Any agent: an orchestrator that pins an older contract version this ship
-   no longer serves is a blocker (audit-guide Section 3).
+   Orchestrators (spec §8 lists at least one delegate): each pin is among the
+   versions on the delegate's `Served:` line (a pending or not-served pin is a
+   blocker, routed to this agent's spec, then evals, then build — the human's,
+   hook off); one live probe request per delegate, sent to the delegate's base
+   URL from this agent's deploy configuration with this agent's delegate
+   credential, validates against the pinned schema. Any agent: each Inbound
+   contracts entry cites its handler file:line and the BHV covering the
+   probe's no-side-effect claim (missing → finding routed to this agent's
+   spec); a version pinned in an orchestrator's latest approved ship-report
+   (`delegate_contracts`) that this ship no longer serves is a blocker, routed
+   to that orchestrator (spec, then evals, then build, then ship the new pin)
+   or to this agent (keep serving it) (audit-guide Section 3).
 7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
    (the baseline committed before the build.md stub) to HEAD on <AGENT_ROOT>'s
    evals/, design.md and spec.md (workspace moves and mixed-agent commits per
@@ -57,7 +69,8 @@ NO-SHIP is the pipeline working.
    run sections 0→7 in order, completing all sections regardless of reds.
 2. Write docs/agent/ship-report.md (frontmatter: agent_name, version,
    status: draft, date, design_version, spec_version, evals_config_date,
-   build_version) with every section's commands and evidence.
+   build_version, interop_version; orchestrators also `delegate_contracts`)
+   with every section's commands and evidence.
 3. Present: verdict, blockers (if any) with re-entry routes, the suggested
    release tag.
 4. Explicit sign-off → status: approved = SHIPPED. Findings → the owner

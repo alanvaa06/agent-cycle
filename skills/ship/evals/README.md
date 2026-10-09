@@ -51,11 +51,22 @@ plugin against it as in the procedure above.
 
 - **SHP-E06**: a workspace repo, two runs. Run 1: recepcion through interop
   with spec §8 pinning `ventas-contract@1` and `soporte-contract@1`; ventas
-  has approved `interop.md` and `ship-report.md`; soporte has approved
-  `interop.md` but no `ship-report.md`. Run 2: add soporte's `ship-report.md`.
-  For the live probe, a stub HTTP server per delegate answering the published
-  probe request is enough.
-- **SHP-E07**: a workspace repo with `agents/ventas/docs/agent/interop.md`
-  publishing `ventas-contract@2` (Inbound contracts no longer serve @1) and
-  `agents/recepcion/docs/agent/spec.md` §8 pinning `ventas-contract@1`.
-  Re-run with ventas still serving @1 to score the passing branch.
+  has approved `interop.md` (Inbound contracts entry for recepcion with
+  `Served: ventas-contract@1`) and an approved `ship-report.md` whose
+  `interop_version` equals that interop.md's `version`; soporte has approved
+  `interop.md` (`Served: soporte-contract@1`) but no `ship-report.md`. Run 2:
+  add soporte's `ship-report.md` (same `interop_version` rule). For the live
+  probe, a stub HTTP server per delegate answering the published probe
+  request is enough; recepcion's deploy configuration (e.g. its
+  `.env.example` / compose file) sets `VENTAS_BASE_URL` and
+  `SOPORTE_BASE_URL` (the keys its delegate client reads) to the stubs, plus
+  its delegate credentials `VENTAS_TOKEN` and `SOPORTE_TOKEN`.
+- **SHP-E07**: a workspace repo where ventas has the full approved chain
+  (`design.md`, `spec.md`, `evals/config.yaml`, `build.md`, `skills.md`,
+  `interop.md`) and a runner the audit can re-run; its `interop.md`
+  publishes `ventas-contract@2` with `Served: ventas-contract@2`, and its
+  Inbound contracts entry cites a handler that exists in its code and a probe
+  BHV in its spec. `agents/recepcion/docs/agent/spec.md` §8 pins
+  `ventas-contract@1`, and `agents/recepcion/docs/agent/ship-report.md` is
+  approved with `delegate_contracts: [ventas-contract@1]`. Re-run with
+  `Served: ventas-contract@1, ventas-contract@2` to score the passing branch.
