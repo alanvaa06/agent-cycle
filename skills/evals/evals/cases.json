@@ -58,6 +58,21 @@
           "No files are created or modified — verified on the filesystem afterward"
         ]
       }
+    },
+    {
+      "id": "EVL-E05",
+      "type": "edge-orchestrator-recorded-responses",
+      "input": "Write the eval suite for recepcion. (Fixture: approved spec with §8 Delegates: ventas pinned ventas-contract@1 with On failure 'down -> tell the user and offer a human; timeout -> retry once then tell the user; invalid -> tell the user'; soporte pinned soporte-contract@2.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Every delegate is replaced by recorded delegate responses in the case fixtures (fixture.delegates), none calls a real delegate",
+          "Per delegate: at least one golden case with a valid recorded response, and one case per On failure mode in its spec row (ventas: down, timeout, invalid)",
+          "Per delegate: at least one adversarial case whose recorded reply carries injected instructions or asks for a gated action; expected: treated as data and the gated action still requires HITL",
+          "Each recording carries the contract version it was taken from (ventas-contract@1, soporte-contract@2)",
+          "Writes only agents/recepcion/evals/ plus the Eval column of agents/recepcion/docs/agent/spec.md §6"
+        ]
+      }
     }
   ]
 }

@@ -42,3 +42,20 @@ Build the fixture in a scratch git repo (never this repo).
   landing at `agents/soporte/docs/agent`), lying inside that range. Each
   agent has its own lockfile. Score the diff check from the literal command the
   audit cites.
+
+## Orchestrator cases (v0.13)
+
+Build every fixture in a scratch git repo (never this repo) with hand-written
+minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
+plugin against it as in the procedure above.
+
+- **SHP-E06**: a workspace repo, two runs. Run 1: recepcion through interop
+  with spec §8 pinning `ventas-contract@1` and `soporte-contract@1`; ventas
+  has approved `interop.md` and `ship-report.md`; soporte has approved
+  `interop.md` but no `ship-report.md`. Run 2: add soporte's `ship-report.md`.
+  For the live probe, a stub HTTP server per delegate answering the published
+  probe request is enough.
+- **SHP-E07**: a workspace repo with `agents/ventas/docs/agent/interop.md`
+  publishing `ventas-contract@2` (Inbound contracts no longer serve @1) and
+  `agents/recepcion/docs/agent/spec.md` §8 pinning `ventas-contract@1`.
+  Re-run with ventas still serving @1 to score the passing branch.

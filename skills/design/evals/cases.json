@@ -122,6 +122,35 @@
           "No files are created or modified — verified on the filesystem afterward"
         ]
       }
+    },
+    {
+      "id": "DES-E09",
+      "type": "edge-orchestrator-not-justified",
+      "input": "Design an agent 'recepcion' that sends sales questions to ventas and support questions to soporte. (Fixture: workspace with agents [ventas, soporte], both approved; the user says the split is only by keyword in the first message and both agents already have their own WhatsApp numbers the customer can use directly.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Runs the justification test before inventorying delegates and records it in design.md §9 Delegation",
+          "Concludes 'router without an LLM' (routing is mechanical by keyword) or 'one agent', with the reason written from a fact of this case; no reason from the four (reuse, separate permissions, context too large, different models or costs) is claimed without a concrete fact",
+          "No delegate inventory is written and no orchestrator design is produced; for 'router without an LLM' it states that this lives outside agent-cycle and stops",
+          "Does not modify anything under agents/ventas/ or agents/soporte/"
+        ]
+      }
+    },
+    {
+      "id": "DES-E10",
+      "type": "edge-orchestrator-justified",
+      "input": "Design an agent 'recepcion' that talks to customers on the web chat, decides whether they need ventas or soporte, and hands the conversation to that agent; it also uses an internal 'resumidor' helper that only it uses. (Fixture: workspace with agents [ventas, soporte]; ventas is built and its interop.md has no Inbound contracts section; soporte has an approved design only.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "design.md §9 Delegation records the justification test with at least one of the four reasons tied to a fact (e.g. reuse: ventas and soporte have their own channels and releases)",
+          "§9 lists ventas and soporte as delegates (both names from agent-cycle.yaml), each with what it is used for and the reason it serves",
+          "'resumidor' is NOT a delegate: it stays as an internal subagent/subgraph of recepcion (§3 / §8), not a workspace agent",
+          "Warns that ventas is already built without an inbound interface for recepcion, so adding it is a build re-entry of ventas (interop rule 7); advises designing the orchestrator before building delegates without requiring it",
+          "Reads agents/ventas and agents/soporte design.md / interop.md only; writes only agents/recepcion/docs/agent/design.md and appends 'recepcion' to agent-cycle.yaml"
+        ]
+      }
     }
   ]
 }
