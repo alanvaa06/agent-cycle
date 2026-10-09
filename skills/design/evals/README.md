@@ -7,7 +7,7 @@ Per case in `cases.json`:
 1. Start a FRESH Claude Code session in a scratch project (never this repo).
 2. Paste the case's `input` verbatim as the user message.
 3. Observe whether the skill fires (`fires` check) and follow the interview to
-   completion for positive/edge cases (answer as a plausible dental-clinic owner).
+   completion for positive/edge cases (answer as a plausible client for that agent).
 4. Score every item in `expected.checks` as PASS / FAIL with one line of evidence.
    Presence checks require judgment on substance — a vacuous Goodhart note or a
    factually wrong architectural implication does NOT pass. For negative cases,
@@ -36,11 +36,11 @@ Build every fixture in a scratch git repo (never this repo); run the plugin
 against it as in the procedure above.
 
 - **DES-E07**: a workspace repo. `agent-cycle.yaml` at the root contains
-  `layout: workspace` and `agents: [ventas]`; `agents/ventas/` holds an
+  `layout: workspace` and `agents: [agent-a]`; `agents/agent-a/` holds an
   approved `docs/agent/design.md` (a trivial hand-written one is enough).
-  Commit it, then snapshot `agents/ventas/` and `agent-cycle.yaml` so the
+  Commit it, then snapshot `agents/agent-a/` and `agent-cycle.yaml` so the
   "nothing else changed" checks can be scored with `git diff`. For the
-  duplicate-name branch, re-run asking for an agent named `ventas`.
+  duplicate-name branch, re-run asking for an agent named `agent-a`.
 - **DES-E08**: a single-agent repo. `docs/agent/design.md`, `docs/agent/spec.md`,
   `evals/` and `src/` at the root, no `agent-cycle.yaml`, working tree clean.
   Score the "nothing created or modified" check with `git status --porcelain`
@@ -53,20 +53,20 @@ minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
 - **DES-E09**: a workspace repo. `agent-cycle.yaml` at the root contains
-  `layout: workspace` and `agents: [ventas, soporte]`; each of `agents/ventas/`
-  and `agents/soporte/` holds an approved trivial `docs/agent/design.md`.
+  `layout: workspace` and `agents: [agent-a, agent-b]`; each of `agents/agent-a/`
+  and `agents/agent-b/` holds an approved trivial `docs/agent/design.md`.
   Commit it. Score with `git status --porcelain` after the run: it must be
   empty. The "router without an LLM" verdict writes no file and does not touch
   `agent-cycle.yaml`, so nothing at all changes.
-- **DES-E10**: same workspace as DES-E09 (`agents: [ventas, soporte]`), plus
-  `agents/ventas/docs/agent/build.md` approved and an `agents/ventas/docs/agent/interop.md`
-  without an Inbound contracts section; `agents/soporte/` keeps only its
-  approved design. Score that only `agents/recepcion/docs/agent/design.md`
+- **DES-E10**: same workspace as DES-E09 (`agents: [agent-a, agent-b]`), plus
+  `agents/agent-a/docs/agent/build.md` approved and an `agents/agent-a/docs/agent/interop.md`
+  without an Inbound contracts section; `agents/agent-b/` keeps only its
+  approved design. Score that only `agents/orchestrator/docs/agent/design.md`
   and the `agent-cycle.yaml` line changed.
 - **DES-E11**: a workspace repo. `agent-cycle.yaml` contains
-  `layout: workspace` and `agents: [ventas]`; `agents/ventas/docs/agent/design.md`
-  is approved (hand-written, trivial: two tools, a read-only CRM credential,
+  `layout: workspace` and `agents: [agent-a]`; `agents/agent-a/docs/agent/design.md`
+  is approved (hand-written, trivial: two tools, a read-only data-store credential,
   no channel of its own), with no `build.md`. Commit it. When the skill offers
   the paths after the "one agent" verdict, pick "add the work to an existing
-  agent" (ventas). Score with `git status --porcelain` after the run: it must
+  agent" (agent-a). Score with `git status --porcelain` after the run: it must
   be empty.

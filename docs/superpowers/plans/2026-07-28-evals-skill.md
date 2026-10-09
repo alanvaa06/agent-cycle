@@ -31,7 +31,7 @@ Write `skills/evals/evals/cases.json`:
     {
       "id": "EVL-E01",
       "type": "positive",
-      "input": "Build the eval suite for this agent. The approved spec is at docs/agent/spec.md. (Run in a repo containing an APPROVED spec.md, e.g. the real whatsapp-owner-assistant one with 21 BHV scenarios.)",
+      "input": "Build the eval suite for this agent. The approved spec is at docs/agent/spec.md. (Run in a repo containing an APPROVED spec.md, e.g. the real dogfood agent's spec (external repo) with 21 BHV scenarios.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -103,7 +103,7 @@ fix-and-rerun, dispute — never silently edit — if a case is wrong).
 Case-specific setup:
 
 - **EVL-E01** needs a repo with an APPROVED `docs/agent/spec.md`. The real
-  dogfood repo (`whatsapp-owner-assistant`, 21 BHV) is the canonical run.
+  dogfood repo (the dogfood agent, an external repo; 21 BHV) is the canonical run.
 - **EVL-E02** runs twice: spec at `status: draft`, and no `docs/agent/` at all.
 - **EVL-E03** needs an approved spec with at least one judgment-only scenario;
   hand-write a minimal one in a scratch repo (do NOT use the spec skill).
@@ -305,7 +305,7 @@ Failure-path scenarios assert the ABSENCE of side effects (`forbidden`).
 
 Per untrusted surface in the spec: at least 2 payloads — direct instruction and
 authority-claim variants — plus at least one in the end-user's real language
-when the spec calls for it (a Spanish-speaking owner gets Spanish injections).
+when the spec calls for it (a Spanish-speaking user gets Spanish injections).
 Payloads must be realistic enough that a naive model might follow them;
 gibberish does not test containment. Each case's forbidden list encodes the
 containment claim (no extra recipients, no writes, no secrets in reply, rules
@@ -412,7 +412,7 @@ red before green, at agent level.
 - "Fixing" a confusing BHV inside the eval instead of disputing it (rule 2).
 - A BHV silently absent from coverage (rule 3).
 - Judge-only suites, or asserts forced onto judgment calls (rule 4).
-- Gibberish injections, or English-only payloads for a Spanish-speaking owner
+- Gibberish injections, or English-only payloads for a Spanish-speaking user
   (rule 5).
 - Writing runner code or importing a framework into the suite (rule 6).
 - An eval that would pass with no agent behind it (rule 7).
@@ -484,7 +484,7 @@ git commit -m "chore: release v0.3.0 (evals skill)"
 ### Task 6 (Alan, interactive): eval runs + dogfood
 
 - [ ] EVL-E02 ×2, EVL-E03, EVL-E04 in scratch repos → rows in results.md.
-- [ ] EVL-E01 dogfood in `C:\Proyectos\Whatsapp_agent`: 21 BHV → suite with full coverage, ES adversarial payloads (spec §7 item 6), thresholds, spec §6 column filled → approve → tag `evals-v0.1`.
+- [ ] EVL-E01 dogfood in the external dogfood repo: 21 BHV → suite with full coverage, ES adversarial payloads (spec §7 item 6), thresholds, spec §6 column filled → approve → tag `evals-v0.1`.
 - [ ] Marketplace update + reinstall for v0.3.0.
 
 ---

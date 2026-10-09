@@ -1,6 +1,6 @@
 ---
 name: build
-description: "Phase 4 of the agent-cycle pipeline — the only phase that produces code: turn approved design.md + spec.md + evals/ into a running agent (invariant core + deployment adapter), an eval runner whose exit code is the pipeline's green, forge-master delegation for non-trivial builds, OTel telemetry with token counters. Use when the user wants to build/implement a pipelined agent — 'build the agent', 'siguiente fase del pipeline', 'implement the whatsapp agent'. Do NOT use without approved design+spec+evals (run the earlier phases first), nor for generic app development outside the pipeline, nor to modify evals or specs (frozen artifacts; re-entry ladder)."
+description: "Phase 4 of the agent-cycle pipeline — the only phase that produces code: turn approved design.md + spec.md + evals/ into a running agent (invariant core + deployment adapter), an eval runner whose exit code is the pipeline's green, forge-master delegation for non-trivial builds, OTel telemetry with token counters. Use when the user wants to build/implement a pipelined agent — 'build the agent', 'siguiente fase del pipeline', 'implement the agent'. Do NOT use without approved design+spec+evals (run the earlier phases first), nor for generic app development outside the pipeline, nor to modify evals or specs (frozen artifacts; re-entry ladder)."
 ---
 
 # agent-cycle:build — From Paper to Green

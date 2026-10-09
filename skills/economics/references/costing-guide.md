@@ -61,7 +61,7 @@ mechanism, don't invent discount factors.
 Client-facing agent: margin table vs the client's monthly price (ask for the
 price if unknown — one question) and the floor price. Internal agent: monetize
 the design's own Performance metric — BOTH halves need a basis: the rate
-(owner's hourly value — ask if needed, one question) and the quantity (hours
+(user's hourly value — ask if needed, one question) and the quantity (hours
 saved — if unmeasured because the baseline does not exist yet, label it
 "guess" per the auditability rule and state the break-even CONDITIONALLY:
 "pays for itself if it saves >= X h/mo") → cost per unit of value.

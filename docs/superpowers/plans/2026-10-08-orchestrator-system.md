@@ -56,29 +56,29 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
 {
   "id": "DES-E09",
   "type": "edge-orchestrator-not-justified",
-  "input": "Design an agent 'recepcion' that sends sales questions to ventas and support questions to soporte. (Fixture: workspace with agents [ventas, soporte], both approved; the user says the split is only by keyword in the first message and both agents already have their own WhatsApp numbers the customer can use directly.)",
+  "input": "Design an agent 'orchestrator' that sends questions on topic A to agent-a and questions on topic B to agent-b. (Fixture: workspace with agents [agent-a, agent-b], both approved; the user says the split is only by keyword in the first message and both agents already have their own channel entry points that end users can reach directly.)",
   "expected": {
     "fires": true,
     "checks": [
       "Runs the mechanical-routing check first, before the four reasons and before inventorying delegates, and records it in design.md §9 Delegation",
-      "Concludes 'router without an LLM' because routing is by keyword, even though the reuse reason holds (ventas and soporte have their own channels); states that reuse justifies separate agents, not an LLM in front of them",
+      "Concludes 'router without an LLM' because routing is by keyword, even though the reuse reason holds (agent-a and agent-b have their own channels); states that reuse justifies separate agents, not an LLM in front of them",
       "No delegate inventory is written and no orchestrator design is produced; it states that the router lives outside agent-cycle and stops",
-      "Does not modify anything under agents/ventas/ or agents/soporte/"
+      "Does not modify anything under agents/agent-a/ or agents/agent-b/"
     ]
   }
 },
 {
   "id": "DES-E10",
   "type": "edge-orchestrator-justified",
-  "input": "Design an agent 'recepcion' that talks to customers on the web chat, decides whether they need ventas or soporte, and hands the conversation to that agent; it also uses an internal 'resumidor' helper that only it uses. (Fixture: workspace with agents [ventas, soporte]; ventas is built and its interop.md has no Inbound contracts section; soporte has an approved design only.)",
+  "input": "Design an agent 'orchestrator' that talks to users on the web chat, decides whether they need agent-a or agent-b, and hands the conversation to that agent; it also uses an internal 'helper' subagent that only it uses. (Fixture: workspace with agents [agent-a, agent-b]; agent-a is built and its interop.md has no Inbound contracts section; agent-b has an approved design only.)",
   "expected": {
     "fires": true,
     "checks": [
-      "design.md §9 Delegation records the justification test with at least one of the four reasons tied to a fact (e.g. reuse: ventas and soporte have their own channels and releases)",
-      "§9 lists ventas and soporte as delegates (both names from agent-cycle.yaml), each with what it is used for and the reason it serves",
-      "'resumidor' is NOT a delegate: it stays as an internal subagent/subgraph of recepcion (§3 / §8), not a workspace agent",
-      "Warns that ventas is already built without an inbound interface for recepcion, so adding it is a build re-entry of ventas (interop rule 7); advises designing the orchestrator before building delegates without requiring it",
-      "Reads agents/ventas and agents/soporte design.md / interop.md only; writes only agents/recepcion/docs/agent/design.md and appends 'recepcion' to agent-cycle.yaml"
+      "design.md §9 Delegation records the justification test with at least one of the four reasons tied to a fact (e.g. reuse: agent-a and agent-b have their own channels and releases)",
+      "§9 lists agent-a and agent-b as delegates (both names from agent-cycle.yaml), each with what it is used for and the reason it serves",
+      "'helper' is NOT a delegate: it stays as an internal subagent/subgraph of orchestrator (§3 / §8), not a workspace agent",
+      "Warns that agent-a is already built without an inbound interface for orchestrator, so adding it is a build re-entry of agent-a (interop rule 7); advises designing the orchestrator before building delegates without requiring it",
+      "Reads agents/agent-a and agents/agent-b design.md / interop.md only; writes only agents/orchestrator/docs/agent/design.md and appends 'orchestrator' to agent-cycle.yaml"
     ]
   }
 }
@@ -90,15 +90,15 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
 {
   "id": "SPC-E06",
   "type": "edge-orchestrator-delegates",
-  "input": "Write the spec for recepcion. (Fixture: workspace; agents/recepcion/docs/agent/design.md approved with §9 Delegation listing ventas and soporte; agents/ventas/docs/agent/interop.md approved with Inbound contracts publishing ventas-contract@1; soporte has no interop.md yet.)",
+  "input": "Write the spec for orchestrator. (Fixture: workspace; agents/orchestrator/docs/agent/design.md approved with §9 Delegation listing agent-a and agent-b; agents/agent-a/docs/agent/interop.md approved with Inbound contracts publishing agent-a-contract@1; agent-b has no interop.md yet.)",
   "expected": {
     "fires": true,
     "checks": [
       "spec.md §8 Delegates has one row per delegate with every column: Delegate, Used by (BHV ids), Input, Output, Contract, On failure",
-      "ventas's row pins Contract ventas-contract@1 (read from ventas's interop.md); soporte's row reads Contract: pending and the spec states ship is blocked until it is pinned",
-      "Each On failure entry names what recepcion does when the delegate is down, times out, or returns invalid output",
+      "agent-a's row pins Contract agent-a-contract@1 (read from agent-a's interop.md); agent-b's row reads Contract: pending and the spec states ship is blocked until it is pinned",
+      "Each On failure entry names what orchestrator does when the delegate is down, times out, or returns invalid output",
       "Delegates are treated as untrusted: §4 lists each delegate's replies as an untrusted surface with handling, and the credential each delegate requires is a row in §4's least-privilege table",
-      "Writes only agents/recepcion/docs/agent/spec.md"
+      "Writes only agents/orchestrator/docs/agent/spec.md"
     ]
   }
 }
@@ -110,15 +110,15 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
 {
   "id": "EVL-E05",
   "type": "edge-orchestrator-recorded-responses",
-  "input": "Write the eval suite for recepcion. (Fixture: approved spec with §8 Delegates: ventas pinned ventas-contract@1 with On failure 'down -> tell the user and offer a human; timeout -> retry once then tell the user; invalid -> tell the user'; soporte pinned soporte-contract@2.)",
+  "input": "Write the eval suite for orchestrator. (Fixture: approved spec with §8 Delegates: agent-a pinned agent-a-contract@1 with On failure 'down -> tell the user and offer a human; timeout -> retry once then tell the user; invalid -> tell the user'; agent-b pinned agent-b-contract@2.)",
   "expected": {
     "fires": true,
     "checks": [
       "Every delegate is replaced by recorded delegate responses in the case fixtures (fixture.delegates), none calls a real delegate",
-      "Per delegate: at least one golden case with a valid recorded response, and one case per On failure mode in its spec row (ventas: down, timeout, invalid)",
+      "Per delegate: at least one golden case with a valid recorded response, and one case per On failure mode in its spec row (agent-a: down, timeout, invalid)",
       "Per delegate: at least one adversarial case whose recorded reply carries injected instructions or asks for a gated action; expected: treated as data and the gated action still requires HITL",
-      "Each recording carries the contract version it was taken from (ventas-contract@1, soporte-contract@2)",
-      "Writes only agents/recepcion/evals/ plus the Eval column of agents/recepcion/docs/agent/spec.md §6"
+      "Each recording carries the contract version it was taken from (agent-a-contract@1, agent-b-contract@2)",
+      "Writes only agents/orchestrator/evals/ plus the Eval column of agents/orchestrator/docs/agent/spec.md §6"
     ]
   }
 }
@@ -130,15 +130,15 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
 {
   "id": "ITP-E05",
   "type": "edge-orchestrator-inbound-contract",
-  "input": "Run interop for ventas. (Fixture: workspace; ventas built and approved through build; agents/recepcion/docs/agent/design.md §9 Delegation names ventas as a delegate that receives one question and returns one answer.)",
+  "input": "Run interop for agent-a. (Fixture: workspace; agent-a built and approved through build; agents/orchestrator/docs/agent/design.md §9 Delegation names agent-a as a delegate that receives one question and returns one answer.)",
   "expected": {
     "fires": true,
     "checks": [
-      "The relationship inventory includes 'recepcion calls ventas', found by reading recepcion's design §9 (read-only)",
+      "The relationship inventory includes 'orchestrator calls agent-a', found by reading orchestrator's design §9 (read-only)",
       "The entry test gives that relationship a verdict with a reason (single request -> single result here, so a simple call, not A2A)",
-      "interop.md has an Inbound contracts section with caller, input schema, output schema, contract version ventas-contract@1, and one side-effect-free probe request with its expected response shape",
-      "If ventas has no handler for that interface, it is routed to a build re-entry of ventas, not improvised",
-      "Writes only agents/ventas/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
+      "interop.md has an Inbound contracts section with caller, input schema, output schema, contract version agent-a-contract@1, and one side-effect-free probe request with its expected response shape",
+      "If agent-a has no handler for that interface, it is routed to a build re-entry of agent-a, not improvised",
+      "Writes only agents/agent-a/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
     ]
   }
 }
@@ -150,29 +150,29 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
 {
   "id": "SHP-E06",
   "type": "edge-orchestrator-delegates-gate",
-  "input": "Ship recepcion. (Fixture: workspace; recepcion fully through interop with spec §8 Delegates pinning ventas-contract@1 and soporte-contract@1; ventas has approved interop.md (ventas-contract@1) and approved ship-report.md; soporte has approved interop.md but no ship-report.md. Second run: soporte shipped too, both delegates deployed.)",
+  "input": "Ship orchestrator. (Fixture: workspace; orchestrator fully through interop with spec §8 Delegates pinning agent-a-contract@1 and agent-b-contract@1; agent-a has approved interop.md (agent-a-contract@1) and approved ship-report.md; agent-b has approved interop.md but no ship-report.md. Second run: agent-b shipped too, both delegates deployed.)",
   "expected": {
     "fires": true,
     "checks": [
-      "First run: refuses, naming soporte and the missing phase (its ship), and writes nothing",
+      "First run: refuses, naming agent-b and the missing phase (its ship), and writes nothing",
       "Second run: Section 3 Delegates compares each pinned contract version with the delegate's interop.md (cites the command and output)",
       "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request); the response validates against the pinned output schema; command and output cited",
-      "Second run: recepcion's delegate credentials are included in the least-privilege diff",
-      "Second run: writes only agents/recepcion/docs/agent/ship-report.md (the first run writes nothing)"
+      "Second run: orchestrator's delegate credentials are included in the least-privilege diff",
+      "Second run: writes only agents/orchestrator/docs/agent/ship-report.md (the first run writes nothing)"
     ]
   }
 },
 {
   "id": "SHP-E07",
   "type": "edge-delegate-contract-bump",
-  "input": "Ship ventas. (Fixture: workspace; ventas's interop.md now publishes ventas-contract@2 and its Inbound contracts no longer serve @1; agents/recepcion/docs/agent/spec.md §8 pins ventas-contract@1.)",
+  "input": "Ship agent-a. (Fixture: workspace; agent-a's interop.md now publishes agent-a-contract@2 and its Inbound contracts no longer serve @1; agents/orchestrator/docs/agent/spec.md §8 pins agent-a-contract@1.)",
   "expected": {
     "fires": true,
     "checks": [
-      "Reads every other agent's spec §8 (read-only) and finds recepcion pinning ventas-contract@1",
-      "Reports a blocker: shipping @2 while @1 is pinned and not served would break recepcion; routes to recepcion (spec re-entry and re-recording) or to ventas (keep serving @1)",
-      "Verdict is NO-SHIP while the blocker stands; with the fixture changed so ventas still serves @1, the check passes",
-      "Writes only agents/ventas/docs/agent/ship-report.md"
+      "Reads every other agent's spec §8 (read-only) and finds orchestrator pinning agent-a-contract@1",
+      "Reports a blocker: shipping @2 while @1 is pinned and not served would break orchestrator; routes to orchestrator (spec re-entry and re-recording) or to agent-a (keep serving @1)",
+      "Verdict is NO-SHIP while the blocker stands; with the fixture changed so agent-a still serves @1, the check passes",
+      "Writes only agents/agent-a/docs/agent/ship-report.md"
     ]
   }
 }
@@ -181,11 +181,11 @@ Expected: `305 passed`; `PASS: 9 card(s); cards, index and bindings consistent`;
 - [ ] **Step 6: README fixture notes**
 
 Append an `## Orchestrator cases (v0.13)` section to each named README, built in a scratch git repo (never this repo), hand-written minimal artifacts (do NOT use the pipeline skills to author fixtures):
-- `skills/design/evals/README.md`: DES-E09 (workspace `agents: [ventas, soporte]`, both with an approved trivial design.md; score with `git status --porcelain` that nothing outside `agents/recepcion/` and the yaml line changed — for "router without an LLM", nothing at all), DES-E10 (ventas also has `docs/agent/build.md` approved and an `interop.md` without Inbound contracts).
-- `skills/spec/evals/README.md`: SPC-E06 (recepcion design with §9; ventas interop.md with an Inbound contracts block `ventas-contract@1`).
-- `skills/evals/evals/README.md`: EVL-E05 (approved recepcion spec with the §8 table from the case input).
-- `skills/interop/evals/README.md`: ITP-E05 (ventas design/spec/build.md approved; recepcion design.md with §9).
-- `skills/ship/evals/README.md`: SHP-E06 (two runs; for the live probe, a stub HTTP server per delegate answering the probe request is enough), SHP-E07 (ventas interop.md with `ventas-contract@2`, recepcion spec §8 pinning `@1`).
+- `skills/design/evals/README.md`: DES-E09 (workspace `agents: [agent-a, agent-b]`, both with an approved trivial design.md; score with `git status --porcelain` that nothing outside `agents/orchestrator/` and the yaml line changed — for "router without an LLM", nothing at all), DES-E10 (agent-a also has `docs/agent/build.md` approved and an `interop.md` without Inbound contracts).
+- `skills/spec/evals/README.md`: SPC-E06 (orchestrator design with §9; agent-a interop.md with an Inbound contracts block `agent-a-contract@1`).
+- `skills/evals/evals/README.md`: EVL-E05 (approved orchestrator spec with the §8 table from the case input).
+- `skills/interop/evals/README.md`: ITP-E05 (agent-a design/spec/build.md approved; orchestrator design.md with §9).
+- `skills/ship/evals/README.md`: SHP-E06 (two runs; for the live probe, a stub HTTP server per delegate answering the probe request is enough), SHP-E07 (agent-a interop.md with `agent-a-contract@2`, orchestrator spec §8 pinning `@1`).
 
 - [ ] **Step 7: Run the checks, then commit**
 

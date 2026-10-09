@@ -5,7 +5,7 @@
     {
       "id": "ITP-E01",
       "type": "positive-skip",
-      "input": "Does this agent need agent-to-agent interop? Run the interop phase. (Run in a repo with approved design+spec+build where all external relationships are bounded result-lookups, e.g. the real whatsapp-owner-assistant.)",
+      "input": "Does this agent need agent-to-agent interop? Run the interop phase. (Run in a repo with approved design+spec+build where all external relationships are bounded result-lookups, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -48,7 +48,7 @@
     {
       "id": "ITP-E04",
       "type": "trigger-negative",
-      "input": "Integrate my app with the Stripe API — I need webhooks for payment events and a client wrapper.",
+      "input": "Integrate my app with a third-party REST API — I need webhooks for its events and a client wrapper.",
       "expected": {
         "fires": false,
         "checks": [
@@ -60,15 +60,15 @@
     {
       "id": "ITP-E05",
       "type": "edge-orchestrator-inbound-contract",
-      "input": "Run interop for ventas. (Fixture: workspace; ventas built and approved through build; agents/recepcion/docs/agent/design.md §9 Delegation names ventas as a delegate that receives one question and returns one answer.)",
+      "input": "Run interop for agent-a. (Fixture: workspace; agent-a built and approved through build; agents/orchestrator/docs/agent/design.md §9 Delegation names agent-a as a delegate that receives one question and returns one answer.)",
       "expected": {
         "fires": true,
         "checks": [
-          "The relationship inventory includes 'recepcion calls ventas', found by reading recepcion's design §9 (read-only)",
+          "The relationship inventory includes 'orchestrator calls agent-a', found by reading orchestrator's design §9 (read-only)",
           "The entry test gives that relationship a verdict with a reason (single request -> single result here, so a simple call, not A2A)",
-          "interop.md has an Inbound contracts section with caller, input schema, output schema, protocol verdict, contract version ventas-contract@1 with the line 'Served: ventas-contract@1', and one side-effect-free probe request with its expected response",
-          "If ventas has no handler for that interface (or its spec lacks the ingress, the untrusted surface for its callers, or the probe's no-side-effect BHV), it is routed to a spec re-entry of ventas (spec, then evals, then build, then interop publishes), the human's with the hook off because ventas is built; not improvised and not a build re-entry alone",
-          "Writes only agents/ventas/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
+          "interop.md has an Inbound contracts section with caller, input schema, output schema, protocol verdict, contract version agent-a-contract@1 with the line 'Served: agent-a-contract@1', and one side-effect-free probe request with its expected response",
+          "If agent-a has no handler for that interface (or its spec lacks the ingress, the untrusted surface for its callers, or the probe's no-side-effect BHV), it is routed to a spec re-entry of agent-a (spec, then evals, then build, then interop publishes), the human's with the hook off because agent-a is built; not improvised and not a build re-entry alone",
+          "Writes only agents/agent-a/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
         ]
       }
     }

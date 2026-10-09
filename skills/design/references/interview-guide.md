@@ -18,8 +18,10 @@ stress-test, even on user-provided metrics.
 
 **E (Environment):** lead question: "Who talks to this agent, and through what
 channel?" Then, in SEPARATE messages as needed: connected systems, language/
-market. For WhatsApp agents, a separate follow-up: business-initiated or
-user-initiated? 24h-window implications land in /spec, but note the mode here.
+market. For channels with rules for business-initiated messages (e.g. a
+24-hour reply window, template-only messages outside it), a separate follow-up:
+business-initiated or user-initiated? Reply-window implications land in /spec,
+but note the mode here.
 Never bundle these into one message (DES-E01 check #1).
 
 **A (Actuators):** "What is the agent allowed to DO?" List tools by name +
@@ -31,7 +33,7 @@ write / destructive) — /spec finalizes.
 ## Phase B — Environment classification
 
 Ask only the dimensions not already obvious from Phase A answers. Map each to
-its implication (table in artifact-template.md). Typical WhatsApp business
+its implication (table in artifact-template.md). Typical messaging-channel chat
 agent: partially observable, stochastic, sequential, dynamic, single-agent —
 confirm each against THIS agent's Phase A answers, don't copy the example.
 
@@ -223,7 +225,7 @@ Then:
 
 ## Phase F — NO-goals and gate
 
-- "Name at least two things this agent must NOT do." (refunds without human?
+- "Name at least two things this agent must NOT do." (irreversible actions without a human?
   medical advice? out-of-scope topics?)
 - Open questions (§7) must NEVER be empty. If Phase C found no gaps, surface at
   least one genuine uncertainty from any phase: an unconfirmed classification

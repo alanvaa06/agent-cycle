@@ -5,7 +5,7 @@
     {
       "id": "ECO-E01",
       "type": "positive",
-      "input": "What will it cost to run this agent monthly? (Run in a repo with approved design.md + spec.md, e.g. the real whatsapp-owner-assistant.)",
+      "input": "What will it cost to run this agent monthly? (Run in a repo with approved design.md + spec.md, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -15,7 +15,7 @@
           "Monthly cost model: scenario x component table (model tokens, infra for the design's target, channel fees, third-party tools) with totals expressed as bands — no cent-precision totals",
           "The design's deployment target is the base case; other targets appear only if the design names them or the user asks",
           "Sensitivity section covers at least: model-tier swap and volume swing; prompt-caching effect when the provider supports it",
-          "Break-even section present: against a client price when the agent is client-facing, or against internal value (the design's own Performance metric, e.g. owner hours saved) when internal",
+          "Break-even section present: against a client price when the agent is client-facing, or against internal value (the design's own Performance metric, e.g. user hours saved) when internal",
           "Cost controls are actionable and include an explicit token-spend alarm threshold derived from the estimate (stated as the input /ship will calibrate against)",
           "Calibration plan: names which spec telemetry fields (e.g. tool_call_count, token counters) recalibrate which assumption post-build",
           "Artifact at docs/agent/<agent_name>-economics.md with frontmatter agent_name, version, status: draft, date, basis: estimate, prices_as_of (+ spec_version when a spec exists); skill stops at the human gate"

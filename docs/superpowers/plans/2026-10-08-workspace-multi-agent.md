@@ -217,57 +217,57 @@ def test_shell_prebuild_evals_delete_allowed(tmp_path: Path) -> None:
 # --- workspace
 
 def test_workspace_freezes_per_agent(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    assert run(tmp_path, "Write", file_path=str(tmp_path / "agents/ventas/evals/config.yaml"), content="x\n")
-    assert run(tmp_path, "Write", file_path=str(tmp_path / "agents/soporte/evals/config.yaml"), content="x\n") == []
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Write", file_path=str(tmp_path / "agents/agent-a/evals/config.yaml"), content="x\n")
+    assert run(tmp_path, "Write", file_path=str(tmp_path / "agents/agent-b/evals/config.yaml"), content="x\n") == []
 
 
 def test_workspace_root_level_evals_is_not_an_agent(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "approved"})
+    make_workspace(tmp_path, {"agent-a": "approved"})
     (tmp_path / "evals").mkdir()
     assert run(tmp_path, "Write", file_path=str(tmp_path / "evals/x.yaml"), content="x\n") == []
 
 
 def test_workspace_freeze_ignores_the_list(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
-    (tmp_path / "agent-cycle.yaml").write_text("layout: workspace\nagents: [soporte]\n", encoding="utf-8")
-    assert run(tmp_path, "Write", file_path=str(tmp_path / "agents/ventas/evals/config.yaml"), content="x\n")
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    (tmp_path / "agent-cycle.yaml").write_text("layout: workspace\nagents: [agent-b]\n", encoding="utf-8")
+    assert run(tmp_path, "Write", file_path=str(tmp_path / "agents/agent-a/evals/config.yaml"), content="x\n")
 
 
 def test_workspace_test_column_per_agent(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": "approved"})
-    assert run(tmp_path, "Edit", file_path=str(tmp_path / "agents/ventas/docs/agent/spec.md"), **TEST_FILL) == []
-    assert run(tmp_path, "Edit", file_path=str(tmp_path / "agents/soporte/docs/agent/spec.md"), **TEST_FILL)
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": "approved"})
+    assert run(tmp_path, "Edit", file_path=str(tmp_path / "agents/agent-a/docs/agent/spec.md"), **TEST_FILL) == []
+    assert run(tmp_path, "Edit", file_path=str(tmp_path / "agents/agent-b/docs/agent/spec.md"), **TEST_FILL)
 
 
 @pytest.mark.parametrize("command", [
-    "rm -rf agents/ventas",
+    "rm -rf agents/agent-a",
     "rm -rf agents",
-    "mv agents/ventas agents/old",
-    "cd agents/ventas && rm evals/config.yaml",
+    "mv agents/agent-a agents/old",
+    "cd agents/agent-a && rm evals/config.yaml",
     "echo x >> agent-cycle.yaml",
 ])
 def test_workspace_shell_writes_blocked(tmp_path: Path, command: str) -> None:
-    make_workspace(tmp_path, {"ventas": "draft"})
+    make_workspace(tmp_path, {"agent-a": "draft"})
     assert run(tmp_path, "Bash", command=command)
 
 
 def test_workspace_shell_write_in_other_agent_src_allowed(tmp_path: Path) -> None:
-    make_workspace(tmp_path, {"ventas": "approved", "soporte": None})
-    assert run(tmp_path, "Bash", command="echo hi > agents/soporte/src/notes.txt") == []
+    make_workspace(tmp_path, {"agent-a": "approved", "agent-b": None})
+    assert run(tmp_path, "Bash", command="echo hi > agents/agent-b/src/notes.txt") == []
 
 
 # --- agent-cycle.yaml is append-only
 
 @pytest.mark.parametrize(("content", "allowed"), [
-    ("layout: workspace\nagents: [ventas, soporte, nuevo]\n", True),
-    ("layout: workspace\nagents: [ventas]\n", False),
-    ("layout: single\nagents: [ventas, soporte]\n", False),
-    ("layout: workspace\nagents: [ventas, soporte]\nowner: x\n", False),
-    ("layout: workspace\nagents:\n  - ventas\n", False),
+    ("layout: workspace\nagents: [agent-a, agent-b, nuevo]\n", True),
+    ("layout: workspace\nagents: [agent-a]\n", False),
+    ("layout: single\nagents: [agent-a, agent-b]\n", False),
+    ("layout: workspace\nagents: [agent-a, agent-b]\nowner: x\n", False),
+    ("layout: workspace\nagents:\n  - agent-a\n", False),
 ])
 def test_marker_is_append_only(tmp_path: Path, content: str, allowed: bool) -> None:
-    make_workspace(tmp_path, {"ventas": "draft", "soporte": None})
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
     hits = run(tmp_path, "Write", file_path=str(tmp_path / "agent-cycle.yaml"), content=content)
     assert (hits == []) is allowed
 
@@ -726,14 +726,14 @@ git commit -m "feat(build): anti-gaming hook as a tested file, state-driven per 
 {
   "id": "DES-E07",
   "type": "edge-workspace-new-agent",
-  "input": "Design a second agent for this client: a support agent that answers order-status questions. (Fixture: a workspace repo with agent-cycle.yaml listing [ventas] and agents/ventas/ already designed.)",
+  "input": "Design a second agent for this client: one that answers status questions about the user's open requests. (Fixture: a workspace repo with agent-cycle.yaml listing [agent-a] and agents/agent-a/ already designed.)",
   "expected": {
     "fires": true,
     "checks": [
       "Resolves the workspace per the agent-cycle plugin's references/agent-root.md and creates the new agent under agents/<name>/ — design.md is written to agents/<name>/docs/agent/design.md, never to the repo root",
       "agent-cycle.yaml gains <name> in agents: and nothing else in it changes",
       "If the proposed name is already listed or agents/<name>/ exists, it stops and asks one question before writing anything",
-      "Nothing under agents/ventas/ is modified"
+      "Nothing under agents/agent-a/ is modified"
     ]
   }
 },
@@ -759,7 +759,7 @@ git commit -m "feat(build): anti-gaming hook as a tested file, state-driven per 
 {
   "id": "SPC-E05",
   "type": "edge-workspace-ambiguous",
-  "input": "Write the spec. (Fixture: workspace with agents [ventas, soporte], both with approved design.md; session started at the repo root; the request names no agent.)",
+  "input": "Write the spec. (Fixture: workspace with agents [agent-a, agent-b], both with approved design.md; session started at the repo root; the request names no agent.)",
   "expected": {
     "fires": true,
     "checks": [
@@ -776,15 +776,15 @@ git commit -m "feat(build): anti-gaming hook as a tested file, state-driven per 
 {
   "id": "BLD-E06",
   "type": "edge-workspace-second-build",
-  "input": "Build the soporte agent. (Fixture: workspace with agents [ventas, soporte]; ventas already built with the hook installed at .claude/hooks/; soporte has approved design, spec and evals.)",
+  "input": "Build agent-b. (Fixture: workspace with agents [agent-a, agent-b]; agent-a already built with the hook installed at .claude/hooks/; agent-b has approved design, spec and evals.)",
   "expected": {
     "fires": true,
     "checks": [
-      "The baseline commit contains only agents/soporte/ artifacts (design.md, spec.md, evals/) plus agent-cycle.yaml if soporte's entry was uncommitted; build_start recorded in agents/soporte/docs/agent/build.md",
-      "agents/soporte/docs/agent/build.md stub (status: draft, build_start) is committed on its own before the first source file",
-      "The hook is NOT reinstalled when its HOOK_VERSION matches the plugin's; it is verified active (a dummy edit to agents/soporte/evals/config.yaml is blocked)",
-      "Every source, test, lockfile and deploy file is written inside agents/soporte/",
-      "Queue/stream name, database schema and service.name carry the soporte prefix"
+      "The baseline commit contains only agents/agent-b/ artifacts (design.md, spec.md, evals/) plus agent-cycle.yaml if agent-b's entry was uncommitted; build_start recorded in agents/agent-b/docs/agent/build.md",
+      "agents/agent-b/docs/agent/build.md stub (status: draft, build_start) is committed on its own before the first source file",
+      "The hook is NOT reinstalled when its HOOK_VERSION matches the plugin's; it is verified active (a dummy edit to agents/agent-b/evals/config.yaml is blocked)",
+      "Every source, test, lockfile and deploy file is written inside agents/agent-b/",
+      "Queue/stream name, database schema and service.name carry the agent-b prefix"
     ]
   }
 }
@@ -796,15 +796,15 @@ git commit -m "feat(build): anti-gaming hook as a tested file, state-driven per 
 {
   "id": "SHP-E05",
   "type": "edge-workspace-ship",
-  "input": "Run the ship audit for soporte. (Fixture: workspace; ventas commits interleaved with soporte's build range; one commit in the range touches agents/soporte/src/ and agents/ventas/src/ together; one earlier 'agent-cycle: workspace move' pure-rename commit.)",
+  "input": "Run the ship audit for agent-b. (Fixture: workspace; agent-a commits interleaved with agent-b's build range; one commit in the range touches agents/agent-b/src/ and agents/agent-a/src/ together; one earlier 'agent-cycle: workspace move' pure-rename commit.)",
   "expected": {
     "fires": true,
     "checks": [
-      "The anti-gaming diff covers only agents/soporte/evals/, docs/agent/design.md and docs/agent/spec.md (plus their pre-move root paths when a workspace-move commit is in range), command cited",
-      "Commits touching only agents/ventas/ are ignored",
+      "The anti-gaming diff covers only agents/agent-b/evals/, docs/agent/design.md and docs/agent/spec.md (plus their pre-move root paths when a workspace-move commit is in range), command cited",
+      "Commits touching only agents/agent-a/ are ignored",
       "The commit touching both agents is a finding routed to build",
       "The pure-rename workspace-move commit is accepted as sanctioned and recorded",
-      "The lockfile checked is agents/soporte/'s"
+      "The lockfile checked is agents/agent-b/'s"
     ]
   }
 }
@@ -843,7 +843,7 @@ are relative to `AGENT_ROOT`; git commands that take paths prefix them with it.
 
   ```yaml
   layout: workspace
-  agents: [ventas, soporte]      # each lives at agents/<name>/
+  agents: [agent-a, agent-b]      # each lives at agents/<name>/
   ```
 
   `<name>` is the design's `agent_name` (kebab-case). The path is always

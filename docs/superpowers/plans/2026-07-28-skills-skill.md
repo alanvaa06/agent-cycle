@@ -31,7 +31,7 @@ Write `skills/skills/evals/cases.json`:
     {
       "id": "SKL-E01",
       "type": "positive-none",
-      "input": "Does this agent need skills? Run the skills phase. (Run in a repo with approved design+spec+build where every capability is covered by tools + static instructions, e.g. the real whatsapp-owner-assistant.)",
+      "input": "Does this agent need skills? Run the skills phase. (Run in a repo with approved design+spec+build where every capability is covered by tools + static instructions, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -101,7 +101,7 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
-- **SKL-E01** is the real dogfood run: the whatsapp-owner-assistant's v1
+- **SKL-E01** is the real dogfood run: the dogfood agent's (external repo) v1
   surface (read-only, 5 capabilities, 7 tools) is expected to produce
   decision: none. Scoring the entry-test check requires the per-capability
   table — a bare "doesn't need skills" is a FAIL even if the conclusion is
@@ -414,7 +414,7 @@ git commit -m "feat(skills): SKILL.md — entry test first, none-is-success, EDD
 ### Task 6 (Alan, interactive): eval runs + dogfood
 
 - [ ] SKL-E03 ×2, SKL-E04 in scratch; SKL-E02 with the hand-written variant-rich fixture → rows in results.md.
-- [ ] SKL-E01 dogfood in `C:\Proyectos\Whatsapp_agent` (post-build): expected decision none with the per-capability table → tag `skills-v0.1`.
+- [ ] SKL-E01 dogfood in the external dogfood repo (post-build): expected decision none with the per-capability table → tag `skills-v0.1`.
 - [ ] Marketplace update + reinstall for v0.6.0.
 
 ---

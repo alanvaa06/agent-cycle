@@ -31,7 +31,7 @@ Write `skills/blueprint/evals/cases.json`:
     {
       "id": "BLP-E01",
       "type": "positive-progressive",
-      "input": "Generate the agent blueprint. (Run in a repo with approved design+spec+evals+economics but NO build yet, e.g. the real whatsapp-owner-assistant pre-build.)",
+      "input": "Generate the agent blueprint. (Run in a repo with approved design+spec+evals+economics but NO build yet, e.g. the real dogfood agent (external repo) pre-build.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -471,7 +471,7 @@ git commit -m "feat(blueprint): SKILL.md — extract never invent, self-containe
 ### Task 6 (Alan, interactive): eval runs + dogfood
 
 - [ ] BLP-E02 ×2, BLP-E04 in scratch; BLP-E03 with the hand-written build/ship fixture → rows in results.md.
-- [ ] BLP-E01 dogfood in `C:\Proyectos\Whatsapp_agent` — runnable NOW (pre-build progressive render is the case) → tag `blueprint-v0.1`. Re-run after BLD-E01 for the built-topology upgrade.
+- [ ] BLP-E01 dogfood in the external dogfood repo — runnable NOW (pre-build progressive render is the case) → tag `blueprint-v0.1`. Re-run after BLD-E01 for the built-topology upgrade.
 - [ ] Marketplace update + reinstall for v0.9.0.
 
 ---

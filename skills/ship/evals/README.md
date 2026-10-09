@@ -6,7 +6,7 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
-- The real whatsapp-owner-assistant fixture is pre-v0.11: it has no design
+- The real dogfood agent fixture (external repo) is pre-v0.11: it has no design
   §8 and no spec `runtime`. It needs design re-entry (Phase E) and a spec
   version bump with `runtime` before SHP-E01 can run (or use a copy with §8 +
   `runtime` added).
@@ -31,15 +31,15 @@ result is a FAIL. The nothing-else-modified check is scored by `git status`
 
 Build the fixture in a scratch git repo (never this repo).
 
-- **SHP-E05**: a workspace repo with `agents/ventas/` and `agents/soporte/`,
-  `soporte` fully built. It was first built at the repo root, so the
+- **SHP-E05**: a workspace repo with `agents/agent-a/` and `agents/agent-b/`,
+  `agent-b` fully built. It was first built at the repo root, so the
   `build_start` SHA in its `build.md` is a pre-move commit. Make the range
   `build_start..HEAD` contain: several commits that touch only
-  `agents/ventas/`; one commit that touches `agents/soporte/src/` and
-  `agents/ventas/src/` together; and one commit with the message prefix
+  `agents/agent-a/`; one commit that touches `agents/agent-b/src/` and
+  `agents/agent-a/src/` together; and one commit with the message prefix
   `agent-cycle: workspace move` that is a pure rename (`git mv` of the
-  root-level agent files into `agents/soporte/`, nothing else, `docs/agent`
-  landing at `agents/soporte/docs/agent`), lying inside that range. Each
+  root-level agent files into `agents/agent-b/`, nothing else, `docs/agent`
+  landing at `agents/agent-b/docs/agent`), lying inside that range. Each
   agent has its own lockfile. Score the diff check from the literal command the
   audit cites.
 
@@ -49,24 +49,24 @@ Build every fixture in a scratch git repo (never this repo) with hand-written
 minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
-- **SHP-E06**: a workspace repo, two runs. Run 1: recepcion through interop
-  with spec §8 pinning `ventas-contract@1` and `soporte-contract@1`; ventas
-  has approved `interop.md` (Inbound contracts entry for recepcion with
-  `Served: ventas-contract@1`) and an approved `ship-report.md` whose
-  `interop_version` equals that interop.md's `version`; soporte has approved
-  `interop.md` (`Served: soporte-contract@1`) but no `ship-report.md`. Run 2:
-  add soporte's `ship-report.md` (same `interop_version` rule). For the live
+- **SHP-E06**: a workspace repo, two runs. Run 1: orchestrator through interop
+  with spec §8 pinning `agent-a-contract@1` and `agent-b-contract@1`; agent-a
+  has approved `interop.md` (Inbound contracts entry for orchestrator with
+  `Served: agent-a-contract@1`) and an approved `ship-report.md` whose
+  `interop_version` equals that interop.md's `version`; agent-b has approved
+  `interop.md` (`Served: agent-b-contract@1`) but no `ship-report.md`. Run 2:
+  add agent-b's `ship-report.md` (same `interop_version` rule). For the live
   probe, a stub HTTP server per delegate answering the published probe
-  request is enough; recepcion's deploy configuration (e.g. its
-  `.env.example` / compose file) sets `VENTAS_BASE_URL` and
-  `SOPORTE_BASE_URL` (the keys its delegate client reads) to the stubs, plus
-  its delegate credentials `VENTAS_TOKEN` and `SOPORTE_TOKEN`.
-- **SHP-E07**: a workspace repo where ventas has the full approved chain
+  request is enough; orchestrator's deploy configuration (e.g. its
+  `.env.example` / compose file) sets `AGENT_A_BASE_URL` and
+  `AGENT_B_BASE_URL` (the keys its delegate client reads) to the stubs, plus
+  its delegate credentials `AGENT_A_TOKEN` and `AGENT_B_TOKEN`.
+- **SHP-E07**: a workspace repo where agent-a has the full approved chain
   (`design.md`, `spec.md`, `evals/config.yaml`, `build.md`, `skills.md`,
   `interop.md`) and a runner the audit can re-run; its `interop.md`
-  publishes `ventas-contract@2` with `Served: ventas-contract@2`, and its
+  publishes `agent-a-contract@2` with `Served: agent-a-contract@2`, and its
   Inbound contracts entry cites a handler that exists in its code and a probe
-  BHV in its spec. `agents/recepcion/docs/agent/spec.md` §8 pins
-  `ventas-contract@1`, and `agents/recepcion/docs/agent/ship-report.md` is
-  approved with `delegate_contracts: [ventas-contract@1]`. Re-run with
-  `Served: ventas-contract@1, ventas-contract@2` to score the passing branch.
+  BHV in its spec. `agents/orchestrator/docs/agent/spec.md` §8 pins
+  `agent-a-contract@1`, and `agents/orchestrator/docs/agent/ship-report.md` is
+  approved with `delegate_contracts: [agent-a-contract@1]`. Re-run with
+  `Served: agent-a-contract@1, agent-a-contract@2` to score the passing branch.

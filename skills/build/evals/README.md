@@ -6,7 +6,7 @@ silently edit — if a case is wrong).
 
 Case-specific setup:
 
-- The real whatsapp-owner-assistant fixture is pre-v0.11: it has no design
+- The real dogfood agent fixture (external repo) is pre-v0.11: it has no design
   §8 and no spec `runtime`. It needs design re-entry (Phase E) and a spec
   version bump with `runtime` before BLD-E01 can run (or use a copy with §8 +
   `runtime` added).
@@ -32,17 +32,17 @@ hook config on disk BEFORE source files appear in the history, not after.
 
 Build the fixture in a scratch git repo (never this repo).
 
-- **BLD-E06**: a workspace repo. `agent-cycle.yaml` lists `[ventas, soporte]`.
-  `ventas` is already built: `agents/ventas/docs/agent/build.md` exists, the
+- **BLD-E06**: a workspace repo. `agent-cycle.yaml` lists `[agent-a, agent-b]`.
+  `agent-a` is already built: `agents/agent-a/docs/agent/build.md` exists, the
   guard hook is installed at `.claude/hooks/guard_artifacts.py` at the plugin's
   current `HOOK_VERSION`, registered in `.claude/settings.json`, and
-  `.claude/hooks/built-agents.txt` (tracked) contains `agents/ventas/`.
-  `soporte` has an approved `design.md`, `spec.md` and `evals/` under
-  `agents/soporte/` (hand-written and trivial; do NOT use the pipeline skills
-  to author them), with no `build.md`. Commit them, and commit `soporte`'s
+  `.claude/hooks/built-agents.txt` (tracked) contains `agents/agent-a/`.
+  `agent-b` has an approved `design.md`, `spec.md` and `evals/` under
+  `agents/agent-b/` (hand-written and trivial; do NOT use the pipeline skills
+  to author them), with no `build.md`. Commit them, and commit `agent-b`'s
   entry in `agent-cycle.yaml` too, so check 1 is unambiguous: no baseline
   commit is expected and `build_start` is the fixture's HEAD. Variant: leave
-  `soporte`'s entry in `agent-cycle.yaml` uncommitted while the three artifact
+  `agent-b`'s entry in `agent-cycle.yaml` uncommitted while the three artifact
   paths stay clean; build must still make a baseline commit, containing only
   `agent-cycle.yaml`. Score the
   hook-version check with `git log -- .claude/hooks/guard_artifacts.py` (no new commit touching

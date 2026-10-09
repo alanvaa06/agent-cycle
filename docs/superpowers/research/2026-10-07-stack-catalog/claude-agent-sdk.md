@@ -146,7 +146,7 @@ Source keys:
 The fit with the pipeline is **partial** (inference throughout).
 
 **Seams that fit:**
-- **HITL gate:** the strongest seam. `PreToolUse` with `defer` gives a real async gate that suits WhatsApp approvals arriving hours later. Limitations: only one tool call per turn, and you must set `dontAsk`/`default` explicitly.
+- **HITL gate:** the strongest seam. `PreToolUse` with `defer` gives a real async gate that suits approvals arriving hours later over a messaging channel. Limitations: only one tool call per turn, and you must set `dontAsk`/`default` explicitly.
 - **Step cap:** native via `max_turns`.
 - **MCP tools:** native.
 - **Deploy targets:** Docker Compose, AWS and GCP all work if you size for one subprocess per session.
@@ -161,7 +161,7 @@ The fit with the pipeline is **partial** (inference throughout).
 - **Model swap:** LiteLLM-style swapping fails, because the SDK is Claude-only by policy.
 - **Telemetry:** OTel works, but span names are vendor-specific with only partial GenAI attributes.
 
-**Recommendation:** use this card for Claude-committed agents that need shell, files or long tasks. For WhatsApp-style business chat agents, where provider swap and a lightweight stateless worker matter, a thinner loop (the Client SDK tool runner or a provider-agnostic framework) fits the seams better. The Agent SDK is the heavier choice there.
+**Recommendation:** use this card for Claude-committed agents that need shell, files or long tasks. For business chat agents on a messaging channel, where provider swap and a lightweight stateless worker matter, a thinner loop (the Client SDK tool runner or a provider-agnostic framework) fits the seams better. The Agent SDK is the heavier choice there.
 
 ---
 

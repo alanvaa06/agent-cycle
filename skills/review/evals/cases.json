@@ -23,7 +23,7 @@
     {
       "id": "REV-E02",
       "type": "positive-pipeline-born",
-      "input": "Review this agent. (Run in a repo that HAS pipeline artifacts — approved design/spec/evals — plus agent source, e.g. the real whatsapp-owner-assistant post-build or a fixture.)",
+      "input": "Review this agent. (Run in a repo that HAS pipeline artifacts — approved design/spec/evals — plus agent source, e.g. the real dogfood agent (external repo) post-build or a fixture.)",
       "expected": {
         "fires": true,
         "checks": [

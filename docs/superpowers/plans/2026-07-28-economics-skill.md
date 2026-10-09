@@ -31,7 +31,7 @@ Write `skills/economics/evals/cases.json`:
     {
       "id": "ECO-E01",
       "type": "positive",
-      "input": "What will it cost to run this agent monthly? (Run in a repo with approved design.md + spec.md, e.g. the real whatsapp-owner-assistant.)",
+      "input": "What will it cost to run this agent monthly? (Run in a repo with approved design.md + spec.md, e.g. the real dogfood agent (external repo).)",
       "expected": {
         "fires": true,
         "checks": [
@@ -41,7 +41,7 @@ Write `skills/economics/evals/cases.json`:
           "Monthly cost model: scenario x component table (model tokens, infra for the design's target, channel fees, third-party tools) with totals expressed as bands — no cent-precision totals",
           "The design's deployment target is the base case; other targets appear only if the design names them or the user asks",
           "Sensitivity section covers at least: model-tier swap and volume swing; prompt-caching effect when the provider supports it",
-          "Break-even section present: against a client price when the agent is client-facing, or against internal value (the design's own Performance metric, e.g. owner hours saved) when internal",
+          "Break-even section present: against a client price when the agent is client-facing, or against internal value (the design's own Performance metric, e.g. user hours saved) when internal",
           "Cost controls are actionable and include an explicit token-spend alarm threshold derived from the estimate (stated as the input /ship will calibrate against)",
           "Calibration plan: names which spec telemetry fields (e.g. tool_call_count, token counters) recalibrate which assumption post-build",
           "Artifact at docs/agent/<agent_name>-economics.md with frontmatter agent_name, version, status: draft, date, basis: estimate, prices_as_of (+ spec_version when a spec exists); skill stops at the human gate"
@@ -191,7 +191,7 @@ spec_version: <version, when a spec exists>
 |---|---|---|---|
 | <model> input / output per Mtok | ... | <vault article / provider page> | <date> |
 | <infra: VPS node / serverless unit> | ... | ... | <date> |
-| <channel fees, e.g. WhatsApp conversation> | ... | ... | <date> |
+| <channel fees, e.g. per-conversation messaging fee> | ... | ... | <date> |
 | <third-party tools> | ... | ... | <date> |
 
 Prices are dated inputs, not truths — stale rows invalidate totals, not the method.
@@ -218,7 +218,7 @@ Tokens are modeled FIRST — they are 70–90% of any agent bill; infra follows.
 
 - Client-facing: monthly price to client → margin per scenario, floor price.
 - Internal: cost vs the design's own Performance metric monetized
-  (e.g. owner hours saved x hourly value) → cost per hour saved.
+  (e.g. user hours saved x hourly value) → cost per hour saved.
 
 ## 6. Cost controls
 
@@ -309,7 +309,7 @@ mechanism, don't invent discount factors.
 Client-facing agent: margin table vs the client's monthly price (ask for the
 price if unknown — one question) and the floor price. Internal agent: monetize
 the design's own Performance metric (e.g. hours of owner lookup time saved x
-the owner's hourly value — ask for the hourly value if needed, one question)
+the user's hourly value — ask for the hourly value if needed, one question)
 → cost per unit of value; state the utilization at which the agent pays for
 itself.
 
@@ -460,7 +460,7 @@ git commit -m "feat(economics): SKILL.md — dated prices, tokens-first, bands, 
 ### Task 6 (Alan, interactive): eval runs + dogfood
 
 - [ ] ECO-E02 ×2, ECO-E03, ECO-E04 in scratch → rows in results.md.
-- [ ] ECO-E01 dogfood in `C:\Proyectos\Whatsapp_agent`: internal agent → break-even vs the design's lookup-time metric; VPS base case; vault articles as price sources → approve → tag `economics-v0.1`.
+- [ ] ECO-E01 dogfood in the external dogfood repo: internal agent → break-even vs the design's lookup-time metric; VPS base case; vault articles as price sources → approve → tag `economics-v0.1`.
 - [ ] Marketplace update + reinstall for v0.4.0.
 
 ---

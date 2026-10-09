@@ -4,7 +4,7 @@
 
 **Goal:** Ship the first skill of the agent-cycle plugin — `agent-cycle:design` — which interviews the user and produces an approvable `docs/agent/design.md` (PEAS + environment classification + harness + deployment intent), plus the plugin manifest it debuts in.
 
-**Architecture:** Claude Code plugin at `C:\Proyectos\agent-cycle\` with skills auto-discovered from `skills/`. The design skill is process-only markdown (no code): a SKILL.md workflow + two reference files + an EDD eval-case file written BEFORE the SKILL.md (per the design doc's EDD rule). The skill loads the user's personal `agent-design` skill as knowledge base and never copies it. Definition of done = the dogfood run: the real WhatsApp-on-AWS agent's design.md, approved by Alan without manual rework.
+**Architecture:** Claude Code plugin at `C:\Proyectos\agent-cycle\` with skills auto-discovered from `skills/`. The design skill is process-only markdown (no code): a SKILL.md workflow + two reference files + an EDD eval-case file written BEFORE the SKILL.md (per the design doc's EDD rule). The skill loads the user's personal `agent-design` skill as knowledge base and never copies it. Definition of done = the dogfood run: the real dogfood agent's design.md, approved by Alan without manual rework.
 
 **Tech Stack:** Claude Code plugin format (`.claude-plugin/plugin.json`, `skills/*/SKILL.md`), Markdown/JSON only. Git repo already initialized at `C:\Proyectos\agent-cycle\`.
 
@@ -102,7 +102,7 @@ Write `skills/design/evals/cases.json`:
     {
       "id": "DES-E01",
       "type": "positive",
-      "input": "Design a WhatsApp appointment-booking agent for a dental clinic, to be deployed on AWS for a client.",
+      "input": "Design an appointment-booking agent on a messaging channel, to be deployed on AWS for a client.",
       "expected": {
         "fires": true,
         "checks": [
@@ -134,7 +134,7 @@ Write `skills/design/evals/cases.json`:
     {
       "id": "DES-E03",
       "type": "edge-partial-peas",
-      "input": "Design an agent. I already have part of PEAS: Performance = at least 80% of appointment requests resolved without a human; Environment = WhatsApp conversations with dental patients in Mexico. I'm missing the rest.",
+      "input": "Design an agent. I already have part of PEAS: Performance = at least 80% of appointment requests resolved without a human; Environment = messaging-channel conversations with people booking appointments in Mexico. I'm missing the rest.",
       "expected": {
         "fires": true,
         "checks": [
@@ -163,7 +163,7 @@ Per case in `cases.json`:
 1. Start a FRESH Claude Code session in a scratch project (never this repo).
 2. Paste the case's `input` verbatim as the user message.
 3. Observe whether the skill fires (`fires` check) and follow the interview to
-   completion for positive/edge cases (answer as a plausible dental-clinic owner).
+   completion for positive/edge cases (answer as a plausible client for that agent).
 4. Score every item in `expected.checks` as PASS / FAIL with one line of evidence.
 5. Record the run in `results.md` (date, case id, per-check verdict, notes).
 
@@ -313,8 +313,10 @@ stress-test, even on user-provided metrics.
   problems → balance with resolution rate).
 
 **E (Environment):** who talks to it, on what channel, connected to which
-systems, in what language/market. For WhatsApp agents: business-initiated or
-user-initiated? 24h-window implications land in /spec, but note the mode here.
+systems, in what language/market. For channels with rules for business-initiated
+messages (e.g. a 24-hour reply window, template-only messages outside it):
+business-initiated or user-initiated? Reply-window implications land in /spec,
+but note the mode here.
 
 **A (Actuators):** "What is the agent allowed to DO?" List tools by name +
 one-line purpose only. For each, gut-guess the tier (safe read / reversible
@@ -325,7 +327,7 @@ write / destructive) — /spec finalizes.
 ## Phase B — Environment classification
 
 Ask only the dimensions not already obvious from Phase A answers. Map each to
-its implication (table in artifact-template.md). Typical WhatsApp business
+its implication (table in artifact-template.md). Typical messaging-channel chat
 agent: partially observable, stochastic, sequential, dynamic, single-agent.
 
 ## Phase C — Harness
@@ -345,7 +347,7 @@ Patterns for the adapter surface.
 
 ## Phase E — NO-goals and gate
 
-- "Name at least two things this agent must NOT do." (refunds without human?
+- "Name at least two things this agent must NOT do." (irreversible actions without a human?
   medical advice? out-of-scope topics?)
 - Present the filled artifact summary in chat. Ask for approval. On explicit
   approval ONLY: set `status: approved`, bump nothing else. On feedback: edit,
@@ -474,7 +476,7 @@ git commit -m "test(design): DES-E02 trigger-negative eval run"
 
 - [ ] **Step 1: Run DES-E03**
 
-Fresh session in a scratch project. Paste the DES-E03 input verbatim from `cases.json`. Answer the interview as a plausible dental-clinic owner.
+Fresh session in a scratch project. Paste the DES-E03 input verbatim from `cases.json`. Answer the interview as a plausible client for that agent.
 Expected per checks: no re-asking P/E; starts at Actuators; Goodhart test still runs on the provided metric; completes normally to the gate.
 
 - [ ] **Step 2: Record the result**
@@ -490,7 +492,7 @@ git commit -m "test(design): DES-E03 edge eval run (partial PEAS)"
 
 ---
 
-### Task 8: Dogfood — DES-E01 on the real WhatsApp agent (DoD)
+### Task 8: Dogfood — DES-E01 on the real dogfood agent (DoD)
 
 **Files:**
 - Modify: `skills/design/evals/results.md`
@@ -498,11 +500,11 @@ git commit -m "test(design): DES-E03 edge eval run (partial PEAS)"
 
 - [ ] **Step 1: Create/choose the agent repo**
 
-Alan creates the WhatsApp agent's project folder (e.g. `C:\Proyectos\<client-agent-name>\`). The dogfood runs THERE — the plugin repo never contains agent artifacts.
+Alan creates the dogfood agent's project folder (e.g. `C:\Proyectos\<client-agent-name>\`). The dogfood runs THERE — the plugin repo never contains agent artifacts.
 
 - [ ] **Step 2: Run the real design session**
 
-In the agent repo, Alan invokes the skill with the real brief ("agente de citas por WhatsApp para <cliente>, deploy AWS"). Full interview, real answers. Output: that repo's `docs/agent/design.md`, `status: draft`.
+In the agent repo, Alan invokes the skill with the real brief ("agente de citas por un canal de mensajería para <cliente>, deploy AWS"). Full interview, real answers. Output: that repo's `docs/agent/design.md`, `status: draft`.
 
 - [ ] **Step 3: Gate**
 
@@ -516,7 +518,7 @@ Append the `DES-E01` row to `results.md` with per-check verdicts against the rea
 
 ```bash
 git add skills/design/evals/results.md
-git commit -m "test(design): DES-E01 dogfood run on real WhatsApp agent - skill graduated"
+git commit -m "test(design): DES-E01 dogfood run on real dogfood agent - skill graduated"
 git tag design-v0.1
 ```
 

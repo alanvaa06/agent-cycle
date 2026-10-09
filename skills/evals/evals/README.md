@@ -7,7 +7,7 @@ fix-and-rerun, dispute — never silently edit — if a case is wrong).
 Case-specific setup:
 
 - **EVL-E01** needs a repo with an APPROVED `docs/agent/spec.md`. The real
-  dogfood repo (`whatsapp-owner-assistant`, 21 BHV) is the canonical run.
+  dogfood repo (the dogfood agent, an external repo; 21 BHV) is the canonical run.
 - **EVL-E02** runs twice: spec at `status: draft`, and no `docs/agent/` at all.
 - **EVL-E03** needs an approved spec with at least one judgment-only scenario;
   hand-write a minimal one in a scratch repo (do NOT use the spec skill).
@@ -29,10 +29,10 @@ minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
 - **EVL-E05**: a workspace repo with an approved
-  `agents/recepcion/docs/agent/design.md` (its `version` equal to the spec's
-  `design_version`) and an approved `agents/recepcion/docs/agent/spec.md`
-  whose §8 Delegates table is the one in the case input (ventas pinned
-  `ventas-contract@1` with the quoted On failure text; soporte pinned
-  `soporte-contract@2`), one BHV per On failure mode listed in Used by, and
+  `agents/orchestrator/docs/agent/design.md` (its `version` equal to the spec's
+  `design_version`) and an approved `agents/orchestrator/docs/agent/spec.md`
+  whose §8 Delegates table is the one in the case input (agent-a pinned
+  `agent-a-contract@1` with the quoted On failure text; agent-b pinned
+  `agent-b-contract@2`), one BHV per On failure mode listed in Used by, and
   §4 listing each delegate's replies as an untrusted surface. Score that only
-  `agents/recepcion/evals/` and the Eval column of the spec §6 changed.
+  `agents/orchestrator/evals/` and the Eval column of the spec §6 changed.
