@@ -5,6 +5,8 @@ DoD) are not optional at any size.
 
 ## Step 0 — Gate check
 
+Resolve AGENT_ROOT per the agent-cycle plugin's references/agent-root.md; every path below is relative to it.
+
 Hard-fail (write nothing, say why, stop) unless ALL hold:
 - `docs/agent/design.md` approved; `docs/agent/spec.md` approved with
   `design_version` == design's `version`; `evals/config.yaml` approved with
@@ -61,26 +63,31 @@ Baseline first: /ship's anti-gaming audit diffs the approved artifacts from
 the commit before the build, so they must be in git before the build touches
 anything.
 - Not a git repo → ask the human whether to `git init`; no repo, no build.
-- `git status --porcelain -- docs/agent/design.md docs/agent/spec.md evals/`
-  prints anything, or `git ls-files` on the same paths misses one → commit
-  exactly those paths, nothing else:
-  `git add -- docs/agent/design.md docs/agent/spec.md evals/` then
-  `git commit -m "Approved design, spec and evals" -- docs/agent/design.md docs/agent/spec.md evals/`.
-  Already committed and clean → commit nothing.
-- Record `git rev-parse --short HEAD` as `build_start` for build.md's
-  frontmatter. Every commit after it is the build's.
-
-Then, before any source file exists, install the hook per
-`references/forge-delegation.md` §Hook: the target repo blocks edits to
-`evals/**` and `docs/agent/**` (allow-list: `docs/agent/build.md`, and spec.md
-ONLY for the §6 Test column at the end). Verify it triggers (attempt a dummy
-edit, see it blocked). If the harness has no hook mechanism, fall back to the
-documented git-diff audit contract in the same file — but say so in build.md.
-Commit the hook on its own (`.claude/hooks/guard_artifacts.py` and
-`.claude/settings.json`, nothing else), so the history shows it going in
-before the first source file.
+- `git status --porcelain -- <AGENT_ROOT>/docs/agent/design.md <AGENT_ROOT>/docs/agent/spec.md <AGENT_ROOT>/evals/`
+  prints anything, or `git ls-files` misses one -> commit exactly those paths
+  (plus `agent-cycle.yaml` when this agent's entry is uncommitted):
+  `git add -- <paths>` then
+  `git commit -m "Approved design, spec and evals (<agent_name>)" -- <paths>`.
+- Record `git rev-parse --short HEAD` as `build_start`.
+- Write `<AGENT_ROOT>/docs/agent/build.md` as a stub (`status: draft`,
+  `build_start`) and commit it alone, before any source file exists. Its
+  existence freezes this agent's evals, design and spec.
+- Hook: install when absent: the script, `.claude/hooks/built-agents.txt`
+  seeded with this agent's prefix, and the pinned `python -I -S` registration
+  in `.claude/settings.json`, all committed together in ONE commit. If the
+  installed `HOOK_VERSION` is lower than the plugin's, STOP and ask the human
+  to upgrade it from their own terminal (rename to `.off`, copy the plugin's
+  file, rename back). Build never writes `.claude/hooks/` once the hook
+  exists. Otherwise verify it is active (a dummy edit to
+  `<AGENT_ROOT>/evals/config.yaml` is blocked), and commit `built-agents.txt`
+  when the hook has added this agent's line (forge-delegation.md). While any
+  agent is built, the git verbs that rewrite the tree (merge, pull, rebase,
+  revert, cherry-pick, apply, am, reset --hard, stash pop/apply) are the
+  human's.
 
 ## Step 3 — Scaffold: core/adapter split
+
+Every file this build writes lives inside AGENT_ROOT (source, tests, lockfile, deploy recipe). Shared infrastructure is reached through configuration, never written outside AGENT_ROOT.
 
 ```
 src/

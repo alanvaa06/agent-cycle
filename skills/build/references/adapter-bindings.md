@@ -37,6 +37,7 @@ Universal rules regardless of target:
 - Bind containers/services to localhost internally; only the proxy/gateway
   listens publicly.
 - Health endpoint (`GET /health` or platform equivalent) for the smoke test.
+- In a workspace, every resource name carries the agent prefix: queue/stream name, database schema, service.name (telemetry), so agents sharing one Postgres, Redis or collector cannot collide.
 
 Managed Postgres (Supabase) rules — any target:
 - Connect directly (IPv6 or the IPv4 add-on) or through Supavisor **session**
