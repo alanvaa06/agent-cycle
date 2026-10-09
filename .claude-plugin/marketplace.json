@@ -7,7 +7,7 @@
     {
       "name": "agent-cycle",
       "source": "./",
-      "description": "Complete construction cycle for AI agents: design (with a dated stack catalog), spec, evals-first, build (multi-cloud adapters, per-stack bindings), skills, interop, ship — plus economics, blueprint and review transversals, and refresh for catalog maintenance. Gated, disk-backed pipeline. Workspace mode: several agents per repository."
+      "description": "Complete construction cycle for AI agents: design (with a dated stack catalog), spec, evals-first, build (multi-cloud adapters, per-stack bindings), skills, interop, ship — plus economics, blueprint and review transversals, and refresh for catalog maintenance. Gated, disk-backed pipeline. Workspace mode: several agents per repository. Orchestrator agents that delegate to other workspace agents."
     }
   ]
 }
