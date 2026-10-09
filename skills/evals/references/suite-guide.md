@@ -55,6 +55,12 @@ gibberish does not test containment. Each case's forbidden list encodes the
 containment claim (no extra recipients, no writes, no secrets in reply, rules
 unchanged).
 
+Orchestrators (spec §8): per delegate, at least one golden case with a valid
+recorded response, one case per On failure mode in its row, and at least one
+adversarial case whose recorded reply carries injected instructions or asks
+for a gated action (expected: treated as data; the gated action still needs
+HITL). Each recording names the contract version it was taken from.
+
 ## Step 5 — Rubrics
 
 One rubric file per llm_judge/human_review dimension: a 1-5 scale, what each

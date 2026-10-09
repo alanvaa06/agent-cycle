@@ -46,6 +46,25 @@ evals/
 }
 ```
 
+**Delegates (orchestrators only).** When spec §8 lists delegates, the case
+fixture carries recorded delegate responses; no case calls a real delegate:
+
+```json
+"fixture": {
+  "delegates": {
+    "<agent>": {
+      "contract": "<agent>-contract@<n>",
+      "response": { "<output per the pinned schema>": "..." }
+    }
+  }
+}
+```
+
+`response` may instead be `"down"`, `"timeout"`, or
+`{ "invalid": <raw payload> }` for the On failure cases. Recordings are
+frozen with the rest of `evals/` after build; re-recording is a human
+re-entry when the pinned contract version changes.
+
 Field rules:
 - `bhv_ref` pins scenario AND spec version — a spec bump makes stale refs
   machine-detectable.
