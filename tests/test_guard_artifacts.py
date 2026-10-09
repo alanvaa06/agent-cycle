@@ -994,3 +994,30 @@ def test_reading_frozen_files_allowed(tmp_path: Path, command: str) -> None:
 def test_write_targets_still_blocked(tmp_path: Path, command: str) -> None:
     make_agent(tmp_path, status="draft")
     assert run(tmp_path, "Bash", {"command": command})
+
+
+# === final review: the user settings file guards only PATH and PYTHON* in env
+
+@pytest.mark.parametrize(("before", "after", "allowed"), [
+    ({"env": {"FOO": "1"}}, {"env": {"FOO": "1", "BAR": "2"}}, True),
+    ({"env": {"PATH": "/usr/bin"}}, {"env": {"PATH": "/tmp/evil:/usr/bin"}}, False),
+    ({"env": {"FOO": "1"}}, {"env": {"FOO": "1", "PYTHONPATH": "/tmp/x"}}, False),
+    ({"env": {"PYTHONSTARTUP": "x.py"}}, {"env": {}}, False),
+])
+def test_user_settings_env_rule(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+                                before: object, after: object, allowed: bool) -> None:
+    repo, home = tmp_path / "repo", tmp_path / "home"
+    make_agent(repo)
+    (home / ".claude").mkdir(parents=True)
+    monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setenv("HOME", str(home))
+    path = home / ".claude/settings.json"
+    path.write_text(json.dumps(before), encoding="utf-8")
+    hits = run(repo, "Write", {"file_path": str(path), "content": json.dumps(after)})
+    assert (hits == []) is allowed
+
+
+def test_repo_settings_env_rule_unchanged(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    path = _settings(tmp_path, "settings.json", {"env": {"FOO": "1"}})
+    assert run(tmp_path, "Write", {"file_path": str(path), "content": json.dumps({"env": {"FOO": "1", "BAR": "2"}})})

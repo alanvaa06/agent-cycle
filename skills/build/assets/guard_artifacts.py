@@ -139,6 +139,7 @@ class Rule(Enum):
     BUILD_DRAFT = auto()
     APPEND_ONLY = auto()
     SETTINGS = auto()
+    USER_SETTINGS = auto()
 
 
 class Unreadable(Exception):
@@ -522,7 +523,17 @@ def guard_entries(settings: object) -> set[tuple[str, str, str]]:
 PINNED_ENTRY = (json.dumps(GUARD_MATCHER), json.dumps("command"), GUARD_COMMAND)
 
 
-def settings_change_ok(current: str | None, new: str | None) -> bool:
+def guarded_env(settings: dict[str, object], user_file: bool) -> object:
+    """The env entries the rule compares: all of them in the repo's files; in
+    the user's file only PATH and PYTHON*, which steer the hook's interpreter."""
+    env = settings.get("env")
+    if not user_file or not isinstance(env, dict):
+        return env
+    return {key: value for key, value in env.items()
+            if isinstance(key, str) and (key.upper() == "PATH" or key.upper().startswith("PYTHON"))}
+
+
+def settings_change_ok(current: str | None, new: str | None, user_file: bool = False) -> bool:
     """Valid JSON; the guard entries and env unchanged (or the pinned entry
     installed where there was none); hooks not disabled."""
     if new is None:
@@ -539,7 +550,7 @@ def settings_change_ok(current: str | None, new: str | None) -> bool:
         existing = {}                  # an invalid file registers nothing
     if not isinstance(existing, dict):
         existing = {}
-    if proposed.get("env") != existing.get("env"):
+    if guarded_env(proposed, user_file) != guarded_env(existing, user_file):
         return False
     before, after = guard_entries(existing), guard_entries(proposed)
     return after == before or (not before and after == {PINNED_ENTRY})
@@ -592,7 +603,8 @@ def user_settings(path: str) -> bool:
 def content_change_ok(rule: Rule, call: Call, path: str, snap: Snapshot) -> bool:
     if rule is Rule.FREE or (rule is Rule.BUILD_DRAFT and call.tool in FILE_TOOLS):
         return True
-    if call.tool not in FILE_TOOLS or rule not in (Rule.TEST_COLUMN_ONLY, Rule.APPEND_ONLY, Rule.SETTINGS):
+    if call.tool not in FILE_TOOLS or rule not in (Rule.TEST_COLUMN_ONLY, Rule.APPEND_ONLY,
+                                                      Rule.SETTINGS, Rule.USER_SETTINGS):
         return False
     try:
         current = read_text(path)
@@ -603,7 +615,7 @@ def content_change_ok(rule: Rule, call: Call, path: str, snap: Snapshot) -> bool
         return current is not None and new is not None and only_test_cells(current, new)
     if rule is Rule.APPEND_ONLY:
         return marker_change_ok(current, new, snap)
-    return settings_change_ok(current, new)
+    return settings_change_ok(current, new, user_file=rule is Rule.USER_SETTINGS)
 
 
 def file_hits(call: Call, snap: Snapshot) -> list[str]:
@@ -623,7 +635,7 @@ def file_hits(call: Call, snap: Snapshot) -> list[str]:
             hits.append("a hard link to " + link)
         rel = rel_to_repo(path, snap.root)
         if rel is None:
-            if user_settings(path) and not content_change_ok(Rule.SETTINGS, call, path, snap):
+            if user_settings(path) and not content_change_ok(Rule.USER_SETTINGS, call, path, snap):
                 hits.append("the user settings file " + path)
             continue
         if not content_change_ok(classify(rel, snap), call, path, snap):
