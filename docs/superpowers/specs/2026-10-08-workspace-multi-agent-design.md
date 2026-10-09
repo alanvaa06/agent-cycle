@@ -234,7 +234,8 @@ Additional rules:
 
 ### 6.1 Build of agent X
 
-1. Baseline commit of X's artifacts only:
+1. Baseline commit of X's artifacts only, when any of them (or X's `agent-cycle.yaml` entry) is
+   uncommitted; otherwise no commit:
    `git add -- <AGENT_ROOT>/docs/agent/design.md <AGENT_ROOT>/docs/agent/spec.md <AGENT_ROOT>/evals/`
    (plus `agent-cycle.yaml` when X's entry is not yet committed); record `build_start` = HEAD.
 2. Write X's `docs/agent/build.md` stub (`status: draft`, `build_start`) and commit it alone —
@@ -279,7 +280,8 @@ Additional rules:
   `agent-cycle: hook upgrade` and touches only `.claude/hooks/guard_artifacts.py`
   (`HOOK_VERSION` raised or added) and/or `.claude/settings.json` (guard command changed to the
   pinned form); and subject starts `agent-cycle: ratchet follows the move` whose only change
-  to `.claude/hooks/built-agents.txt` replaces the `.` line with `agents/<X>/`. Without them a
+  to `.claude/hooks/built-agents.txt` replaces the `.` line with `agents/<X>/` (or, when the
+  file first enters git there, holds `agents/<X>/` and no `.` line). Without them a
   re-ship of a moved agent, or any human hook upgrade, would read as tampering.
 - The lockfile checked is the one under `AGENT_ROOT`.
 
@@ -372,7 +374,7 @@ reviews one agent at a time (resolved per §4.2).
 | design | DES-E07 | In a workspace, a new agent gets `agents/<name>/docs/agent/design.md` and is appended to the YAML; a clashing name stops and asks |
 | design | DES-E08 | In a single-agent repo, asking for a second agent shows the conversion commands and moves nothing |
 | spec | SPC-E05 | Several agents, no hint which → exactly one question |
-| build | BLD-E06 | Building B with A already built: hook not reinstalled but verified; baseline commit contains only B's artifacts; resource names carry B's prefix |
+| build | BLD-E06 | Building B with A already built: hook not reinstalled but verified; artifacts already committed, so no baseline commit and `build_start` = HEAD; resource names carry B's prefix |
 | ship | SHP-E05 | Ship of B: diff limited to B; a mixed-agent commit is a finding; the conversion rename commit is accepted |
 
 ## 9. Release

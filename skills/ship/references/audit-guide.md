@@ -126,7 +126,8 @@ which is how the human upgrades the hook (a re-ship of a moved agent and any
 later hook upgrade pass through it); (b) a commit whose subject starts
 `agent-cycle: ratchet follows the move` and whose only change to
 `.claude/hooks/built-agents.txt` replaces the `.` line with
-`agents/<this agent>/`. Any other change in those commits is not sanctioned.
+`agents/<this agent>/` (when the file first enters git in that commit, it
+holds `agents/<this agent>/` and no `.` line). Any other change in those commits is not sanctioned.
 
 ## Section 5 — Observability + alarm
 

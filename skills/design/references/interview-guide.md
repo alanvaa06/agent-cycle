@@ -207,7 +207,9 @@ printf 'layout: workspace\nagents: [<existing-name>]\n' > agent-cycle.yaml
 git add agent-cycle.yaml
 git commit -m "agent-cycle: workspace move <existing-name>"
 # 3. If .claude/hooks/built-agents.txt has a "." line, replace it with
-#    agents/<existing-name>/ and commit the file (it is tracked):
+#    agents/<existing-name>/ and commit the file (an upgraded pre-v0.12 hook
+#    creates it untracked, so add it first):
+#    git add .claude/hooks/built-agents.txt
 #    git commit -m "agent-cycle: ratchet follows the move" -- .claude/hooks/built-agents.txt
 ```
 
