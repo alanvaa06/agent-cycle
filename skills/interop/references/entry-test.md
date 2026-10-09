@@ -61,35 +61,56 @@ Never author a card "for the future" — the future has a re-visit trigger.
 When another workspace agent calls this one, `docs/agent/interop.md` carries
 an **Inbound contracts** section in BOTH decisions (skip or A2A), one entry
 per caller:
-- caller (agent name), input schema, output schema;
+- caller (agent name);
 - protocol: this relationship's entry-test verdict (A2A or simple call);
 - contract version `<this-agent>-contract@<n>`; any change to the input or
   output shape bumps `<n>`;
 - one fixed line listing every version still served, so greps are
-  mechanical: `Served: <this-agent>-contract@1, <this-agent>-contract@2`;
+  mechanical. It starts at column 0, with no bullet or indent:
+  `Served: <this-agent>-contract@1, <this-agent>-contract@2`;
 - the handler that serves the interface (file:line in the built code) and the
   BHV in this agent's spec that proves the probe has no side effects;
-- one **probe request**: side-effect-free (no writes, no gated action), with
-  its expected response (shape plus one sample reply the caller records as
-  its golden probe response). The caller's ship and weekly ritual use it.
+- one block PER SERVED VERSION, headed by its version, each with: input
+  schema, output schema, one **probe request** (side-effect-free: no writes,
+  no gated action) and a sample probe response (shape plus one sample reply).
+  A caller seeds its golden probe response (`evals/delegates/<agent>-probe.json`)
+  from the block of the version it pins, and its ship and weekly ritual send
+  that version's probe request.
 
-The interface is owned by THIS agent's spec. No handler in the built code, or
-no spec coverage for it (the ingress/channel in §3, an untrusted surface in
-§4 for its callers with an injection-attempt BHV, the probe's no-side-effect
-BHV) → SPEC re-entry of this agent: spec, then evals, then build (the
-handler), then this interop publishes the version. Never improvised here,
-never a build re-entry alone. On a built agent that re-entry is the human's,
-hook off (the re-entry steps in the build skill's
-`references/forge-delegation.md`); this agent's re-entry and the caller's
-work go in separate commits (a shared commit is a mixed-agent ship finding).
+Any change to this section (a new entry, a block, a `Served:` line) bumps
+interop.md's `version`, so the caller's ship gate, which compares this
+agent's ship-report `interop_version` with that version, makes this agent
+re-ship first.
+
+The interface starts at THIS agent's design. No handler in the built code, or
+no coverage for it (design: the caller in §1 Environment, the caller as an
+untrusted surface, the probe as a declared side-effect-free operation; spec:
+the ingress in §3, the caller as an untrusted surface in §4 with an
+injection-attempt BHV, the probe's no-side-effect BHV) → DESIGN re-entry of
+this agent: design, then spec, then evals, then build (the handler), then
+this interop publishes the version. Until then interop.md records the
+inbound relationship row with that route and publishes no Inbound contracts
+entry and no `Served:` line. Never improvised here, never a build re-entry
+alone. On a built agent that re-entry is the human's, from their own
+terminal with the hook off (the re-entry steps in the build skill's
+`references/forge-delegation.md`): it deletes or moves this agent's
+`docs/agent/build.md` and removes its line from
+`.claude/hooks/built-agents.txt`, so build re-runs with a fresh baseline and
+a new `build_start` (otherwise ship Section 4 flags the new BHVs and evals
+as unsanctioned). This agent's re-entry and the caller's work go in separate
+commits (a shared commit is a mixed-agent ship finding).
 
 Dropping a served version: only when no orchestrator's latest approved
 ship-report pins it (`delegate_contracts` in its frontmatter). Order: serve
-both versions → the orchestrator re-enters spec, evals and build and ships
-the new pin → this agent drops the old version from `Served:`.
+both versions → the orchestrator re-enters spec, evals (re-recording) and
+build (the human's, hook off, its build.md deleted or moved and its ratchet
+line removed), re-runs interop (its outbound row re-recorded with the new
+pin) and ships the new pin → this agent drops the old version from
+`Served:` (an interop `version` bump).
 
 Orchestrator side: each delegate in this agent's spec §8 gets its own row and
 verdict, recorded with the pinned contract. The protocol cites the one the
-delegate published in its Inbound contracts entry; on disagreement the
+delegate published in its Inbound contracts entry (read from the delegate's
+`docs/agent/interop.md`, read-only, from the repo root); on disagreement the
 delegate's verdict wins (it owns the interface) and this agent's spec
 re-enters to match.

@@ -34,5 +34,12 @@ plugin against it as in the procedure above.
   whose §8 Delegates table is the one in the case input (agent-a pinned
   `agent-a-contract@1` with the quoted On failure text; agent-b pinned
   `agent-b-contract@2`), one BHV per On failure mode listed in Used by, and
-  §4 listing each delegate's replies as an untrusted surface. Score that only
-  `agents/orchestrator/evals/` and the Eval column of the spec §6 changed.
+  §4 listing each delegate's replies as an untrusted surface. Each delegate
+  has an approved `agents/<delegate>/docs/agent/interop.md` with an Inbound
+  contracts entry for orchestrator: agent-a with `Served: agent-a-contract@1`
+  and one block for @1; agent-b with
+  `Served: agent-b-contract@1, agent-b-contract@2` and one block per served
+  version (input schema, output schema, probe request, sample probe
+  response), the @1 and @2 probe requests differing so the seeded version is
+  visible. Score that only `agents/orchestrator/evals/` and the Eval column
+  of the spec §6 changed.

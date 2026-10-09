@@ -55,10 +55,14 @@ plugin against it as in the procedure above.
   `Served: agent-a-contract@1`) and an approved `ship-report.md` whose
   `interop_version` equals that interop.md's `version`; agent-b has approved
   `interop.md` (`Served: agent-b-contract@1`) but no `ship-report.md`. Run 2:
-  add agent-b's `ship-report.md` (same `interop_version` rule). For the live
-  probe, a stub HTTP server per delegate answering the published probe
-  request is enough; orchestrator's deploy configuration (e.g. its
-  `.env.example` / compose file) sets `AGENT_A_BASE_URL` and
+  add agent-b's `ship-report.md` (same `interop_version` rule). Each
+  delegate's Inbound contracts entry has one block per served version (input
+  schema, output schema, probe request, sample probe response), and
+  orchestrator's `evals/delegates/agent-a-probe.json` and
+  `agent-b-probe.json` carry `contract` equal to the pins and that version's
+  probe request. For the live probe, a stub HTTP server per delegate
+  answering that probe request is enough; orchestrator's deploy
+  configuration (e.g. its `.env.example` / compose file) sets `AGENT_A_BASE_URL` and
   `AGENT_B_BASE_URL` (the keys its delegate client reads) to the stubs, plus
   its delegate credentials `AGENT_A_TOKEN` and `AGENT_B_TOKEN`.
 - **SHP-E07**: a workspace repo where agent-a has the full approved chain
@@ -69,4 +73,7 @@ plugin against it as in the procedure above.
   BHV in its spec. `agents/orchestrator/docs/agent/spec.md` §8 pins
   `agent-a-contract@1`, and `agents/orchestrator/docs/agent/ship-report.md` is
   approved with `delegate_contracts: [agent-a-contract@1]`. Re-run with
-  `Served: agent-a-contract@1, agent-a-contract@2` to score the passing branch.
+  `Served: agent-a-contract@1, agent-a-contract@2` (and a block per served
+  version) to score the passing branch. For the last-approved variant, commit
+  orchestrator's approved ship-report first, then commit a working copy with
+  `status: draft` and `delegate_contracts: [agent-a-contract@2]`.

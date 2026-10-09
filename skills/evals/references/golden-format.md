@@ -75,12 +75,15 @@ in order. Any reply may instead be `"down"`, `"timeout"`, or
 ```
 
 The build's runner serves these from a backend double of the delegate
-endpoint (build-guide Step 8). Golden probe response, one per delegate:
-`evals/delegates/<agent>-probe.json` holds `contract`, `request` (the probe
-request the delegate publishes in its Inbound contracts entry), `response`
-(the expected reply, from the delegate's published entry) and optionally
+endpoint (build-guide Step 8). Golden probe response, one per delegate, for
+the PINNED version: `evals/delegates/<agent>-probe.json` holds `contract`
+(the spec §8 pin, e.g. `<agent>-contract@<n>`), `request` (the probe request
+the delegate publishes in its Inbound contracts block for that version),
+`response` (the sample probe response from that same block) and optionally
 `rubric` (`rubrics/<name>.md`, when the content may legitimately vary). The
-weekly live check compares the live probe reply with it. Recordings are
+request is read from the delegate's `docs/agent/interop.md` (read-only).
+Ship's live probe and the weekly live check send this file's `request` and
+compare the live reply with it. Recordings are
 frozen with the rest of `evals/` after build; re-recording is a human
 re-entry, only when the pinned contract version changes.
 

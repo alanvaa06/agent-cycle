@@ -134,6 +134,6 @@ also a row here (tool = the delegate, with a tier guess).
 
 | Delegate (in agent-cycle.yaml) | Used for | Reason(s) served | Inbound interface today |
 |---|---|---|---|
-| <agent> | <...> | <...> | <published in its interop.md (Served: <agent>-contract@<n>) / missing → spec re-entry of the delegate (its spec: ingress, untrusted surface for callers + injection BHV, probe no-side-effect BHV; then evals, build, interop publishes); built delegate: the human's, hook off> |
+| <agent> | <...> | <...> | <published in its interop.md (Served: <agent>-contract@<n>) / missing → design re-entry of the delegate (caller in its Environment, caller as an untrusted surface, probe as a side-effect-free operation), then its spec (ingress, injection BHV, probe no-side-effect BHV), evals, build (the handler), interop publishes; built delegate: the human's, hook off, its build.md deleted or moved and its ratchet line removed (fresh build_start)> |
 
 Internal helpers (not delegates): <names, or none> — see §3/§8.

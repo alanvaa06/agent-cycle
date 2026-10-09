@@ -98,37 +98,65 @@ agents' specs); a glob that expands to nothing is the error above.
   reads `pending` → blocker; otherwise the pin must be AMONG the versions on
   the `Served:` line of the delegate's Inbound contracts entry for this caller
   (cite `grep -n "<delegate>-contract@" agents/<this-agent>/docs/agent/spec.md`
-  and `grep -n "^Served:" agents/<delegate>/docs/agent/interop.md`); a pin not
-  served → blocker. Both route to this agent's re-entry: spec, then evals,
-  then build (the human's, hook off). Live probe: send the delegate's
-  published probe request — never any other request — to the delegate's base
-  URL from THIS agent's deploy configuration (the env/config key its delegate
-  client reads; cite the key), authenticated with this agent's delegate
-  credential, and validate the response against the pinned output schema;
-  cite command and output. Failure → finding routed to the delegate (down or
-  off-contract) or to this agent (client wrong). This agent's delegate
-  credentials are part of the least-privilege diff above. The pins validated
-  here go into the report frontmatter `delegate_contracts` (Section 7).
+  and `grep -n -E "^[-* ]*Served:" agents/<delegate>/docs/agent/interop.md`;
+  the pattern tolerates a stray bullet or indent, which is itself a minor
+  finding routed to the delegate's interop); a pin not served → blocker.
+  Both route to this agent's re-entry: spec, then evals, then build (the
+  human's, hook off; build.md deleted or moved and its ratchet line removed,
+  so build re-runs with a new `build_start`). Live probe: send the probe
+  request for the PINNED version, taken from this agent's own
+  `evals/delegates/<delegate>-probe.json` (its `contract` equals the pin;
+  evals seeded it from the delegate's published block for that version; a
+  file whose `contract` differs from the pin, or a missing file, is a finding
+  routed to this agent's evals) — never any other request — to the
+  delegate's base URL from THIS agent's deploy configuration (the env/config
+  key its delegate client reads; cite the key), authenticated with this
+  agent's delegate credential, and validate the response against the pinned
+  output schema; cite command and output. Failure → finding routed to the
+  delegate (down or off-contract) or to this agent (client wrong). This
+  agent's delegate credentials are part of the least-privilege diff above.
+  The pins validated here go into the report frontmatter `delegate_contracts`
+  (Section 7).
 - Inbound contracts (any agent whose interop.md has an Inbound contracts
   section). For each entry, cite the handler file:line in `<AGENT_ROOT>`'s
-  code (show the line) and the BHV in this agent's spec covering the probe's
-  no-side-effect claim, with its eval status in Section 1's run. Missing →
-  finding routed to this agent's spec re-entry (spec, evals, build, then
-  interop publishes).
+  code (show the line), the BHV in this agent's spec covering the probe's
+  no-side-effect claim, with its eval status in Section 1's run, and one
+  block (input schema, output schema, probe request, sample probe response)
+  per version on its `Served:` line. Missing → finding routed to this
+  agent's design re-entry (design, then spec, evals, build, then interop
+  publishes); on this built agent that re-entry is the human's, from their
+  own terminal with the hook off (the build skill's
+  `references/forge-delegation.md` re-entry steps), deleting or moving its
+  `docs/agent/build.md` and removing its line from
+  `.claude/hooks/built-agents.txt` so build re-runs with a fresh baseline and
+  a new `build_start` (otherwise Section 4 flags the new BHVs and evals as
+  unsanctioned).
 - Dependents (workspace only; in a one-agent repo record "no other agents").
   What counts is what each orchestrator has SHIPPED. From the repo root, find
-  the orchestrators that name this agent
-  (`grep -n "<this-agent>-contract@" agents/*/docs/agent/spec.md`), then read
-  the frontmatter of each one's latest approved ship-report
-  (`grep -n "delegate_contracts" agents/<orchestrator>/docs/agent/ship-report.md`).
-  A version pinned there that this ship's interop.md no longer lists on its
-  `Served:` line → blocker, routed to that orchestrator (re-entry of spec,
-  then evals with re-recording, then build — the human's, hook off — and a
-  ship of the new pin) or to this agent (keep serving the version). A pin
-  only in an orchestrator's spec, not yet shipped, is noted, not a blocker:
-  that orchestrator's own ship checks it. Order of a bump: this agent serves
-  both versions → the orchestrator ships the new pin → this agent drops the
-  old version.
+  the orchestrators that name this agent, excluding this agent's own spec
+  (`grep -n "<this-agent>-contract@" agents/*/docs/agent/spec.md | grep -v "^agents/<this-agent>/"`).
+  For each one, read its LAST APPROVED ship-report: if the frontmatter of
+  `agents/<orchestrator>/docs/agent/ship-report.md` reads `status: approved`,
+  use it; otherwise list its history
+  (`git log --format=%h -- agents/<orchestrator>/docs/agent/ship-report.md`)
+  and take the first commit, newest first, where
+  `git show <sha>:agents/<orchestrator>/docs/agent/ship-report.md` has
+  `status: approved` in its frontmatter. Cite the commands and the
+  `delegate_contracts` line read. No approved version in that history → the
+  orchestrator pins nothing only if it never shipped (cite the empty result
+  and `git rev-parse --is-shallow-repository` printing `false`); a shallow
+  history, or any other sign that it shipped (e.g. a release tag) with no
+  readable approved report → blocker. A version pinned in the last approved
+  report that this ship's interop.md no longer lists on its `Served:` line →
+  blocker, routed to that orchestrator (re-entry of spec, then evals with
+  re-recording, then build — the human's, hook off, its build.md deleted or
+  moved and its ratchet line removed — then its interop re-run and a ship
+  of the new pin) or to this agent (keep serving the version). A pin only in
+  an orchestrator's spec, not yet shipped, is noted, not a blocker: that
+  orchestrator's own ship checks it. Order of a bump: this agent serves both
+  versions → the orchestrator re-enters spec, evals and build, re-runs
+  interop (its outbound row re-recorded with the new pin) and ships the new
+  pin → this agent drops the old version (an interop `version` bump).
 
 ## Section 4 — Anti-gaming audit
 
@@ -196,9 +224,10 @@ queue/DLQ drain steps, rollback (how to return to the previous version),
 kill switch (how to stop the agent NOW), weekly ritual scheduled (suite
 re-run + judge spot-validation + corrections mined into new eval cases).
 Orchestrators (spec §8 lists at least one delegate) add: the weekly probe per
-delegate compared with the pinned schema and the recorded golden probe
-response, and this agent's On failure path when a delegate's kill switch is
-used.
+delegate, sending the pinned version's probe request from this agent's
+`evals/delegates/<agent>-probe.json` and comparing the reply with the pinned
+schema and that file's golden probe response, and this agent's On failure
+path when a delegate's kill switch is used.
 Missing or thin → FINDING that references
 `references/runbook-template.md` for the owner (or a build re-entry) to
 fill. The auditor NEVER writes the runbook.

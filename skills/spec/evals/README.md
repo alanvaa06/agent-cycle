@@ -55,5 +55,7 @@ plugin against it as in the procedure above.
   agent-b, and its §9 Delegation listing them as delegates; and
   `agents/agent-a/docs/agent/interop.md` approved with an Inbound contracts
   entry for orchestrator publishing `agent-a-contract@1` (line
-  `Served: agent-a-contract@1`). `agents/agent-b/` has no `interop.md`.
+  `Served: agent-a-contract@1`, and one block for @1 with input schema,
+  output schema, probe request and sample probe response). `agents/agent-b/`
+  has no `interop.md`.
   Score that only `agents/orchestrator/docs/agent/spec.md` was written.

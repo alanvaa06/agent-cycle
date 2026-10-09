@@ -38,14 +38,17 @@ NO-SHIP is the pipeline working.
    Orchestrators (spec §8 lists at least one delegate): each pin is among the
    versions on the delegate's `Served:` line (a pending or not-served pin is a
    blocker, routed to this agent's spec, then evals, then build — the human's,
-   hook off); one live probe request per delegate, sent to the delegate's base
-   URL from this agent's deploy configuration with this agent's delegate
-   credential, validates against the pinned schema. Any agent: each Inbound
-   contracts entry cites its handler file:line and the BHV covering the
-   probe's no-side-effect claim (missing → finding routed to this agent's
-   spec); a version pinned in an orchestrator's latest approved ship-report
-   (`delegate_contracts`) that this ship no longer serves is a blocker, routed
-   to that orchestrator (spec, then evals, then build, then ship the new pin)
+   hook off); one live probe per delegate — the probe request for the PINNED
+   version, taken from this agent's `evals/delegates/<agent>-probe.json` —
+   sent to the delegate's base URL from this agent's deploy configuration
+   with this agent's delegate credential, validates against the pinned
+   schema. Any agent: each Inbound contracts entry cites its handler
+   file:line and the BHV covering the probe's no-side-effect claim (missing →
+   finding routed to this agent's design re-entry, then spec, evals, build);
+   a version pinned in an orchestrator's latest approved ship-report
+   (`delegate_contracts`, read from git when the working copy is not
+   approved) that this ship no longer serves is a blocker, routed to that
+   orchestrator (spec, evals, build, interop re-run, then ship the new pin)
    or to this agent (keep serving it) (audit-guide Section 3).
 7. Anti-gaming audit is mandatory: word-diff from build.md's build_start
    (the baseline committed before the build.md stub) to HEAD on <AGENT_ROOT>'s

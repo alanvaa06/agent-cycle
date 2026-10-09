@@ -49,15 +49,25 @@ inform judgment; none is required.
    per delegate with every column (Delegate, Used by, Input, Output, Contract,
    On failure). Contract = a version on the `Served:` line of the delegate's
    `docs/agent/interop.md` Inbound contracts entry for this caller
-   (read-only); not yet published → `Contract: pending`: evals refuses while a
-   pin is pending and ship treats it as a blocker. Pinning it after this
-   agent's build is a human re-entry (spec, then evals, then build). Each
-   delegate is also a tool: a §2 tool contract per delegate that references
-   its §8 row. Each delegate's replies are an untrusted surface in §4 (with at
-   least one injection-attempt BHV), each delegate credential is a row in §4's
-   least-privilege list, and each On failure mode (down, timeout, invalid
-   output) has its own BHV, listed in Used by, so every failure eval case
-   has a `bhv_ref`.
+   (read-only); not yet published → `Contract: pending`, and that row's Input
+   and Output, and the schemas of its §2 tool contract, read `pending`
+   (provisional) until the delegate publishes: evals refuses while a pin is
+   pending and ship treats it as a blocker. Pinning it after this agent's
+   build is a human re-entry (spec, then evals, then build, with build.md
+   deleted or moved and its ratchet line removed so build re-runs with a new
+   `build_start`). Each delegate is also a tool: a §2 tool contract per
+   delegate that references its §8 row. Each delegate's replies are an
+   untrusted surface in §4 (with at least one injection-attempt BHV), each
+   delegate credential is a row in §4's least-privilege list, and each On
+   failure mode (down, timeout, invalid output) has its own BHV, listed in
+   Used by, so every failure eval case has a `bhv_ref`.
+10. DELEGATES (the design names callers: its §1 Environment records
+    "orchestrator <name> calls me"): spec writes that ingress in §3, the
+    caller as an untrusted surface in §4 with at least one injection-attempt
+    BHV, and a BHV proving the probe request has no side effects (no writes,
+    no gated action), so interop and ship can cite them. The interface starts
+    at the design and its contract is owned by this spec; interop only
+    publishes it. No caller in the design → no such rows.
 
 ## Workflow
 
