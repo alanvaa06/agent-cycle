@@ -136,8 +136,9 @@ state the single riskiest assumption instead.>
 
 | Delegate | Used by | Input | Output | Contract | On failure |
 |---|---|---|---|---|---|
-| <agent> | BHV-NNN, ... | <schema> | <schema> | <agent>-contract@<n> or pending | down: <...>; timeout: <...>; invalid output: <...> |
+| <agent> | BHV-NNN, ... | <schema> | <schema> | <agent>-contract@<n> (on the delegate's `Served:` line) or pending | down: <...> (BHV-NNN); timeout: <...> (BHV-NNN); invalid output: <...> (BHV-NNN) |
 
-Delegates are untrusted counterparts: their replies ride the untrusted envelope
-(§4), and any gated or destructive action a reply implies goes through this
-agent's own HITL tiers.
+Each delegate also has a §2 tool contract that references this row. Delegates
+are untrusted counterparts: their replies ride the untrusted envelope (§4),
+and any gated or destructive action a reply implies goes through this agent's
+own HITL tiers. `pending` blocks evals (it refuses) and ship (a blocker).

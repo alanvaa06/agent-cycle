@@ -6,6 +6,9 @@ Read `docs/agent/spec.md`. Hard-fail (write nothing, say why, stop) if missing
 ("run agent-cycle:spec first") or `status` != `approved`. Record `spec_version`.
 If the spec's `design_version` no longer matches the design's `version`, stop —
 staleness goes to the re-entry ladder, not into a suite built on sand.
+Orchestrators: if any spec §8 row reads `Contract: pending`, stop and name the
+delegate — recordings need a pinned contract. Pinning it is a spec re-entry
+(after this agent's build, the human's: spec, then evals, then build).
 
 ## Step 1 — Inventory (no interview)
 
@@ -56,10 +59,14 @@ containment claim (no extra recipients, no writes, no secrets in reply, rules
 unchanged).
 
 Orchestrators (spec §8): per delegate, at least one golden case with a valid
-recorded response, one case per On failure mode in its row, and at least one
-adversarial case whose recorded reply carries injected instructions or asks
-for a gated action (expected: treated as data; the gated action still needs
-HITL). Each recording names the contract version it was taken from.
+recorded response, one case per On failure mode in its row (its `bhv_ref` is
+that mode's BHV), and adversarial cases per rule 5 — each delegate's replies
+are an untrusted surface, so at least 2 realistic payloads — whose recorded
+reply carries injected instructions or asks for a gated action (expected:
+treated as data; the gated action still needs HITL). Each recording names the
+contract version it was taken from. Per delegate, also record its golden probe
+response (golden-format "Delegates"): the weekly live check compares against
+it.
 
 ## Step 5 — Rubrics
 

@@ -14,7 +14,7 @@ Per case in `cases.json`:
    also check the scratch project's filesystem afterward (e.g. no docs/agent/design.md).
 5. Record the run in `results.md` (date, case id, per-check verdict, notes).
 
-Gate: all checks PASS on all 3 cases before the skill graduates. A FAIL means
+Gate: all checks PASS on all 11 cases before the skill graduates. A FAIL means
 fix the SKILL.md (or the case, if the case itself is wrong — via dispute, not
 silent edit) and re-run that case fresh.
 
@@ -55,11 +55,18 @@ plugin against it as in the procedure above.
 - **DES-E09**: a workspace repo. `agent-cycle.yaml` at the root contains
   `layout: workspace` and `agents: [ventas, soporte]`; each of `agents/ventas/`
   and `agents/soporte/` holds an approved trivial `docs/agent/design.md`.
-  Commit it. Score with `git status --porcelain` after the run: nothing outside
-  `agents/recepcion/` and the `agent-cycle.yaml` line may change. For the
-  "router without an LLM" verdict, nothing at all may change.
+  Commit it. Score with `git status --porcelain` after the run: it must be
+  empty. The "router without an LLM" verdict writes no file and does not touch
+  `agent-cycle.yaml`, so nothing at all changes.
 - **DES-E10**: same workspace as DES-E09 (`agents: [ventas, soporte]`), plus
   `agents/ventas/docs/agent/build.md` approved and an `agents/ventas/docs/agent/interop.md`
   without an Inbound contracts section; `agents/soporte/` keeps only its
   approved design. Score that only `agents/recepcion/docs/agent/design.md`
   and the `agent-cycle.yaml` line changed.
+- **DES-E11**: a workspace repo. `agent-cycle.yaml` contains
+  `layout: workspace` and `agents: [ventas]`; `agents/ventas/docs/agent/design.md`
+  is approved (hand-written, trivial: two tools, a read-only CRM credential,
+  no channel of its own), with no `build.md`. Commit it. When the skill offers
+  the paths after the "one agent" verdict, pick "add the work to an existing
+  agent" (ventas). Score with `git status --porcelain` after the run: it must
+  be empty.

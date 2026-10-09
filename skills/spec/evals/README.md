@@ -42,7 +42,7 @@ Presence checks require judgment on substance — a Gherkin scenario that cannot
 fail, or a docstring that just restates the tool name, does NOT pass. For
 SPC-E02, always check the filesystem afterward.
 
-Gate: all checks PASS on all 5 cases before the skill graduates.
+Gate: all checks PASS on all 6 cases before the skill graduates.
 
 ## Orchestrator cases (v0.13)
 
@@ -51,7 +51,9 @@ minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
 - **SPC-E06**: a workspace repo with `agents/recepcion/docs/agent/design.md`
-  approved, its §9 Delegation listing ventas and soporte; and
+  approved, with a §8 chosen stack, its §4 tool inventory listing ventas and
+  soporte, and its §9 Delegation listing them as delegates; and
   `agents/ventas/docs/agent/interop.md` approved with an Inbound contracts
-  block publishing `ventas-contract@1`. `agents/soporte/` has no `interop.md`.
+  entry for recepcion publishing `ventas-contract@1` (line
+  `Served: ventas-contract@1`). `agents/soporte/` has no `interop.md`.
   Score that only `agents/recepcion/docs/agent/spec.md` was written.
