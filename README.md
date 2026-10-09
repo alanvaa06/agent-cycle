@@ -146,6 +146,19 @@ and then (or after a project logged catalog drift). It re-checks every
 framework card against current docs, updates what changed with sources, and
 leaves the changes for you to review. It never commits.
 
+### Several agents in one repo
+
+A repository can hold several independent agents. Each one lives under
+`agents/<name>/` with its own `docs/agent/`, `evals/`, `src/` and build state,
+and `agent-cycle.yaml` at the repo root lists them (`layout: workspace`,
+`agents: [...]`; it is append-only). One-agent repos keep the flat layout and
+nothing changes for them. Every skill resolves which agent it is working on
+first (`references/agent-root.md`), and the anti-gaming hook freezes each agent
+from its own state, never from a static list. To add a second agent to a
+one-agent repo, run `design`: it shows the conversion commands (hook upgrade,
+then the workspace move) for you to run from your own terminal, and you run it
+again afterwards for the new agent.
+
 ## Core contracts
 
 - **Disk-backed artifacts** land in the TARGET AGENT'S repo (`docs/agent/*`,
@@ -162,14 +175,14 @@ leaves the changes for you to review. It never commits.
 
 Semver, driven by `.claude-plugin/plugin.json`:
 
-- **minor** — a new pipeline skill lands.
+- **minor** — a new pipeline skill or a new pipeline capability lands.
 - **patch** — fixes to existing skills or docs.
 - Each skill also graduates via its own eval gate (see `skills/*/evals/`);
   graduation is tagged (`<skill>-v0.1`) independently of plugin releases.
 
 See `CHANGELOG.md` for release history.
 
-**Status:** v0.11.0 — all 7 phases + 3 transversals + refresh. 11 skills. Built
+**Status:** v0.12.0 — all 7 phases + 3 transversals + refresh. 11 skills. Built
 skill-by-skill, each dogfooded on a real agent.
 
 ## License

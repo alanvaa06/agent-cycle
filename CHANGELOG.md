@@ -1,7 +1,91 @@
 # Changelog
 
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
-skill, patch = fixes.
+skill or new pipeline capability, patch = fixes.
+
+## [0.12.0] — 2026-10-08
+
+### Added
+- **Workspace mode:** several independent agents per repository under
+  `agents/<name>/`, declared by `agent-cycle.yaml`; one-agent repos are
+  unchanged. Every skill resolves `AGENT_ROOT` first
+  (`references/agent-root.md`).
+- **The anti-gaming hook is a tested file** (`skills/build/assets/guard_artifacts.py`,
+  `tests/test_guard_artifacts.py`): freezing is decided per agent from its
+  state (build.md present; draft vs approved). Agents come from the
+  directories (the root and every `agents/<dir>/`), never from
+  `agent-cycle.yaml`, which is append-only.
+- **build.md ratchet:** the hook records every built agent in
+  `.claude/hooks/built-agents.txt`, so deleting or moving a build.md by any
+  route never unfreezes the agent.
+- **Settings protection:** the hook is registered as
+  `python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"`. It
+  blocks any change to that entry or to the `env` key of
+  `.claude/settings.json` / `settings.local.json`, and `disableAllHooks`. The
+  user's `~/.claude/settings.json` is guarded too (`disableAllHooks` and the
+  guard entry; its `env` rule covers only `PATH` and `PYTHON*`, the variables
+  that steer the hook's interpreter).
+- **Tracked ratchet and human-only git:** `built-agents.txt` is committed with
+  the hook, so a fresh clone stays frozen. While any agent is built, merge,
+  pull, rebase, revert, cherry-pick, apply, am, reset --hard, stash
+  pop/apply/branch, and checkout/restore from another commit over protected
+  paths are the human's. Path-less destructive verbs (`git clean`,
+  `git stash -u`/`-a`) are blocked at the repo root and in an agent folder;
+  give them a path (`git clean -fd src`). Branch switching stays allowed.
+- **Hardened paths and shell reading:** file-tool paths are canonicalised
+  (junctions, 8.3 names, `\\?\`, trailing dots, NTFS streams). More write
+  forms are recognised: PowerShell aliases, `sed`/`perl`/`awk` in-place,
+  `git -C`, interpreter here-docs, `bash -c`, globs matched by depth, hard
+  links. Only write targets are judged, so reading frozen files (`2>&1`,
+  `> results.txt`, `cp evals/x /tmp/`, commit messages naming frozen paths)
+  no longer trips it.
+- design: new agents in a workspace; conversion commands for a one-agent repo.
+  The commands are shown for the human to run from their own terminal, in
+  three separate commits: the hook upgrade (with the `-I -S` registration) on
+  its own, then the move (pure renames plus `agent-cycle.yaml`), then the
+  ratchet, where the `.` line of `built-agents.txt` becomes `agents/<name>/`.
+  design stops after showing them and is run again once the human has
+  committed.
+- Eval cases DES-E07, DES-E08, SPC-E05, BLD-E06, SHP-E05.
+
+### Changed
+- build: per-agent baseline commit, build.md stub committed first, writes
+  only inside AGENT_ROOT, resource names prefixed per agent. The hook is
+  installed in this order, in one commit: script, ratchet, registration last
+  (a registered hook whose script is missing blocks every tool call). The
+  human-only git verbs list now includes `stash branch`, matching the hook.
+- build eval check (`skills/build/evals/cases.json`): the anti-gaming check
+  now describes the persistent hook that freezes `evals/`, `design.md` and
+  `spec.md` once build.md exists (the spec §6 Test column and a draft build.md
+  stay editable), replacing the v0.11 wording about a build-duration hook over
+  all of `docs/agent/`. A deliberate eval-text change.
+- ship: anti-gaming diff limited to the agent; workspace-move commits
+  accepted (subject `agent-cycle: workspace move`, only `R100` renames plus
+  the added `agent-cycle.yaml`; the sha is recorded); commits touching two
+  agents are findings.
+
+### Upgrade notes
+- The hook is now persistent and narrower: only `evals/`, `docs/agent/design.md`
+  and `docs/agent/spec.md` freeze (no longer all of `docs/agent/`), from the
+  moment build.md exists.
+- Hook upgrades are a human step: build never writes `.claude/hooks/`. When
+  the installed `HOOK_VERSION` is lower than the plugin's, build stops and
+  asks you to rename the hook to `.off`, copy the plugin's file, and rename it
+  back. An older hook does not protect `agents/*/`, so upgrade before
+  converting a repo to a workspace, and commit the upgrade on its own, before
+  the move commit.
+- Repos whose `.claude/settings.json` registers the hook without `-I -S`:
+  update the command to
+  `python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"` and
+  commit `.claude/hooks/built-agents.txt` (both by hand; the hook blocks the
+  builder from doing either through its own registration).
+- Re-entry on a built agent: rename the hook to `.off`, make the change,
+  remove the agent's line from `.claude/hooks/built-agents.txt` when its
+  build.md is deleted or moved, then rename the hook back.
+- Shell writes to an existing build.md are blocked (edit it with file tools).
+
+### Pending graduation
+- A real workspace with two agents both taken through build.
 
 ## [0.11.0] — 2026-10-08
 
