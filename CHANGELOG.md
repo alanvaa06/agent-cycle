@@ -16,57 +16,100 @@ skill or new pipeline capability, patch = fixes.
   the justification test: an orchestrator needs at least one of four reasons
   (reuse, separate permissions, context too large, different models or
   costs), each backed by a concrete fact from the case. "One agent" and
-  "router without an LLM" are successful outcomes, not failures. Justified
-  designs get a delegate inventory; a helper that only serves this agent is an
-  internal subagent, not a delegate. A built delegate with no inbound
-  interface for the orchestrator draws a warning (build re-entry of that
-  delegate).
+  "router without an LLM" are successful outcomes, not failures; when no new
+  agent results they write NO file and leave `agent-cycle.yaml` untouched (the
+  verdict and its reasoning are stated in chat; Phase C2 runs before
+  design.md is created). Justified designs get a delegate inventory, and each
+  delegate is also a tool in §4's inventory with a tier guess; a helper that
+  only serves this agent is an internal subagent, not a delegate. A delegate
+  with no inbound interface for the orchestrator draws a warning: the
+  interface is owned by the DELEGATE'S SPEC, so adding it is a spec re-entry
+  of that delegate (a new ingress in its spec, an untrusted surface for its
+  callers with an injection-attempt BHV, a BHV proving the probe has no side
+  effects; then its evals, its build, and its interop publishes the
+  contract). On a built delegate that re-entry is the human's, hook off, in a
+  commit separate from the orchestrator's work.
 - spec §8 Delegates: one row per delegate (delegate, used by, input, output,
-  contract version, on failure). Contract is `pending` until the delegate
-  publishes it, and ship is blocked until it is pinned. Each delegate's
+  contract version, on failure). The pin must be a version on the `Served:`
+  line of the delegate's Inbound contracts entry. Contract is `pending` until
+  the delegate publishes it: evals refuses while a pin is pending and ship
+  treats it as a blocker; pinning it after the orchestrator's build is a human
+  re-entry (spec, evals, build). Each delegate has a §2 tool contract that
+  references its §8 row, each On failure mode has its own BHV, each delegate's
   replies are an untrusted surface in §4 with at least one injection-attempt
   BHV, and each delegate credential is a least-privilege row.
 - evals: recorded delegate responses, so the suite never calls a live
-  delegate. Re-recording is a human re-entry of the evals phase, never in
-  place.
+  delegate: `response` (every call) or `responses: [...]` (one per call, in
+  order; one per turn for an A2A delegate). Adversarial cases per rule 5 (at
+  least 2 payloads per delegate), failure cases cite their BHV, and each
+  delegate gets a golden probe response (`evals/delegates/<agent>-probe.json`)
+  for the weekly check. Re-recording is a human re-entry of the evals phase,
+  never in place, and only on a contract version bump. build's eval runner
+  serves the recordings from backend doubles of the delegate endpoint (down =
+  connection refused, timeout = a delay past the client timeout, invalid = the
+  raw payload).
 - interop: Inbound contracts. When another workspace agent calls this one,
   `interop.md` carries an Inbound contracts section in BOTH decisions (skip
   or A2A; the skip path carries it too): caller, input and output schemas,
-  contract version `<agent>-contract@<n>` with the versions still served, and
-  one probe request (side-effect-free: no writes, no gated action). interop
-  finds its callers by reading other agents' design §9 and spec §8. A missing
-  handler is a build re-entry of the delegate (rule 7), never improvised.
-- ship, orchestrator side: the delegate gate sits in Section 0 / rule 1, so a
-  missing delegate refuses before the suite re-run, not mid-audit (every
-  delegate needs an approved `interop.md` publishing Inbound contracts for
-  this caller and an approved `ship-report.md`; the refusal names the
-  delegate). Contract match (the version in the delegate's `interop.md`
-  equals the spec §8 pin, with both greps cited) and a live probe: the
-  delegate's published probe request, never any other request, sent to its
-  deployed endpoint and validated against the pinned output schema. A probe
-  request is a read; it writes nothing. Delegate credentials join the
-  least-privilege diff.
-- ship, delegate side: contract-bump block. A Dependents check (workspace
-  only; a one-agent repo records "no other agents") greps every other agent's
-  spec §8 for `<this-agent>-contract@`; an orchestrator pinning a version this
-  ship no longer serves is a blocker.
+  protocol verdict, contract version `<agent>-contract@<n>`, a fixed
+  `Served: <agent>-contract@1, ...` line, the handler file:line and the
+  probe's no-side-effect BHV, and one probe request (side-effect-free: no
+  writes, no gated action) with its expected response. interop finds its
+  callers by reading other agents' design §9 and spec §8. A missing handler or
+  missing spec coverage is a spec re-entry of the delegate, never a build
+  re-entry alone and never improvised. On the orchestrator side the protocol
+  cites the delegate's published one; the delegate's verdict wins on
+  disagreement.
+- ship, orchestrator side (spec §8 lists at least one delegate): the delegate
+  gate sits in Section 0 / rule 1, so a missing delegate refuses before the
+  suite re-run, not mid-audit (every delegate needs an approved `interop.md`
+  publishing Inbound contracts for this caller and an approved
+  `ship-report.md` whose `interop_version` equals its interop.md version; the
+  refusal names the delegate). Contract: each pin is among the versions on the
+  delegate's `Served:` line, with both greps cited (pending or not served is a
+  blocker routed to the orchestrator's spec, evals, build). Live probe: the
+  delegate's published probe request, never any other request, sent to the
+  delegate's base URL from the orchestrator's deploy configuration with the
+  orchestrator's delegate credential, validated against the pinned output
+  schema. A probe request is a read; it writes nothing. Delegate credentials
+  join the least-privilege diff. Cross-agent reads and greps run from the
+  repo root; a grep with no match in a workspace is an error, not a pass
+  (except an empty Dependents result, which lists the specs it searched).
+- ship, delegate side: each Inbound contracts entry cites its handler
+  file:line and the probe's no-side-effect BHV (missing → finding routed to
+  the delegate's spec). Contract-bump block: a Dependents check (workspace
+  only; a one-agent repo records "no other agents") reads what orchestrators
+  have SHIPPED: the `delegate_contracts` in each orchestrator's latest
+  approved ship-report. A version pinned there that this ship no longer
+  serves is a blocker. Order: serve both versions → the orchestrator ships
+  the new pin → drop the old version.
+- ship-report frontmatter gains `interop_version` (every agent) and, for
+  orchestrators, `delegate_contracts: [<agent>-contract@<n>, ...]`.
 - ship verdict: any blocker-severity finding is NO-SHIP, not only the
   enumerated ones (SHP-E07).
-- runbook: weekly live probe of each delegate against the pinned output
-  schema (drift is re-recorded through the evals phase, by a human), and the
-  orchestrator's path when a delegate's kill switch is used.
+- runbook: weekly live probe of each delegate (base URL and credential from
+  the orchestrator's deploy configuration), compared with the pinned output
+  schema and with the recorded golden probe response. It catches schema
+  drift and same-shape worse content on the probe request, not on other
+  requests. Drift without a contract bump routes to the delegate and is never
+  re-recorded. Also the orchestrator's path when a delegate's kill switch is
+  used. Ship Section 6 checks these items for orchestrators.
 - economics: delegate cost per call (calls per turn x delegate cost). The
   figure is read from the delegate's own economics artifact when present
   (read-only), otherwise it is an assumption in section 1.
 - blueprint: each delegate is one external node labeled with its contract
   version, connected from the tools that call it.
-- agent-root read exceptions (`references/agent-root.md`), all read-only:
-  design of an orchestrator reads other agents' design.md and interop.md;
-  interop reads other agents' design §9 and spec §8; ship of an orchestrator
-  reads its delegates' interop.md and ship-report.md; ship of any agent reads
-  other agents' spec §8; economics of an orchestrator reads its delegates'
-  economics artifacts.
-- Eval cases DES-E09, DES-E10, SPC-E06, EVL-E05, ITP-E05, SHP-E06, SHP-E07.
+- agent-root read exceptions (`references/agent-root.md`), all read-only and
+  run from the repo root: design of an orchestrator reads other agents'
+  design.md, interop.md and build.md frontmatter; spec of an orchestrator
+  reads its delegates' interop.md; interop reads other agents' design §9 and
+  spec §8; ship of an orchestrator reads its delegates' interop.md and
+  ship-report.md; ship of any agent reads other agents' spec §8 and the
+  frontmatter of their latest approved ship-report; economics of an
+  orchestrator reads its delegates' economics artifacts. A delegate's
+  re-entry and the orchestrator's work go in separate commits.
+- Eval cases DES-E09, DES-E10, DES-E11, SPC-E06, EVL-E05, ITP-E05, SHP-E06,
+  SHP-E07.
 
 ### Upgrade notes
 - Opt-in. One-agent repos and workspaces without orchestrators are unchanged.
@@ -76,9 +119,13 @@ skill or new pipeline capability, patch = fixes.
 - Open question tracked in `todo.md`: when a delegate's recorded responses are
   re-recorded. Today the trigger is the delegate's contract version, not its
   ship tag, so a delegate that keeps the same shape but returns worse content
-  slips past ship; the weekly live probe is what catches it. Revisit if that
-  happens, or if the probe keeps finding drift (the alternative is pinning the
-  delegate's ship tag).
+  slips past ship; the weekly live probe catches it only on the probe request
+  (compared with the recorded golden probe response), not on other requests.
+  Revisit if that happens, or if the probe keeps finding drift (the
+  alternative is pinning the delegate's ship tag).
+- Delegate ship-reports written before this release have no
+  `interop_version`: an orchestrator's ship refuses until each delegate
+  re-ships.
 
 ### Pending graduation
 - A real orchestrator and two delegates taken through ship.
