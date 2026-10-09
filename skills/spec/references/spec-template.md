@@ -129,3 +129,15 @@ fills the test column.
 
 <Unresolved items for the next phases. Non-empty — if truly nothing is open,
 state the single riskiest assumption instead.>
+
+## 8. Delegates
+
+<!-- Orchestrators only (design §9 verdict "orchestrator"). Otherwise one line: "No delegates". Appended last: earlier sections keep their numbers. -->
+
+| Delegate | Used by | Input | Output | Contract | On failure |
+|---|---|---|---|---|---|
+| <agent> | BHV-NNN, ... | <schema> | <schema> | <agent>-contract@<n> or pending | down: <...>; timeout: <...>; invalid output: <...> |
+
+Delegates are untrusted counterparts: their replies ride the untrusted envelope
+(§4), and any gated or destructive action a reply implies goes through this
+agent's own HITL tiers.

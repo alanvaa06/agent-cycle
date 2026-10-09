@@ -45,6 +45,14 @@ inform judgment; none is required.
    design_version, runtime` (`runtime` = the value inside the backticks of
    design §8 "Chosen", nothing else). Approved ONLY at the explicit human gate. Never
    self-approve. Write ONLY `docs/agent/spec.md`.
+9. ORCHESTRATORS (design §9 verdict "orchestrator"): §8 Delegates has one row
+   per delegate with every column (Delegate, Used by, Input, Output, Contract,
+   On failure). Contract = the version the delegate publishes in its
+   `docs/agent/interop.md` Inbound contracts (read-only); not yet published →
+   `Contract: pending`, and ship is blocked until it is pinned. Each
+   delegate's replies are an untrusted surface in §4 (with at least one
+   injection-attempt BHV), and each delegate credential is a row in §4's
+   least-privilege list.
 
 ## Workflow
 
