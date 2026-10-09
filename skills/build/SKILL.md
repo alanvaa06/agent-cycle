@@ -19,11 +19,12 @@ been red by design goes green here, through a runner — never through opinion.
    has no favorite framework at runtime. Wanting otherwise is a re-entry
    dispute.
 3. RAILS BEFORE CODE: the approved design, spec and evals are committed as
-   the baseline (build.md records it as build_start), then the anti-gaming
-   hook (blocks evals/ and docs/agent/ edits) is installed, verified and
-   committed on its own BEFORE the first source file. The builder
-   NEVER edits evals or specs — disputes go to the human via the re-entry
-   ladder.
+   the baseline (build.md records it as build_start), then the build.md stub
+   is committed, and the anti-gaming hook (freezes this agent's evals/,
+   design.md and spec.md once its build.md exists; per forge-delegation.md)
+   is installed when absent (one commit) or verified, BEFORE the first source
+   file. The builder NEVER edits evals or specs — disputes go to the human
+   via the re-entry ladder.
 4. Core/adapter split: agent code imports no infra SDKs; the adapter owns the
    5 bindings (ingress, queue, state, secrets, deploy). Ingress enforces
    signature-over-raw-body, allowlist, dedupe BEFORE the loop.
@@ -44,15 +45,21 @@ been red by design goes green here, through a runner — never through opinion.
    vetted (slopsquatting defense); hash-pinned installs for any dependency the
    stack card tags [security] or the spec's §4 stack security rows flag as
    install-time supply-chain.
-10. Writes: src/, tests/, the runner, the hook config, docs/agent/build.md,
-    and ONLY the Test column of spec §6 (after green, sanctioned at the
-    gate). DoD = suite green + adapter smoke, recorded in build.md,
-    status: draft until the explicit human gate. Never self-approve.
+10. Writes (every path under AGENT_ROOT/): AGENT_ROOT/src/, AGENT_ROOT/tests/,
+    the runner, AGENT_ROOT/docs/agent/build.md, and ONLY the Test column of
+    AGENT_ROOT/docs/agent/spec.md §6 (after green, sanctioned at the gate);
+    plus .claude/hooks/ (script + seeded built-agents.txt) and
+    .claude/settings.json only when installing an absent hook, in one commit
+    (upgrades and registration changes are the human's). DoD = suite green +
+    adapter smoke, recorded in build.md, status: draft until the explicit
+    human gate. Never self-approve.
 
 ## Workflow
 
-1. Read `references/build-guide.md`; run steps 0→9 in order — the rails
-   (Step 2) come before any code.
+1. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md`
+   (Step 0); every path in this skill is relative to it. Read
+   `references/build-guide.md`; run steps 0→9 in order — the rails (Step 2)
+   come before any code.
 2. Target bindings from `references/adapter-bindings.md`; stack binding from
    `references/bindings/<card-id>.md` (its spikes run before build-guide
    Step 4); delegation and the hook from `references/forge-delegation.md`.

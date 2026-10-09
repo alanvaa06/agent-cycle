@@ -43,191 +43,14 @@ threshold" — no opinion anywhere in the chain.
 
 ## The anti-gaming hook
 
-Installed at build Step 2, BEFORE source exists. Claude Code harness — two
-files in the TARGET repo, script first: Claude Code picks up settings changes
-mid-session, and once the settings entry is live a missing script blocks
-every call.
-
-`.claude/hooks/guard_artifacts.py` (stdin receives the tool call JSON; exit 2
-blocks):
-
-```python
-import json, os, re, sys
-
-BLOCKED_PREFIXES = ("evals/", "docs/agent/")
-ALLOWED = ("docs/agent/build.md",)
-SPEC = "docs/agent/spec.md"
-HOOKS = ".claude/hooks/"            # the guard protects itself
-# Folders that hold a frozen path: removing or moving one takes it along.
-HOLDERS = ("", "docs", "evals", "docs/agent", ".claude", ".claude/hooks")
-WRITE = re.compile(
-    r">|\bsed\s+-i|\bgit\s+(checkout|restore|rm|mv|clean)\b"
-    r"|(^|[\s;&|(`])(tee|cp|mv|rm|rmdir|touch|truncate|del|move|copy|ren"
-    r"|remove-item|move-item|copy-item|set-content|add-content|out-file"
-    r"|new-item)(\s|$)", re.IGNORECASE)
-CD = ("cd", "pushd", "chdir", "set-location", "sl")
-WORD = re.compile(r"\"([^\"]*)\"|'([^']*)'|([^\s\"'`;|&()<>=,]+)")
-# A here-document body is data (a commit message, build.md's text), not paths.
-HEREDOC = re.compile(r"<<-?[ \t]*(['\"]?)(\w+)\1([^\n]*)\n.*?\n[ \t]*\2[ \t]*(?=\n|$)",
-                     re.DOTALL)
-
-
-def resolve(raw, base):
-    p = os.path.expanduser(os.path.expandvars(str(raw))).replace("\\", "/")
-    drive = re.match(r"/(?:cygdrive/|mnt/)?([a-zA-Z])(?:/|$)(.*)", p)
-    if os.name == "nt" and drive:      # Git Bash /c/x means C:/x
-        p = drive.group(1) + ":/" + drive.group(2)
-    return os.path.normpath(os.path.join(base, p))
-
-
-def rel_to_repo(raw, base=None):
-    if not raw:
-        return None
-    try:
-        rp = os.path.relpath(resolve(raw, base or cwd), os.path.normpath(root))
-    except ValueError:
-        return None      # different drive -> not this repo
-    rp = rp.replace("\\", "/").lower()
-    if rp == ".." or rp.startswith("../"):
-        return None      # outside the repo
-    return "" if rp == "." else rp
-
-
-def frozen(rel):
-    return (rel is not None and rel not in ALLOWED
-            and rel.startswith(BLOCKED_PREFIXES + (HOOKS,)))
-
-
-def cells(line):
-    s = line.strip()
-    if len(s) < 2 or not (s.startswith("|") and s.endswith("|")):
-        return []
-    return [c.strip() for c in re.split(r"(?<!\\)\|", s[1:-1])]
-
-
-def only_test_cells(old, new):
-    """True when new differs from old only in Test cells of the section 6
-    Traceability table: same lines, every changed one a BHV-NNN row outside
-    code fences whose 4th cell is the only cell that changed."""
-    a = old.replace("\r\n", "\n").rstrip("\n").split("\n")
-    b = new.replace("\r\n", "\n").rstrip("\n").split("\n")
-    if len(a) != len(b):
-        return False
-    section, fence = None, False
-    for x, y in zip(a, b):
-        if re.match(r"\s*(`{3}|~{3})", x):     # a code fence opens or closes
-            fence = not fence
-        elif not fence and x.startswith("## "):
-            section = re.sub(r"^\d+\.\s*", "", x[3:].strip())
-        if x == y:
-            continue
-        cx, cy = cells(x), cells(y)
-        if (fence or section != "Traceability" or len(cx) < 4
-                or len(cx) != len(cy) or not re.fullmatch(r"BHV-\d{3}", cx[0])
-                or cx[:3] + cx[4:] != cy[:3] + cy[4:]):
-            return False
-    return True
-
-
-def test_column_fill(path):
-    """The spec's Test column is filled with the hook on: apply the call to
-    the spec on disk and let it through only if nothing else changes."""
-    try:
-        with open(path, encoding="utf-8", newline="") as f:
-            text = f.read().replace("\r\n", "\n")
-    except OSError:
-        return False
-    if tool == "Write":
-        new = ti.get("content")
-        return isinstance(new, str) and only_test_cells(text, new)
-    edits = ti.get("edits") if tool == "MultiEdit" else [ti]
-    if not isinstance(edits, list):
-        return False
-    new = text
-    for e in edits:
-        old, rep = (e.get("old_string"), e.get("new_string")) \
-            if isinstance(e, dict) else (None, None)
-        # A "$&"-style pattern could be expanded by the tool that applies it.
-        if not (isinstance(old, str) and isinstance(rep, str)) or not old \
-                or re.search(r"\$[$&`'\d]", rep):
-            return False
-        old, rep = old.replace("\r\n", "\n"), rep.replace("\r\n", "\n")
-        if old not in new:
-            return False
-        new = new.replace(old, rep) if e.get("replace_all") \
-            else new.replace(old, rep, 1)
-    return only_test_cells(text, new)
-
-
-def shell_hits(command):
-    if not WRITE.search(command):
-        return []
-    command = HEREDOC.sub(lambda m: m.group(3), command)
-    words = [next(g for g in m.groups() if g is not None)
-             for m in WORD.finditer(command)]
-    dirs, operands, skip = [cwd], [], False
-    for i, w in enumerate(words):
-        if skip:
-            skip = False
-        elif w.lower() in CD and i + 1 < len(words) \
-                and not words[i + 1].startswith("-"):
-            dirs.append(resolve(words[i + 1], dirs[-1]))
-            skip = True
-        elif w:
-            operands.append(w)
-    hits = []
-    for d in dirs:      # cd evals && rm config.yaml
-        rel = rel_to_repo(d)
-        if rel is not None and frozen(rel + "/"):
-            hits.append("a shell write from inside " + rel)
-    for w in operands:  # rm -rf docs/agent, mv docs old, rm -rf *
-        for d in dirs:
-            rel = rel_to_repo(w, d)
-            if rel is not None and rel.endswith("*"):
-                rel = rel[:-1].rstrip("/")
-            if frozen(rel) or rel in HOLDERS:
-                hits.append("a shell write on " + (rel or "the repo root"))
-    return hits
-
-
-# The call arrives as UTF-8; Windows would read it in its own code page.
-sys.stdin.reconfigure(encoding="utf-8")
-sys.stderr.reconfigure(encoding="utf-8")
-try:
-    call = json.load(sys.stdin)
-    tool = call.get("tool_name", "")
-    ti = call.get("tool_input") or {}
-    # Claude Code runs hooks from the session's current directory, which
-    # moves with `cd`; the payload's cwd says where that is. The repo root is
-    # the project dir, never the current directory.
-    cwd = call.get("cwd") or os.getcwd()
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or cwd
-    hits = []
-    for raw in (ti.get("file_path"), ti.get("notebook_path")):
-        rel = rel_to_repo(raw)
-        if frozen(rel) and not (rel == SPEC and tool in ("Edit", "MultiEdit", "Write")
-                                and test_column_fill(resolve(raw, cwd))):
-            hits.append(rel)
-
-    command = str(ti.get("command", "")).replace("\\", "/")
-    if command and any(p in command for p in BLOCKED_PREFIXES):
-        if WRITE.search(command) and "docs/agent/build.md" not in command:
-            hits.append("shell write touching a frozen path")
-    if command:
-        hits += shell_hits(command)
-except Exception as exc:      # fail closed: an unreadable call is not a pass
-    hits = ["could not inspect the call (%s)" % exc]
-
-if hits:
-    print("BLOCKED by agent-cycle anti-gaming rail: " + "; ".join(sorted(set(hits)))
-          + " — frozen pipeline artifacts. Changes go through the re-entry"
-          " ladder (dispute -> re-open the owning phase), never through the"
-          " builder.", file=sys.stderr)
-    sys.exit(2)
-sys.exit(0)
-```
-
-Then `.claude/settings.json` (merge if it exists):
+The hook is the agent-cycle plugin's `skills/build/assets/guard_artifacts.py`
+(tested in the plugin's `tests/test_guard_artifacts.py`). Installing it writes
+three things in the TARGET repo and commits them together in ONE commit:
+1. the script, at `.claude/hooks/guard_artifacts.py`;
+2. the ratchet `.claude/hooks/built-agents.txt`, seeded with this agent's prefix
+   (`.` in a one-agent repo, `agents/<name>/` in a workspace);
+3. the registration, merged into `.claude/settings.json` with exactly this
+   command:
 
 ```json
 {
@@ -238,7 +61,7 @@ Then `.claude/settings.json` (merge if it exists):
         "hooks": [
           {
             "type": "command",
-            "command": "python \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py\""
+            "command": "python -I -S \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py\""
           }
         ]
       }
@@ -247,44 +70,117 @@ Then `.claude/settings.json` (merge if it exists):
 }
 ```
 
-The script path goes through `$CLAUDE_PROJECT_DIR` because Claude Code runs
-hooks from the session's current directory, which moves with `cd`. With a
-relative path, one `cd src` leaves Python unable to find the script; it exits
-2, and from then on every call is blocked, including the `cd ..` that would
-undo it.
+The script path goes through `$CLAUDE_PROJECT_DIR` because hooks run from the
+session's current directory, which moves with `cd`. `-I` ignores `PYTHON*`
+environment variables and the user site; `-S` skips `site`.
 
-What it blocks:
-- Edit / Write / MultiEdit / NotebookEdit on `evals/**`, `docs/agent/**`
-  (except `docs/agent/build.md`) and `.claude/hooks/**` — the hook guards
-  itself.
-- Shell writes that name one of those paths, or a folder that holds them (the
-  repo root, `docs`, `evals`, `docs/agent`, `.claude`, `.claude/hooks`, `*`),
-  or that run from inside a frozen folder (`cd evals && rm config.yaml`).
-  Paths are resolved from the directory Claude is in (the payload's `cwd`) and
-  judged against the project root. Here-document bodies are data, not paths.
-- A call it cannot read: blocked, not waved through.
+The hook pins this exact entry. After install, any change to it or to the
+`env` key of `.claude/settings*.json` is blocked; an entry with the flags
+stripped counts as dropping the hook. A repo registered without `-I -S` is
+updated by the human from their own terminal.
 
-What it cannot see: a script file that writes (`python fix.py`), a glob that
-hides the name (`rm ev*/x`), a path assembled in a variable. Those are what
-/ship's diff audit is for.
+Installed once per repository and kept (it is not removed after a build).
+Install when absent. If the installed file's `HOOK_VERSION` is lower than the
+plugin's, STOP and ask the human to upgrade it from their own terminal: rename
+it to `guard_artifacts.py.off`, copy the plugin's file, then rename it back.
+Build never writes `.claude/hooks/` once the hook exists, because the hook
+protects that folder. Otherwise only verify it is active.
 
-The spec §6 Test column exception: the column is filled at build Step 9 AFTER
-the suite is green, WITH THE HOOK ON. The hook lets an Edit, MultiEdit or
-Write of `docs/agent/spec.md` through only when it changes nothing but Test
-cells: it applies the call to the spec on disk and checks that every changed
-line is a `| BHV-NNN |` row of the §6 Traceability table, outside code fences,
-whose fourth cell is the only one that changed. Anything else in the spec
-stays blocked. Procedure, stated at the gate: (1) announce the sanctioned edit
-to the human; (2) make the column edit; (3) confirm the hook still bites —
-attempt a dummy edit to `evals/config.yaml` and see it blocked. A build.md DoD
-line records both. The builder never disables or moves the hook (Claude
-Code's auto mode can refuse that as weakening security anyway); re-entry
-under the hook is the human's: they rename the script to
-`guard_artifacts.py.off` and back from their own terminal. Additionally, the
-hook is a first layer, not the only one: /ship's git-diff audit from
-build.md's `build_start` to HEAD (evals/, design.md and spec.md minus the
-allow-list must show zero diffs) is the standing second layer on every build,
-hook or no hook.
+`built-agents.txt` is tracked. When the hook already exists, it records a newly
+built agent itself the first time it sees that agent's build.md. Commit the
+updated file with the next commit (`git add .claude/hooks/built-agents.txt`;
+`git add` is not a write). A fresh clone therefore stays frozen, and
+`git clean` cannot remove the file.
+
+What it freezes, per agent (layouts per the plugin's `references/agent-root.md`):
+
+| Path of an agent | Frozen when |
+|---|---|
+| `evals/**`, `docs/agent/design.md`, `docs/agent/spec.md` | the agent's `docs/agent/build.md` exists |
+| spec §6 Test column | editable with file tools only while build.md says `status: draft` |
+| `docs/agent/build.md` | editable with file tools while `draft`; frozen once approved; shell writes never touch it |
+| later-phase files (skills.md, interop.md, ship-report.md, blueprint.html, agent-card.json, economics) | never |
+
+Always:
+- **Agents come from directories.** Agents are the repo root plus every
+  `agents/<dir>/`, longest prefix first. `agent-cycle.yaml` never decides
+  what is frozen. The root freezes only with its own `docs/agent/build.md`.
+- **Marker.** `agent-cycle.yaml` is append-only.
+- **Ratchet.** The hook records every agent whose build.md it has seen in
+  `.claude/hooks/built-agents.txt` (`.` for the root). A recorded agent whose
+  build.md is gone stays frozen: evals, design, spec, the build.md path, and no
+  Test column. Deleting build.md by any route never unfreezes an agent, and
+  the file is tracked.
+- **Hook folder.** `.claude/hooks/` (hook and ratchet) is protected, and so is
+  any file that is a hard link to a protected file.
+- **Settings.** `.claude/settings.json`, `settings.local.json` and the user's
+  `~/.claude/settings.json` must stay valid JSON. The pinned PreToolUse entry and the `env` key must not change,
+  and `disableAllHooks` must never be set. Any shell write whose target names
+  `.claude/settings` is blocked.
+- **Shell writes.** The hook judges only write targets, parsed per command:
+  - the verb is the word's basename, so `/bin/rm`, `rm.exe` and `"rm"` count;
+  - the target is the destination of `cp`, `Copy-Item` or `robocopy`, the
+    `-Path` of `Set-Content`, a redirect's target, or every argument of `rm`,
+    `mv`, `touch` and `tee`.
+
+  Reading a frozen file is not a write. Blocked:
+  - a write whose target is a frozen path;
+  - a destructive verb (`rm`, `mv`, `Remove-Item`, `robocopy /MIR`,
+    `git clean/rm/mv`, `find -delete`, ...) whose target is a folder holding
+    frozen files: the repo root, `agents/`, an agent folder, its `docs`,
+    `docs/agent` or `evals`;
+  - a glob that reaches one by depth: a protected file at its own depth, a
+    protected folder at its depth or deeper, a holder at its depth or above.
+- **Git (the human runs these while any agent is built).** Blocked outright:
+  - `git apply`, `am`, `revert`, `cherry-pick`, `merge`, `pull`, `rebase`;
+  - `git reset --hard`, `git stash pop`/`apply`/`branch`;
+  - `git checkout`/`restore` from another commit (`<tree-ish> --`,
+    `--source`/`-s`) over `.`, a `:` magic pathspec, a holder or a protected path.
+
+  Path-less `git clean`, `git stash -u`/`-a` and `git reset --hard` act on the
+  current directory, so they are blocked at the root and in an agent folder.
+  Still allowed: `git checkout <branch>`, `git checkout -b`, `git switch`,
+  `git restore src/app.py`, `git checkout -- src/x`, `git clean -fd src`.
+- **Here-documents.** Their bodies are data, except when they feed a shell or
+  interpreter.
+- **Unreadable calls** are blocked.
+
+Re-entry on a built agent is the human's, from their own terminal:
+1. Rename the hook to `guard_artifacts.py.off`.
+2. Make the change.
+3. Remove the agent's line from `.claude/hooks/built-agents.txt` (needed when
+   its build.md is deleted or moved).
+4. Rename the hook back.
+
+Not false blocks: `2>&1`, `>/dev/null` and `2>NUL` are not writes. A segment
+whose only write is a redirect is judged by its target alone, so
+`pytest evals/ > results.txt` passes. Commit messages that name frozen paths
+pass too.
+
+Still blocked:
+- a destructive verb on a holder folder: `find . -name x -delete`,
+  `... | xargs rm` from the root, path-less `git clean` at the root. Use
+  `find ... -delete` or `find ... -exec rm {} +` instead of `| xargs rm` (a
+  destructive command fed by xargs is judged against the current directory
+  chain), and give `git clean` a path (`git clean -fd src`).
+- the git verbs above while built.
+
+What it cannot see:
+- a script that writes (`python fix.py`, `python -c`);
+- a path assembled in a variable, backslash escapes inside a name, brace
+  expansion, encoded commands;
+- a tool that rewrites files in place (`ruff format .`, `prettier --write .`
+  over frozen files).
+
+The hook is the first layer. /ship's diff audit from `build_start` and ship's
+re-run of the suite from the committed tree (rule 4) are the second layer and
+catch those effects. The ratchet covers build.md.
+
+The Test column is filled at build Step 9 AFTER green, WITH THE HOOK ON:
+(1) announce the sanctioned edit; (2) make the column edit; (3) confirm the
+hook still bites — a dummy edit to `<AGENT_ROOT>/evals/config.yaml` is
+blocked. build.md records both. The builder never disables, moves, upgrades
+or unregisters the hook; re-entry and upgrades are the human's (steps above).
 
 ## Disputes
 
