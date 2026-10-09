@@ -45,7 +45,9 @@ threshold" — no opinion anywhere in the chain.
 
 The hook is the agent-cycle plugin's `skills/build/assets/guard_artifacts.py`
 (tested in the plugin's `tests/test_guard_artifacts.py`). Installing it writes
-three things in the TARGET repo and commits them together in ONE commit:
+three things in the TARGET repo, in this order, and commits them together in
+ONE commit (the registration goes last: a registered hook whose script is
+missing blocks every tool call):
 1. the script, at `.claude/hooks/guard_artifacts.py`;
 2. the ratchet `.claude/hooks/built-agents.txt`, seeded with this agent's prefix
    (`.` in a one-agent repo, `agents/<name>/` in a workspace);
