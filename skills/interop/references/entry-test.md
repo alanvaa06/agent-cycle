@@ -62,11 +62,34 @@ When another workspace agent calls this one, `docs/agent/interop.md` carries
 an **Inbound contracts** section in BOTH decisions (skip or A2A), one entry
 per caller:
 - caller (agent name), input schema, output schema;
+- protocol: this relationship's entry-test verdict (A2A or simple call);
 - contract version `<this-agent>-contract@<n>`; any change to the input or
-  output shape bumps `<n>`, and the entry states which versions are still
-  served;
+  output shape bumps `<n>`;
+- one fixed line listing every version still served, so greps are
+  mechanical: `Served: <this-agent>-contract@1, <this-agent>-contract@2`;
+- the handler that serves the interface (file:line in the built code) and the
+  BHV in this agent's spec that proves the probe has no side effects;
 - one **probe request**: side-effect-free (no writes, no gated action), with
-  its expected response shape. The caller's ship and weekly ritual use it.
+  its expected response (shape plus one sample reply the caller records as
+  its golden probe response). The caller's ship and weekly ritual use it.
 
-No handler for the interface in the built code → BUILD re-entry of this agent
-(rule 7), never improvised here.
+The interface is owned by THIS agent's spec. No handler in the built code, or
+no spec coverage for it (the ingress/channel in §3, an untrusted surface in
+§4 for its callers with an injection-attempt BHV, the probe's no-side-effect
+BHV) → SPEC re-entry of this agent: spec, then evals, then build (the
+handler), then this interop publishes the version. Never improvised here,
+never a build re-entry alone. On a built agent that re-entry is the human's,
+hook off (the re-entry steps in the build skill's
+`references/forge-delegation.md`); this agent's re-entry and the caller's
+work go in separate commits (a shared commit is a mixed-agent ship finding).
+
+Dropping a served version: only when no orchestrator's latest approved
+ship-report pins it (`delegate_contracts` in its frontmatter). Order: serve
+both versions → the orchestrator re-enters spec, evals and build and ships
+the new pin → this agent drops the old version from `Served:`.
+
+Orchestrator side: each delegate in this agent's spec §8 gets its own row and
+verdict, recorded with the pinned contract. The protocol cites the one the
+delegate published in its Inbound contracts entry; on disagreement the
+delegate's verdict wins (it owns the interface) and this agent's spec
+re-enters to match.

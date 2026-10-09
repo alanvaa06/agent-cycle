@@ -4,7 +4,8 @@ Every agent-cycle skill resolves `AGENT_ROOT` before touching any path. All
 paths the skills name (`docs/agent/...`, `evals/...`, `src/...`, `tests/...`)
 are relative to `AGENT_ROOT`; git commands that take paths prefix them with it,
 and every non-git command (the eval runner, the package manager, the adapter
-smoke test, a lockfile `grep`) runs from `AGENT_ROOT`.
+smoke test, a lockfile `grep`) runs from `AGENT_ROOT`, except the
+cross-agent reads of orchestrators, which run from the repo root (Rules).
 
 ## Layouts
 
@@ -47,12 +48,22 @@ another agent's folder or only one agent is listed.
   only to detect commits that touch two agents, reads the pre-move root paths
   of a sanctioned workspace move, and reads the history of `.claude/hooks/`.
   Orchestrators (design §9 Delegation) add read-only exceptions: design of an
-  orchestrator reads other agents' `docs/agent/design.md` and
-  `docs/agent/interop.md`; interop reads other agents' design §9 and spec §8
-  to find its callers; ship of an orchestrator reads its delegates'
-  `docs/agent/interop.md` and `docs/agent/ship-report.md`; ship of any agent
-  reads other agents' spec §8 to find orchestrators that pin it; economics of
-  an orchestrator reads its delegates' economics artifacts.
+  orchestrator reads other agents' `docs/agent/design.md`,
+  `docs/agent/interop.md` and the frontmatter of `docs/agent/build.md` (to
+  know whether a delegate is built); spec of an orchestrator reads its
+  delegates' `docs/agent/interop.md`; interop reads other agents' design §9
+  and spec §8 to find its callers; ship of an orchestrator reads its
+  delegates' `docs/agent/interop.md` and `docs/agent/ship-report.md`; ship of
+  any agent reads other agents' spec §8 and the frontmatter of their latest
+  approved `docs/agent/ship-report.md` to find orchestrators that pin it;
+  economics of an orchestrator reads its delegates' economics artifacts.
+  These cross-agent reads and greps run from the REPO ROOT (not from
+  `AGENT_ROOT`); in a workspace, a cross-agent grep that matches nothing is an
+  error to report, never a pass (ship's Dependents check, where "no
+  orchestrator pins this agent" is legitimate, lists the files it searched).
+- A delegate's re-entry (for example to add an inbound interface for an
+  orchestrator) and the orchestrator's own work go in separate commits; a
+  commit touching both agents is a mixed-agent finding at ship.
 - The anti-gaming hook (the agent-cycle plugin's
   `skills/build/assets/guard_artifacts.py`) takes its agents from the
   directories (the repo root and every `agents/<dir>/`), never from this
