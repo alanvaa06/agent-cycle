@@ -699,7 +699,7 @@ if __name__ == "__main__":
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `python -m pytest tests -q`
-Expected: `300 passed` (39 existing + 261 hook tests). The listing above is the hook's first version (42 tests, `81 passed`). Two hardening follow-ups replaced it: layout from directories, the build.md ratchet, path canonicalisation, detector gaps, false blocks and settings protection; then write targets parsed per command, human-only git verbs, glob depth, hard links and the pinned `-I -S` registration. The current source is `skills/build/assets/guard_artifacts.py`. If a test fails, fix the hook — never weaken a test without reporting it.
+Expected: `305 passed` (39 existing + 266 hook tests). The listing above is the hook's first version (42 tests, `81 passed`). Two hardening follow-ups replaced it: layout from directories, the build.md ratchet, path canonicalisation, detector gaps, false blocks and settings protection; then write targets parsed per command, human-only git verbs, glob depth, hard links and the pinned `-I -S` registration. The current source is `skills/build/assets/guard_artifacts.py`. If a test fails, fix the hook — never weaken a test without reporting it.
 
 - [ ] **Step 6: Mutation spot-check**
 
@@ -1067,8 +1067,10 @@ pass too.
 
 Still blocked:
 - a destructive verb on a holder folder: `find . -name x -delete`,
-  `... | xargs rm` from the root, path-less `git clean` at the root. Narrow it
-  (`find src ...`, `git clean -fd src`).
+  `... | xargs rm` from the root, path-less `git clean` at the root. Use
+  `find ... -delete` or `find ... -exec rm {} +` instead of `| xargs rm` (a
+  destructive command fed by xargs is judged against the current directory
+  chain), and give `git clean` a path (`git clean -fd src`).
 - the git verbs above while built.
 
 What it cannot see:
@@ -1263,7 +1265,7 @@ Replace `<release date>` with the commit date.
 
 - [ ] **Step 4: Full verification**
 
-Run the three checks from Conventions. Expected: `300 passed`; `PASS: 9 card(s); ...`; `[ok] all cases.json parse`.
+Run the three checks from Conventions. Expected: `305 passed`; `PASS: 9 card(s); ...`; `[ok] all cases.json parse`.
 
 - [ ] **Step 5: Commit**
 
