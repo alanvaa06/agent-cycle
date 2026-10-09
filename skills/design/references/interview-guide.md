@@ -46,6 +46,37 @@ safety it buys). The template's Justification field is filled in BOTH branches.
 Run the 5-part completeness check (model/tools/memory/orchestration/deployment)
 and note gaps as open questions.
 
+## Phase C2 — Delegation (workspace agents only)
+
+Runs only when this agent would hand work to other agents listed in
+`agent-cycle.yaml` (the user names them, or says so). Delegates must be
+workspace agents: in a one-agent repo, show the conversion ("Second agent in a
+one-agent repo") and stop.
+
+1. **Mechanical routing first.** If deciding which agent gets each message is
+   mechanical (by channel or keyword), record "router without an LLM" in §9:
+   plain code outside agent-cycle; design names it and stops. This holds even
+   when the reasons below are true (reuse justifies separate agents, not an
+   LLM in front of them).
+2. **Justification test.** An orchestrator is justified only when at
+   least one reason holds, each written with a concrete fact from this case:
+   reuse (the delegate already exists with its own channel or releases);
+   separate permissions (one merged agent would need credentials it should not
+   hold); context too large (one agent would carry too many tools or
+   conflicting instructions); different models or costs.
+3. **No reason holds** → record "one agent" in §9 with the reason (add the
+   tools to an existing agent via its design re-entry, or design one agent)
+   and stop delegation.
+4. **Justified** → inventory each delegate: name (must be in
+   `agent-cycle.yaml`), what it is used for, the reason(s) it serves. Read the
+   other agents' `docs/agent/design.md` and `docs/agent/interop.md`
+   (read-only). A helper that only serves this agent is NOT a delegate; it
+   stays an internal subagent/subgraph (§3/§8).
+5. **Built delegate without an inbound interface** for this agent (its
+   `interop.md` has no Inbound contracts row for this caller) → warn: adding
+   it is a build re-entry of that delegate (interop rule 7). Advise designing
+   the orchestrator before building its delegates; do not require it.
+
 ## Phase D — Deployment intent
 
 "Where will this run — AWS, GCP, or a VPS — and is that the client's constraint
