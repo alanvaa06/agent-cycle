@@ -48,7 +48,7 @@ Collapsible detail uses native <details><summary>.
 ## Step 3 — Sanitize
 
 Before writing: scan every rendered string. Env var NAMES are fine
-(WA_OWNER_WA_ID); values never. No tokens, no credential fragments, no
+(ALLOWED_SENDER_ID); values never. No tokens, no credential fragments, no
 internal record IDs, no API payloads. The blueprint is client-shareable by
 default — sanitization is not optional.
 
