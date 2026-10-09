@@ -85,7 +85,7 @@
           "Second run: Section 3 Delegates compares each pinned contract version with the delegate's interop.md (cites the command and output)",
           "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request); the response validates against the pinned output schema; command and output cited",
           "Second run: recepcion's delegate credentials are included in the least-privilege diff",
-          "Writes only agents/recepcion/docs/agent/ship-report.md"
+          "Second run: writes only agents/recepcion/docs/agent/ship-report.md (the first run writes nothing)"
         ]
       }
     },

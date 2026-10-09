@@ -62,8 +62,10 @@ shows the v0.12 conversion (interview-guide "Second agent in a one-agent repo") 
 ### 4.2 Justification test
 
 Before any delegate is inventoried, design records the test in a new **design.md §9
-Delegation**. An orchestrator is justified only when at least one reason holds, each written
-with a concrete fact from this case:
+Delegation**. First: is routing mechanical (by channel or keyword)? If so the verdict is
+"router without an LLM" even when the reasons below hold — reuse justifies separate agents,
+not an LLM in front of them. Otherwise an orchestrator is justified only when at least one
+reason holds, each written with a concrete fact from this case:
 
 1. **Reuse:** the delegate already exists as an agent with its own channel or releases.
 2. **Separate permissions:** one merged agent would need credentials it should not hold.
@@ -72,7 +74,7 @@ with a concrete fact from this case:
    one).
 
 Two outcomes produce no orchestrator, and both are successful outcomes recorded in §9 with
-the reason:
+the reason (the router check runs first):
 - **One agent:** no reason holds → add the tools to an existing agent (design re-entry of
   that agent) or design one agent.
 - **Router without an LLM:** routing is mechanical (by channel or keyword) → plain code

@@ -130,9 +130,9 @@
       "expected": {
         "fires": true,
         "checks": [
-          "Runs the justification test before inventorying delegates and records it in design.md §9 Delegation",
-          "Concludes 'router without an LLM' (routing is mechanical by keyword) or 'one agent', with the reason written from a fact of this case; no reason from the four (reuse, separate permissions, context too large, different models or costs) is claimed without a concrete fact",
-          "No delegate inventory is written and no orchestrator design is produced; for 'router without an LLM' it states that this lives outside agent-cycle and stops",
+          "Runs the mechanical-routing check first, before the four reasons and before inventorying delegates, and records it in design.md §9 Delegation",
+          "Concludes 'router without an LLM' because routing is by keyword, even though the reuse reason holds (ventas and soporte have their own channels); states that reuse justifies separate agents, not an LLM in front of them",
+          "No delegate inventory is written and no orchestrator design is produced; it states that the router lives outside agent-cycle and stops",
           "Does not modify anything under agents/ventas/ or agents/soporte/"
         ]
       }
