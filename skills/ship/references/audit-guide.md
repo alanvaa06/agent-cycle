@@ -83,7 +83,8 @@ coverage map.
 
 `git diff --word-diff --find-renames <build_start>..HEAD -- <AGENT_ROOT>/evals/ <AGENT_ROOT>/docs/agent/design.md <AGENT_ROOT>/docs/agent/spec.md`
 plus, when a commit in the range has a message starting `agent-cycle: workspace move`
-and `git show --name-status <sha>` lists only `R100` entries, the same three
+and `git show -M --name-status --format= <sha>` lists only `R100` entries plus
+`A agent-cycle.yaml` (the conversion creates it), the same three
 pre-move paths (repo root) in the pathspec, so the move shows as renames. That
 commit is sanctioned: record its sha. Apply the same pathspec to the
 "first entered git inside the range" check (`--diff-filter=A --find-renames`).
