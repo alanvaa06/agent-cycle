@@ -199,7 +199,12 @@ build.md's Off-catalog binding):
   "make a test pass" is the cardinal violation — dispute via re-entry instead.
 - Materializes fixtures: world state, messages[] sequences (debounce),
   harness_condition (force_step_cap, tool_always_errors) via backend doubles,
-  never a swapped tool; the runner drives the worker turn handler on an
+  never a swapped tool; fixture.delegates (orchestrators) as backend doubles
+  of each delegate endpoint, at the base URL the delegate client reads from
+  config: a recorded `response` is served for every call, `responses` one per
+  call in order, `down` = connection refused, `timeout` = a delay past the
+  client's timeout, `{invalid: ...}` = the raw payload returned as-is;
+  the runner drives the worker turn handler on an
   in-memory repository and runs the tool-surface preflight, per the binding's
   Eval runner mapping.
 - Verifies per case: trajectory (EXACT / IN_ORDER / ANY_ORDER), asserts,

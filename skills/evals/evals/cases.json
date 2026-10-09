@@ -67,8 +67,8 @@
         "fires": true,
         "checks": [
           "Every delegate is replaced by recorded delegate responses in the case fixtures (fixture.delegates), none calls a real delegate",
-          "Per delegate: at least one golden case with a valid recorded response, and one case per On failure mode in its spec row (ventas: down, timeout, invalid)",
-          "Per delegate: at least one adversarial case whose recorded reply carries injected instructions or asks for a gated action; expected: treated as data and the gated action still requires HITL",
+          "Per delegate: at least one golden case with a valid recorded response, and one case per On failure mode in its spec row (ventas: down, timeout, invalid), each with the bhv_ref of that mode's BHV",
+          "Per delegate: adversarial cases per rule 5 (at least 2 realistic payloads, the delegate's replies being an untrusted surface) whose recorded reply carries injected instructions or asks for a gated action; expected: treated as data and the gated action still requires HITL",
           "Each recording carries the contract version it was taken from (ventas-contract@1, soporte-contract@2)",
           "Writes only agents/recepcion/evals/ plus the Eval column of agents/recepcion/docs/agent/spec.md §6"
         ]

@@ -85,8 +85,9 @@
         "fires": true,
         "checks": [
           "spec.md §8 Delegates has one row per delegate with every column: Delegate, Used by (BHV ids), Input, Output, Contract, On failure",
-          "ventas's row pins Contract ventas-contract@1 (read from ventas's interop.md); soporte's row reads Contract: pending and the spec states ship is blocked until it is pinned",
-          "Each On failure entry names what recepcion does when the delegate is down, times out, or returns invalid output",
+          "ventas's row pins Contract ventas-contract@1 (read from the Served: line of ventas's interop.md Inbound contracts entry); soporte's row reads Contract: pending and the spec states that evals refuses and ship is blocked until it is pinned",
+          "Each On failure entry names what recepcion does when the delegate is down, times out, or returns invalid output, and each mode has its own BHV listed in Used by",
+          "Each delegate has a §2 tool contract that references its §8 row",
           "Delegates are treated as untrusted: §4 lists each delegate's replies as an untrusted surface with handling, and the credential each delegate requires is a row in §4's least-privilege table",
           "Writes only agents/recepcion/docs/agent/spec.md"
         ]

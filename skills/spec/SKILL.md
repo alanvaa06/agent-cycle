@@ -47,12 +47,17 @@ inform judgment; none is required.
    self-approve. Write ONLY `docs/agent/spec.md`.
 9. ORCHESTRATORS (design §9 verdict "orchestrator"): §8 Delegates has one row
    per delegate with every column (Delegate, Used by, Input, Output, Contract,
-   On failure). Contract = the version the delegate publishes in its
-   `docs/agent/interop.md` Inbound contracts (read-only); not yet published →
-   `Contract: pending`, and ship is blocked until it is pinned. Each
-   delegate's replies are an untrusted surface in §4 (with at least one
-   injection-attempt BHV), and each delegate credential is a row in §4's
-   least-privilege list.
+   On failure). Contract = a version on the `Served:` line of the delegate's
+   `docs/agent/interop.md` Inbound contracts entry for this caller
+   (read-only); not yet published → `Contract: pending`: evals refuses while a
+   pin is pending and ship treats it as a blocker. Pinning it after this
+   agent's build is a human re-entry (spec, then evals, then build). Each
+   delegate is also a tool: a §2 tool contract per delegate that references
+   its §8 row. Each delegate's replies are an untrusted surface in §4 (with at
+   least one injection-attempt BHV), each delegate credential is a row in §4's
+   least-privilege list, and each On failure mode (down, timeout, invalid
+   output) has its own BHV, listed in Used by, so every failure eval case
+   has a `bhv_ref`.
 
 ## Workflow
 

@@ -28,8 +28,11 @@ Build every fixture in a scratch git repo (never this repo) with hand-written
 minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
-- **EVL-E05**: a workspace repo with an approved `agents/recepcion/docs/agent/spec.md`
+- **EVL-E05**: a workspace repo with an approved
+  `agents/recepcion/docs/agent/design.md` (its `version` equal to the spec's
+  `design_version`) and an approved `agents/recepcion/docs/agent/spec.md`
   whose §8 Delegates table is the one in the case input (ventas pinned
   `ventas-contract@1` with the quoted On failure text; soporte pinned
-  `soporte-contract@2`). Score that only `agents/recepcion/evals/` and the
-  Eval column of the spec §6 changed.
+  `soporte-contract@2`), one BHV per On failure mode listed in Used by, and
+  §4 listing each delegate's replies as an untrusted surface. Score that only
+  `agents/recepcion/evals/` and the Eval column of the spec §6 changed.

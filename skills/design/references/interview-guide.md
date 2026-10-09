@@ -53,29 +53,51 @@ Runs only when this agent would hand work to other agents listed in
 workspace agents: in a one-agent repo, show the conversion ("Second agent in a
 one-agent repo") and stop.
 
+Phase C2 runs before design.md is created. An outcome that produces no new
+agent writes NO file and leaves `agent-cycle.yaml` untouched (it is
+append-only, hook-enforced): design states the verdict and the §9-style
+reasoning (the routing fact, each reason with its fact) in chat, and stops.
+
 1. **Mechanical routing first.** If deciding which agent gets each message is
-   mechanical (by channel or keyword), record "router without an LLM" in §9:
-   plain code outside agent-cycle; design names it and stops. This holds even
-   when the reasons below are true (reuse justifies separate agents, not an
-   LLM in front of them).
+   mechanical (by channel or keyword), the verdict is "router without an
+   LLM": plain code outside agent-cycle. State it in chat with the reasoning,
+   write no file, and stop. This holds even when the reasons below are true
+   (reuse justifies separate agents, not an LLM in front of them).
 2. **Justification test.** An orchestrator is justified only when at
    least one reason holds, each written with a concrete fact from this case:
    reuse (the delegate already exists with its own channel or releases);
    separate permissions (one merged agent would need credentials it should not
    hold); context too large (one agent would carry too many tools or
    conflicting instructions); different models or costs.
-3. **No reason holds** → record "one agent" in §9 with the reason (add the
-   tools to an existing agent via its design re-entry, or design one agent)
-   and stop delegation.
+3. **No reason holds** → the verdict is "one agent". Offer the two paths as
+   lettered options: add the work to an existing agent (that agent's design
+   re-entry, a separate run), or design one new agent that does the whole job
+   itself. Adding to an existing agent produces no new agent: state the
+   verdict and the reasoning in chat, write no file, and stop. Designing one
+   new agent continues at Phase D as a single agent; its §9 is the one line
+   "No delegation: <reason>".
 4. **Justified** → inventory each delegate: name (must be in
    `agent-cycle.yaml`), what it is used for, the reason(s) it serves. Read the
-   other agents' `docs/agent/design.md` and `docs/agent/interop.md`
-   (read-only). A helper that only serves this agent is NOT a delegate; it
+   other agents' `docs/agent/design.md`, `docs/agent/interop.md` and the
+   frontmatter of `docs/agent/build.md` (read-only; build.md present = the
+   delegate is built). Each delegate is also a TOOL of this agent: add it to
+   §4's tool inventory (tool = the delegate, its purpose, a tier guess; /spec
+   finalizes). A helper that only serves this agent is NOT a delegate; it
    stays an internal subagent/subgraph (§3/§8).
-5. **Built delegate without an inbound interface** for this agent (its
-   `interop.md` has no Inbound contracts row for this caller) → warn: adding
-   it is a build re-entry of that delegate (interop rule 7). Advise designing
-   the orchestrator before building its delegates; do not require it.
+5. **Delegate without an inbound interface** for this agent (no
+   `interop.md`, or no Inbound contracts entry for this caller) → warn: the
+   delegate's inbound interface is owned by the DELEGATE'S SPEC. Adding it is
+   a spec re-entry of that delegate: a new ingress/channel in its spec (§3
+   Conversation), an untrusted surface in its §4 for its callers with an
+   injection-attempt BHV, and a BHV proving the probe request has no side
+   effects; then its evals, then its build (the handler), then its interop
+   publishes the contract version in Inbound contracts. On an already-built
+   delegate this re-entry is the human's, from their own terminal with the
+   hook off (the re-entry steps in the build skill's
+   `references/forge-delegation.md`). The delegate's re-entry and this
+   agent's work go in separate commits (a commit touching both agents is a
+   mixed-agent finding at ship). Advise designing the orchestrator before
+   building its delegates; do not require it.
 
 ## Phase D — Deployment intent
 

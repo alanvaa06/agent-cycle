@@ -47,7 +47,8 @@ the balancing factor that prevents it. At least one substantive note, always.>
 |---|---|---|
 | <name> | <one line> | <tier guess — /spec finalizes> |
 
-No schemas here — /spec owns contracts.
+No schemas here — /spec owns contracts. Orchestrators: each delegate in §9 is
+also a row here (tool = the delegate, with a tier guess).
 
 ## 5. Deployment intent
 
@@ -114,13 +115,13 @@ No schemas here — /spec owns contracts.
 
 ## 9. Delegation
 
-<!-- Orchestrators only (interview-guide Phase C2). Otherwise one line: "No delegation: <reason>". -->
+<!-- Orchestrators only (interview-guide Phase C2). A new agent that does the whole job itself ("one agent"): one line, "No delegation: <reason>". "Router without an LLM", and "one agent" that adds the work to an existing agent, write NO design.md: the verdict and this reasoning are stated in chat. -->
 
-**Verdict:** orchestrator | one agent | router without an LLM
+**Verdict:** orchestrator
 
 **Justification test:**
 
-**Routing mechanical?** yes (→ router without an LLM) / no — <fact>
+**Routing mechanical?** no — <fact> (yes → router without an LLM: stated in chat, no file)
 
 | Reason | Holds? | Fact from this case |
 |---|---|---|
@@ -133,6 +134,6 @@ No schemas here — /spec owns contracts.
 
 | Delegate (in agent-cycle.yaml) | Used for | Reason(s) served | Inbound interface today |
 |---|---|---|---|
-| <agent> | <...> | <...> | <published in its interop.md / missing → build re-entry of the delegate> |
+| <agent> | <...> | <...> | <published in its interop.md (Served: <agent>-contract@<n>) / missing → spec re-entry of the delegate (its spec: ingress, untrusted surface for callers + injection BHV, probe no-side-effect BHV; then evals, build, interop publishes); built delegate: the human's, hook off> |
 
 Internal helpers (not delegates): <names, or none> — see §3/§8.

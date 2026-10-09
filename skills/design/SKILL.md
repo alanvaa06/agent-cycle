@@ -28,7 +28,8 @@ none is required.
    (interview-guide "Phase C2 — Delegation"): the mechanical-routing check,
    then the justification test, run before any delegate is listed, and "one agent" or "router without an LLM"
    are successful outcomes. Helpers that exist only to serve this agent are
-   internal subagents (§3/§8), never delegates.
+   internal subagents (§3/§8), never delegates. Each delegate is also a tool
+   in §4's inventory.
 5. Deployment intent + 3 seams (sessions / model / telemetry) are declared HERE,
    not deferred to build.
 6. The artifact is written with `status: draft`. It becomes `approved` ONLY on
@@ -44,7 +45,12 @@ none is required.
    starts); a name already listed or an existing `agents/<name>/`
    -> stop and ask. In a one-agent repo that already holds an agent, a second
    agent is never created here: show the conversion (interview-guide
-   "Second agent in a one-agent repo") and stop. Re-verification only reads.
+   "Second agent in a one-agent repo") and stop. A delegation verdict that
+   produces no new agent ("router without an LLM", or "one agent" that adds
+   the work to an existing agent) writes NO file and leaves
+   `agent-cycle.yaml` untouched: the verdict and its §9-style reasoning are
+   stated in chat (Phase C2 runs before design.md is created). Re-verification
+   only reads.
 
 ## Workflow
 
@@ -89,3 +95,4 @@ frontmatter `date` to the re-entry date, re-approve.
 - Leaving the framework as an open question for /spec (violates rule 7).
 - Writing a workspace agent's design.md at the repo root, or editing another agent's files (rule 8).
 - Listing delegates before the justification test, or claiming one of its four reasons without a fact from the case (rule 4, §9).
+- Writing a design.md or appending to `agent-cycle.yaml` for a "router without an LLM" or a "one agent" verdict that creates no new agent (rule 8).

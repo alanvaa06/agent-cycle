@@ -130,10 +130,10 @@
       "expected": {
         "fires": true,
         "checks": [
-          "Runs the mechanical-routing check first, before the four reasons and before inventorying delegates, and records it in design.md §9 Delegation",
+          "Runs the mechanical-routing check first, before the four reasons and before inventorying delegates, and states it in chat",
           "Concludes 'router without an LLM' because routing is by keyword, even though the reuse reason holds (ventas and soporte have their own channels); states that reuse justifies separate agents, not an LLM in front of them",
           "No delegate inventory is written and no orchestrator design is produced; it states that the router lives outside agent-cycle and stops",
-          "Does not modify anything under agents/ventas/ or agents/soporte/"
+          "Writes no file at all: no agents/recepcion/, agent-cycle.yaml unchanged, nothing under agents/ventas/ or agents/soporte/ modified"
         ]
       }
     },
@@ -145,10 +145,24 @@
         "fires": true,
         "checks": [
           "design.md §9 Delegation records the justification test with at least one of the four reasons tied to a fact (e.g. reuse: ventas and soporte have their own channels and releases)",
-          "§9 lists ventas and soporte as delegates (both names from agent-cycle.yaml), each with what it is used for and the reason it serves",
+          "§9 lists ventas and soporte as delegates (both names from agent-cycle.yaml), each with what it is used for and the reason it serves; each also appears in §4's tool inventory with a tier guess",
           "'resumidor' is NOT a delegate: it stays as an internal subagent/subgraph of recepcion (§3 / §8), not a workspace agent",
-          "Warns that ventas is already built without an inbound interface for recepcion, so adding it is a build re-entry of ventas (interop rule 7); advises designing the orchestrator before building delegates without requiring it",
-          "Reads agents/ventas and agents/soporte design.md / interop.md only; writes only agents/recepcion/docs/agent/design.md and appends 'recepcion' to agent-cycle.yaml"
+          "Warns that ventas is already built without an inbound interface for recepcion: the interface is owned by ventas's spec, so adding it is a spec re-entry of ventas (its spec, then evals, then build, then its interop publishes the contract), the human's with the hook off because ventas is built; advises designing the orchestrator before building delegates without requiring it",
+          "Reads agents/ventas and agents/soporte design.md / interop.md and build.md frontmatter only; writes only agents/recepcion/docs/agent/design.md and appends 'recepcion' to agent-cycle.yaml"
+        ]
+      }
+    },
+    {
+      "id": "DES-E11",
+      "type": "edge-orchestrator-one-agent",
+      "input": "Design an agent 'recepcion' that answers customers on the web chat: product questions it answers itself, and order-status questions it passes to ventas. (Fixture: workspace with agents [ventas]; ventas has an approved design only: no build, no releases, no channel of its own. The user says recepcion and ventas would use the same model and the same read-only CRM credential, and ventas has two tools. When offered the paths, the user chooses to add the work to ventas.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Runs the mechanical-routing check first and finds routing is NOT mechanical (telling a product question from an order-status question needs understanding, not a channel or keyword), stated with that fact",
+          "Answers each of the four reasons with a fact from the case and none holds: reuse (ventas has no channel or releases of its own), separate permissions (same read-only CRM credential), context too large (two tools), different models or costs (same model)",
+          "States the verdict 'one agent' in chat with that reasoning, lists no delegates, and offers the two paths as lettered options: add the work to an existing agent via its design re-entry, or design one new agent that does the whole job",
+          "With the user choosing to add the work to ventas, writes no file at all: no agents/recepcion/, agent-cycle.yaml unchanged, nothing under agents/ventas/ modified (ventas's design re-entry is a separate run)"
         ]
       }
     }

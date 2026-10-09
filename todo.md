@@ -7,8 +7,12 @@ changes (the shape of what it returns: Agent Card / input-output schema), not
 on every ship of the delegate.
 
 Known risk: a delegate can keep the same shape and return worse content (e.g.
-a wrong price). Ship does not catch that; the weekly live check against the
-real delegates does.
+a wrong price). Ship does not catch that. The weekly live check catches it
+only on the probe request: it compares the live probe reply with the pinned
+schema (schema drift) and with the recorded golden probe response or its
+rubric (same shape, worse content). Worse content on any other request is not
+caught. Drift or worse content without a contract bump routes to the delegate;
+it is never re-recorded.
 
 Revisit when: delegates ship often and a content regression slips past ship,
 or the weekly live check keeps finding drift. Alternative: pin the delegate's

@@ -13,6 +13,7 @@ evals/
   golden/EVL-NNN.json  one file per case (deterministic + llm_judge)
   adversarial/ADV-NNN.json  injection/abuse cases (same schema, method fixed)
   rubrics/<name>.md    anchored rubrics for llm_judge / human_review
+  delegates/<agent>-probe.json  orchestrators only: golden probe response per delegate
 ```
 
 ## Golden case schema (golden/EVL-NNN.json, adversarial/ADV-NNN.json)
@@ -60,10 +61,28 @@ fixture carries recorded delegate responses; no case calls a real delegate:
 }
 ```
 
-`response` may instead be `"down"`, `"timeout"`, or
-`{ "invalid": <raw payload> }` for the On failure cases. Recordings are
+`response` answers every call the case makes to that delegate. When the case
+calls it more than once, use `responses: [ ... ]` instead, one entry per call
+in order. Any reply may instead be `"down"`, `"timeout"`, or
+`{ "invalid": <raw payload> }` for the On failure cases. An A2A delegate
+(multi-turn) uses `responses` with one entry per delegate turn:
+
+```json
+"responses": [
+  { "state": "input-required", "reply": { "<message per the pinned schema>": "..." } },
+  { "state": "completed", "reply": { "<message per the pinned schema>": "..." } }
+]
+```
+
+The build's runner serves these from a backend double of the delegate
+endpoint (build-guide Step 8). Golden probe response, one per delegate:
+`evals/delegates/<agent>-probe.json` holds `contract`, `request` (the probe
+request the delegate publishes in its Inbound contracts entry), `response`
+(the expected reply, from the delegate's published entry) and optionally
+`rubric` (`rubrics/<name>.md`, when the content may legitimately vary). The
+weekly live check compares the live probe reply with it. Recordings are
 frozen with the rest of `evals/` after build; re-recording is a human
-re-entry when the pinned contract version changes.
+re-entry, only when the pinned contract version changes.
 
 Field rules:
 - `bhv_ref` pins scenario AND spec version — a spec bump makes stale refs
