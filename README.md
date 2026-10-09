@@ -168,9 +168,10 @@ agent is an internal subagent, not a delegate, and stays inside that agent.
 listed, and it can say no: if routing is mechanical the verdict is "router
 without an LLM" (plain code outside agent-cycle), and if no reason holds with
 a concrete fact it is "one agent"; when no new agent results, design writes
-no file. A delegate's inbound interface belongs to the delegate's own spec;
-its `interop.md` then publishes Inbound contracts with a version, a
-`Served:` line and a probe request. `ship` checks that the pin is served,
+no file. A delegate's inbound interface starts at the delegate's own design
+(then its spec, evals and build); its `interop.md` then publishes Inbound
+contracts with a version, a `Served:` line and a probe request per served
+version. `ship` checks that the pin is served,
 sends one live probe to each delegate, and blocks a delegate that would drop a
 version an orchestrator has shipped. Opt-in: one-agent repos and workspaces
 without orchestrators are unchanged.

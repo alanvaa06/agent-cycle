@@ -1,5 +1,7 @@
 # agent-cycle v0.13 — Orchestrator Agents Implementation Plan
 
+> **Note:** Superseded in places by the review-fix commits; the spec doc is authoritative.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Let a workspace agent act as an orchestrator that delegates to other workspace agents over the network, with a justification test, a delegates table, recorded delegate responses, published inbound contracts and ship-time contract checks.
