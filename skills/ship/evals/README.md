@@ -68,7 +68,8 @@ plugin against it as in the procedure above.
 - **SHP-E07**: a workspace repo where agent-a has the full approved chain
   (`design.md`, `spec.md`, `evals/config.yaml`, `build.md`, `skills.md`,
   `interop.md`) and a runner the audit can re-run; its `interop.md`
-  publishes `agent-a-contract@2` with `Served: agent-a-contract@2`, and its
+  publishes `agent-a-contract@2` with `Served: agent-a-contract@2` and one
+  block for @2 (schemas, probe request, sample response), and its
   Inbound contracts entry cites a handler that exists in its code and a probe
   BHV in its spec. `agents/orchestrator/docs/agent/spec.md` §8 pins
   `agent-a-contract@1`, and `agents/orchestrator/docs/agent/ship-report.md` is

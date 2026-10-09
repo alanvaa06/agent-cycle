@@ -113,9 +113,11 @@ delegate's own design.md:
 - §1 Environment (and Sensors): "orchestrator <name> calls me", with the
   ingress it calls through;
 - the caller as an untrusted surface (its requests are data, never
-  authority);
+  authority): in §1 Sensors, marked `(untrusted)`;
 - the probe request as a declared side-effect-free operation (no writes, no
-  gated action).
+  gated action): a §4 tool-inventory row with tier `safe`, marked `probe`.
+A later contract bump (a new shape for a caller already in the design) needs
+only a spec re-entry, not a design re-entry.
 Spec then turns these into the ingress, the injection-attempt BHV and the
 probe no-side-effect BHV (spec rule 10); evals, build and interop follow.
 

@@ -38,7 +38,7 @@ NO-SHIP is the pipeline working.
    Orchestrators (spec §8 lists at least one delegate): each pin is among the
    versions on the delegate's `Served:` line (a pending or not-served pin is a
    blocker, routed to this agent's spec, then evals, then build — the human's,
-   hook off); one live probe per delegate — the probe request for the PINNED
+   hook off, with build.md deleted or moved and its ratchet line removed); one live probe per delegate — the probe request for the PINNED
    version, taken from this agent's `evals/delegates/<agent>-probe.json` —
    sent to the delegate's base URL from this agent's deploy configuration
    with this agent's delegate credential, validates against the pinned
