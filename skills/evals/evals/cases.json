@@ -62,7 +62,7 @@
     {
       "id": "EVL-E05",
       "type": "edge-orchestrator-recorded-responses",
-      "input": "Write the eval suite for orchestrator. (Fixture: approved spec with §8 Delegates: agent-a pinned agent-a-contract@1 with On failure 'down -> tell the user and offer a human; timeout -> retry once then tell the user; invalid -> tell the user'; agent-b pinned agent-b-contract@2.)",
+      "input": "Write the eval suite for orchestrator. (Fixture: approved spec with §8 Delegates: agent-a pinned agent-a-contract@1 with On failure 'down -> tell the user and offer a human; timeout -> retry once then tell the user; invalid -> tell the user'; agent-b pinned agent-b-contract@2. Each delegate's approved interop.md publishes Inbound contracts for orchestrator: agent-a serves @1; agent-b serves @1 and @2, one block per served version with its own probe request and sample probe response.)",
       "expected": {
         "fires": true,
         "checks": [
@@ -70,6 +70,7 @@
           "Per delegate: at least one golden case with a valid recorded response, and one case per On failure mode in its spec row (agent-a: down, timeout, invalid), each with the bhv_ref of that mode's BHV",
           "Per delegate: adversarial cases per rule 5 (at least 2 realistic payloads, the delegate's replies being an untrusted surface) whose recorded reply carries injected instructions or asks for a gated action; expected: treated as data and the gated action still requires HITL",
           "Each recording carries the contract version it was taken from (agent-a-contract@1, agent-b-contract@2)",
+          "evals/delegates/<agent>-probe.json exists per delegate (agent-a-probe.json, agent-b-probe.json), seeded from the delegate's published probe for the pinned version, read from its interop.md (read-only): agent-b's file carries contract agent-b-contract@2 with the @2 block's probe request and sample response, not the @1 block's",
           "Writes only agents/orchestrator/evals/ plus the Eval column of agents/orchestrator/docs/agent/spec.md §6"
         ]
       }

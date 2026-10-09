@@ -61,8 +61,10 @@ plugin against it as in the procedure above.
 - **DES-E10**: same workspace as DES-E09 (`agents: [agent-a, agent-b]`), plus
   `agents/agent-a/docs/agent/build.md` approved and an `agents/agent-a/docs/agent/interop.md`
   without an Inbound contracts section; `agents/agent-b/` keeps only its
-  approved design. Score that only `agents/orchestrator/docs/agent/design.md`
-  and the `agent-cycle.yaml` line changed.
+  approved design. Each delegate's trivial `design.md` states its own channel
+  entry point and that it ships on its own (this grounds the reuse fact).
+  Score that only `agents/orchestrator/docs/agent/design.md` and the
+  `agent-cycle.yaml` line changed.
 - **DES-E11**: a workspace repo. `agent-cycle.yaml` contains
   `layout: workspace` and `agents: [agent-a]`; `agents/agent-a/docs/agent/design.md`
   is approved (hand-written, trivial: two tools, a read-only data-store credential,

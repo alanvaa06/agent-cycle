@@ -107,6 +107,10 @@ row cites a BHV scenario with an observable Then.
   (per the design's NO-goals); which BHV scenarios cover it.
 - **PII / secrets:** what never leaves the agent (mirror design NO-goals);
   outbound sanitization rules.
+- **Callers (delegates only, design §1 names an orchestrator that calls this
+  agent):** §3 carries that ingress; each caller is an untrusted surface row
+  above with an injection-attempt BHV; one BHV proves the probe request has
+  no side effects (spec rule 10).
 
 ## 5. Data
 
@@ -144,3 +148,6 @@ Each delegate also has a §2 tool contract that references this row. Delegates
 are untrusted counterparts: their replies ride the untrusted envelope (§4),
 and any gated or destructive action a reply implies goes through this agent's
 own HITL tiers. `pending` blocks evals (it refuses) and ship (a blocker).
+For a `pending` delegate, its Input and Output cells and the schemas of its
+§2 tool contract read `pending` (provisional) until the delegate publishes;
+the pin re-entry fills them from the published Inbound contracts entry.

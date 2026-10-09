@@ -36,9 +36,17 @@ Build every fixture in a scratch git repo (never this repo) with hand-written
 minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
 plugin against it as in the procedure above.
 
-- **ITP-E05**: a workspace repo with agent-a built and approved: its
-  `design.md`, `spec.md` and `build.md` hand-written and approved under
+- **ITP-E05**: a workspace repo, two runs, with agent-a built and approved:
+  its `design.md`, `spec.md` and `build.md` hand-written and approved under
   `agents/agent-a/docs/agent/`; and `agents/orchestrator/docs/agent/design.md`
   with a §9 Delegation naming agent-a as a delegate (one question in, one
-  answer out). Score that only `agents/agent-a/docs/agent/interop.md` (plus
-  agent-card/executor config if the verdict is A2A) was written.
+  answer out). Run 1: agent-a's design and spec say nothing about
+  orchestrator and its code has no handler for it. Run 2 (a fresh copy):
+  agent-a's design names orchestrator as a caller (the caller as an
+  untrusted surface, the probe as a side-effect-free operation), its spec has
+  the ingress, the caller surface with an injection-attempt BHV and the probe
+  no-side-effect BHV, and its code has a handler the entry can cite. Score
+  each run that only `agents/agent-a/docs/agent/interop.md` (plus
+  agent-card/executor config if the verdict is A2A) was written, and score
+  "no Served: line" in run 1 with
+  `grep -n -E "^[-* ]*Served:" agents/agent-a/docs/agent/interop.md`.

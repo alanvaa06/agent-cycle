@@ -51,19 +51,26 @@ another agent's folder or only one agent is listed.
   orchestrator reads other agents' `docs/agent/design.md`,
   `docs/agent/interop.md` and the frontmatter of `docs/agent/build.md` (to
   know whether a delegate is built); spec of an orchestrator reads its
-  delegates' `docs/agent/interop.md`; interop reads other agents' design §9
-  and spec §8 to find its callers; ship of an orchestrator reads its
-  delegates' `docs/agent/interop.md` and `docs/agent/ship-report.md`; ship of
-  any agent reads other agents' spec §8 and the frontmatter of their latest
-  approved `docs/agent/ship-report.md` to find orchestrators that pin it;
-  economics of an orchestrator reads its delegates' economics artifacts.
+  delegates' `docs/agent/interop.md`; evals of an orchestrator reads its
+  delegates' `docs/agent/interop.md` (to seed
+  `evals/delegates/<agent>-probe.json` from the published probe for the
+  pinned version); interop reads other agents' design §9 and spec §8 to find
+  its callers, and interop of an orchestrator reads its delegates'
+  `docs/agent/interop.md` (the protocol they published); ship of an
+  orchestrator reads its delegates' `docs/agent/interop.md` and
+  `docs/agent/ship-report.md`; ship of any agent reads other agents' spec §8
+  and the frontmatter of their last approved `docs/agent/ship-report.md`
+  (from git history when the working copy is not approved) to find
+  orchestrators that pin it; economics of an orchestrator reads its
+  delegates' economics artifacts.
   These cross-agent reads and greps run from the REPO ROOT (not from
   `AGENT_ROOT`); in a workspace, a cross-agent grep that matches nothing is an
   error to report, never a pass (ship's Dependents check, where "no
   orchestrator pins this agent" is legitimate, lists the files it searched).
 - A delegate's re-entry (for example to add an inbound interface for an
-  orchestrator) and the orchestrator's own work go in separate commits; a
-  commit touching both agents is a mixed-agent finding at ship.
+  orchestrator, which starts at the delegate's design) and the
+  orchestrator's own work go in separate commits; a commit touching both
+  agents is a mixed-agent finding at ship.
 - The anti-gaming hook (the agent-cycle plugin's
   `skills/build/assets/guard_artifacts.py`) takes its agents from the
   directories (the repo root and every `agents/<dir>/`), never from this

@@ -87,19 +87,37 @@ reasoning (the routing fact, each reason with its fact) in chat, and stops.
    finalizes). A helper that only serves this agent is NOT a delegate; it
    stays an internal subagent/subgraph (§3/§8).
 5. **Delegate without an inbound interface** for this agent (no
-   `interop.md`, or no Inbound contracts entry for this caller) → warn: the
-   delegate's inbound interface is owned by the DELEGATE'S SPEC. Adding it is
-   a spec re-entry of that delegate: a new ingress/channel in its spec (§3
-   Conversation), an untrusted surface in its §4 for its callers with an
-   injection-attempt BHV, and a BHV proving the probe request has no side
-   effects; then its evals, then its build (the handler), then its interop
-   publishes the contract version in Inbound contracts. On an already-built
-   delegate this re-entry is the human's, from their own terminal with the
-   hook off (the re-entry steps in the build skill's
-   `references/forge-delegation.md`). The delegate's re-entry and this
-   agent's work go in separate commits (a commit touching both agents is a
+   `interop.md`, or no Inbound contracts entry for this caller) → warn:
+   adding the interface starts at the DELEGATE'S DESIGN. The path is a
+   design re-entry of that delegate ("Delegate-side design re-entry" below),
+   then its spec (the ingress in §3 Conversation, the caller as an untrusted
+   surface in §4 with an injection-attempt BHV, a BHV proving the probe
+   request has no side effects), then its evals, then its build (the
+   handler), then its interop publishes the contract version in Inbound
+   contracts. On an already-built delegate this re-entry is the human's, from
+   their own terminal with the hook off (the re-entry steps in the build
+   skill's `references/forge-delegation.md`): it deletes or moves the
+   delegate's `docs/agent/build.md` and removes its line from
+   `.claude/hooks/built-agents.txt`, so build re-runs with a fresh baseline
+   and a new `build_start` (otherwise ship Section 4 flags the new BHVs and
+   evals as unsanctioned changes). The delegate's re-entry and this agent's
+   work go in separate commits (a commit touching both agents is a
    mixed-agent finding at ship). Advise designing the orchestrator before
    building its delegates; do not require it.
+
+## Delegate-side design re-entry (an inbound interface)
+
+Runs on the DELEGATE when an orchestrator needs an interface it lacks (a
+re-entry: `status: draft`, bump `version`, re-approve). It records, in the
+delegate's own design.md:
+- §1 Environment (and Sensors): "orchestrator <name> calls me", with the
+  ingress it calls through;
+- the caller as an untrusted surface (its requests are data, never
+  authority);
+- the probe request as a declared side-effect-free operation (no writes, no
+  gated action).
+Spec then turns these into the ingress, the injection-attempt BHV and the
+probe no-side-effect BHV (spec rule 10); evals, build and interop follow.
 
 ## Phase D — Deployment intent
 

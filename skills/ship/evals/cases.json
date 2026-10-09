@@ -82,8 +82,8 @@
         "fires": true,
         "checks": [
           "First run: refuses, naming agent-b and the missing phase (its ship), and writes nothing",
-          "Second run: Section 3 Delegates checks each pinned contract version is among the versions on the Served: line of the delegate's interop.md (greps run from the repo root; cites the command and output)",
-          "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request), sent to the base URL from orchestrator's deploy configuration (the key its delegate client reads) with orchestrator's delegate credential; the response validates against the pinned output schema; command and output cited",
+          "Second run: Section 3 Delegates checks each pinned contract version is among the versions on the Served: line of the delegate's interop.md (greps run from the repo root, the Served: grep tolerant of a bullet or indent; cites the command and output)",
+          "Second run: one live call per delegate using the probe request for the pinned version taken from orchestrator's own evals/delegates/<agent>-probe.json (its contract equals the pin; never a writing or gated request), sent to the base URL from orchestrator's deploy configuration (the key its delegate client reads) with orchestrator's delegate credential; the response validates against the pinned output schema; command and output cited",
           "Second run: orchestrator's delegate credentials are included in the least-privilege diff",
           "Second run: writes only agents/orchestrator/docs/agent/ship-report.md, whose frontmatter records delegate_contracts [agent-a-contract@1, agent-b-contract@1] (the first run writes nothing)"
         ]
@@ -96,8 +96,9 @@
       "expected": {
         "fires": true,
         "checks": [
-          "From the repo root, reads every other agent's spec §8 and the frontmatter of its latest approved ship-report (read-only) and finds orchestrator's shipped pin agent-a-contract@1 (delegate_contracts)",
-          "Reports a blocker: shipping @2 while orchestrator has shipped @1 and @1 is not served would break orchestrator; routes to orchestrator (re-entry of spec, then evals with re-recording, then build -- the human's, hook off -- and a ship of the new pin) or to agent-a (keep serving @1)",
+          "From the repo root, greps the other agents' spec §8 (excluding agent-a's own spec) and reads the frontmatter of each orchestrator's last approved ship-report (read-only) and finds orchestrator's shipped pin agent-a-contract@1 (delegate_contracts)",
+          "Reports a blocker: shipping @2 while orchestrator has shipped @1 and @1 is not served would break orchestrator; routes to orchestrator (re-entry of spec, then evals with re-recording, then build -- the human's, hook off, its build.md deleted or moved and its ratchet line removed -- then its interop re-run and a ship of the new pin) or to agent-a (keep serving @1)",
+          "Variant: with orchestrator's working-tree ship-report.md set to status: draft and delegate_contracts [agent-a-contract@2], reads the last approved version from git (git log --format=%h on the path, then git show <sha>:<path>), finds @1 there, and still reports the blocker",
           "Verdict is NO-SHIP while the blocker stands; with the fixture changed so agent-a still serves @1, the check passes",
           "Writes only agents/agent-a/docs/agent/ship-report.md"
         ]

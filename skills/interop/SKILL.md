@@ -18,7 +18,9 @@ success — authored interop without a flagged relationship is ceremony.
    workspace agent whose design §9 or spec §8 names this agent (read-only) —
    no missing rows. A caller that needs an interface gets an Inbound contracts
    entry (entry-test "Inbound contracts") with its `Served:` line, handler
-   file:line and probe no-side-effect BHV.
+   file:line, probe no-side-effect BHV, and one block per served version.
+   Orchestrators read each delegate's `docs/agent/interop.md` (read-only) for
+   the protocol it published.
 3. Results are tools — bounded, fire-and-forget, MCP territory, already the
    spec's domain. A2A only for counterparts that reason, pause, consult, or
    negotiate multi-turn. Wrapping a collaborator as a tool = the GOTO
@@ -34,15 +36,18 @@ success — authored interop without a flagged relationship is ceremony.
    is not authority).
 7. Executor binding declared for the actual runtime; a missing handler is a
    BUILD re-entry, never improvised here — except for an Inbound contract,
-   whose interface is owned by this agent's spec: a missing handler or spec
-   coverage there is a SPEC re-entry of this agent (spec, evals, build, then
-   interop publishes; entry-test "Inbound contracts"). Registry decision (none/private/
-   public) recorded with reason; public listing's pricing/SLA/abuse are
-   owner questions, not improvisations.
+   whose interface starts at this agent's design: a missing handler, or
+   missing design or spec coverage, is a DESIGN re-entry of this agent (design, spec, evals,
+   build, then interop publishes; entry-test "Inbound contracts"), and until
+   then no Inbound contracts entry and no `Served:` line are published.
+   Registry decision (none/private/public) recorded with reason; public
+   listing's pricing/SLA/abuse are owner questions, not improvisations.
 8. Writes: docs/agent/interop.md (+ agent-card.json and executor config when
    authored) with frontmatter agent_name, version, status: draft, date,
-   spec_version, build_version — BOTH paths. Approved only at the explicit
-   human gate. Never self-approve.
+   spec_version, build_version — BOTH paths. Any change to Inbound contracts
+   or a `Served:` line bumps `version`, so a caller's ship gate
+   (`interop_version` in this agent's ship-report) sees it. Approved only at
+   the explicit human gate. Never self-approve.
 
 ## Workflow
 
@@ -69,4 +74,5 @@ success — authored interop without a flagged relationship is ceremony.
   authority; tiers still gate (rule 6).
 - Improvising an A2A handler the build never implemented (rule 7).
 - Routing a missing Inbound-contract handler to build alone, skipping this
-  agent's spec (rule 7).
+  agent's design and spec (rule 7).
+- Changing Inbound contracts or `Served:` without bumping `version` (rule 8).

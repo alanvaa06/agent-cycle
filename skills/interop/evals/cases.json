@@ -60,14 +60,15 @@
     {
       "id": "ITP-E05",
       "type": "edge-orchestrator-inbound-contract",
-      "input": "Run interop for agent-a. (Fixture: workspace; agent-a built and approved through build; agents/orchestrator/docs/agent/design.md §9 Delegation names agent-a as a delegate that receives one question and returns one answer.)",
+      "input": "Run interop for agent-a. (Fixture: workspace, two runs; agent-a built and approved through build; agents/orchestrator/docs/agent/design.md §9 Delegation names agent-a as a delegate that receives one question and returns one answer. Run 1: agent-a's design, spec and code have no inbound interface for orchestrator (no caller in its design, no ingress, caller surface or probe BHV in its spec, no handler). Run 2: agent-a's design names orchestrator as a caller with a side-effect-free probe operation, its spec has the ingress, the caller as an untrusted surface with an injection-attempt BHV and the probe no-side-effect BHV, and its code has the handler.)",
       "expected": {
         "fires": true,
         "checks": [
-          "The relationship inventory includes 'orchestrator calls agent-a', found by reading orchestrator's design §9 (read-only)",
-          "The entry test gives that relationship a verdict with a reason (single request -> single result here, so a simple call, not A2A)",
-          "interop.md has an Inbound contracts section with caller, input schema, output schema, protocol verdict, contract version agent-a-contract@1 with the line 'Served: agent-a-contract@1', and one side-effect-free probe request with its expected response",
-          "If agent-a has no handler for that interface (or its spec lacks the ingress, the untrusted surface for its callers, or the probe's no-side-effect BHV), it is routed to a spec re-entry of agent-a (spec, then evals, then build, then interop publishes), the human's with the hook off because agent-a is built; not improvised and not a build re-entry alone",
+          "Both runs: the relationship inventory includes 'orchestrator calls agent-a', found by reading orchestrator's design §9 (read-only)",
+          "Both runs: the entry test gives that relationship a verdict with a reason (single request -> single result here, so a simple call, not A2A)",
+          "Run 1: the missing handler and spec coverage are routed to a design re-entry of agent-a (design: orchestrator as a caller, the caller as an untrusted surface, the probe as a side-effect-free operation; then spec, evals, build, then interop publishes), the human's from their own terminal with the hook off because agent-a is built, deleting or moving agent-a's build.md and removing its ratchet line so build re-runs with a new build_start; not improvised and not a build re-entry alone",
+          "Run 1: publishes no Inbound contracts entry and no Served: line",
+          "Run 2: interop.md has an Inbound contracts entry for orchestrator with protocol verdict, contract version agent-a-contract@1, the line 'Served: agent-a-contract@1' at column 0 with no bullet, the handler file:line, the probe no-side-effect BHV, and one block for @1 with input schema, output schema, a side-effect-free probe request and its sample probe response",
           "Writes only agents/agent-a/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
         ]
       }

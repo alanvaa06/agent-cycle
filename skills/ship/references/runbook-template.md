@@ -41,13 +41,15 @@ Expected effect of each (what stops, what queues, what the user sees).
 - Mine corrections: user corrections from the week become candidate eval
   cases (via the evals phase, never edited in place).
 - Review token spend vs the economics estimate; recalibrate when >25% off.
-- Orchestrators: send each delegate's probe request to the delegate's base
-  URL from this agent's deploy configuration (the key its delegate client
-  reads), with this agent's delegate credential. Compare the reply with the
-  pinned output schema AND with the recorded golden probe response
-  (`evals/delegates/<agent>-probe.json`, or its rubric). Catches: schema
-  drift, and worse content of the same shape on the probe request. Does not
-  catch: worse content on requests other than the probe. Schema drift without
+- Orchestrators: per delegate, send the probe request for the PINNED version,
+  taken from this agent's `evals/delegates/<agent>-probe.json` (its
+  `contract` is the spec §8 pin), to the delegate's base URL from this
+  agent's deploy configuration (the key its delegate client reads), with this
+  agent's delegate credential. Compare the reply with the pinned output
+  schema AND with that file's golden probe response (or its rubric).
+  Catches: schema drift, and worse content of the same shape on the probe
+  request. Does not catch: worse content on requests other than the probe.
+  Schema drift without
   a contract version bump, or worse content → route to the DELEGATE (it broke
   its contract); never re-record. Re-record (this agent's evals re-entry, a
   human) only when the delegate bumps its contract version.

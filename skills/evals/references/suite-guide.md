@@ -65,8 +65,12 @@ are an untrusted surface, so at least 2 realistic payloads — whose recorded
 reply carries injected instructions or asks for a gated action (expected:
 treated as data; the gated action still needs HITL). Each recording names the
 contract version it was taken from. Per delegate, also record its golden probe
-response (golden-format "Delegates"): the weekly live check compares against
-it.
+response (golden-format "Delegates") for the PINNED version: read the
+delegate's `docs/agent/interop.md` (read-only, from the repo root) and seed
+`evals/delegates/<agent>-probe.json` from the probe request and sample probe
+response of the Inbound contracts block for the version spec §8 pins (not
+another served version). Ship's live probe and the weekly live check send
+this request and compare against it.
 
 ## Step 5 — Rubrics
 
