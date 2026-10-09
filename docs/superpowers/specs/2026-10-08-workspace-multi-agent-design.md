@@ -82,9 +82,10 @@ an existing `agents/<name>/` → stop and ask.
 When the user asks for a second agent in a single-agent repo, design does not move anything.
 It shows the conversion commands — `git mv` of the existing agent's files into
 `agents/<existing-name>/`, create `agent-cycle.yaml` — for the human to run as one dedicated
-commit, then proceeds with the new agent. Ship accepts that pure-rename commit (detected with
+commit, then stops; after that commit design runs again for the new agent. Ship accepts that pure-rename commit (detected with
 `--find-renames`) as sanctioned and records it. The commands start by upgrading an existing
-hook to the plugin's version, because an older hook does not protect `agents/*/`. They end by
+hook to the plugin's version (and its registration to the pinned `python -I -S` form), committed
+on its own, because an older hook does not protect `agents/*/`. They end by
 replacing the `.` line of the tracked `.claude/hooks/built-agents.txt` with
 `agents/<existing-name>/` and committing it.
 
