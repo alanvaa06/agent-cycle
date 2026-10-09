@@ -178,3 +178,33 @@ Then:
 - Present the filled artifact summary in chat. Ask for approval. On explicit
   approval ONLY: set `status: approved`, bump nothing else. On feedback: edit,
   re-present.
+
+## Second agent in a one-agent repo
+
+The repo has `docs/agent/` at its root and no `agent-cycle.yaml`. Do not move
+or create anything. Show the human these commands to run from their own
+terminal as ONE commit (the anti-gaming hook only governs Claude's tool calls),
+listing the existing agent's actual paths found in the repo:
+
+```bash
+# 1. If .claude/hooks/guard_artifacts.py exists, upgrade it to the plugin's
+#    current version first -- an older hook does not protect agents/*/:
+mv .claude/hooks/guard_artifacts.py .claude/hooks/guard_artifacts.py.off
+cp <plugin>/skills/build/assets/guard_artifacts.py .claude/hooks/guard_artifacts.py.off
+mv .claude/hooks/guard_artifacts.py.off .claude/hooks/guard_artifacts.py
+# 2. Move the existing agent:
+mkdir -p agents/<existing-name>
+git mv docs/agent evals src tests agents/<existing-name>/   # plus its lockfile, pyproject, Dockerfile, compose, .env.example as present
+printf 'layout: workspace
+agents: [<existing-name>]
+' > agent-cycle.yaml
+git add agent-cycle.yaml
+git commit -m "agent-cycle: workspace move <existing-name>"
+# 3. If .claude/hooks/built-agents.txt has a "." line, replace it with
+#    agents/<existing-name>/ and commit the file (it is tracked):
+#    git commit -m "agent-cycle: ratchet follows the move" -- .claude/hooks/built-agents.txt
+```
+
+Say: the existing agent keeps its frozen state (its build.md moves with it);
+ship accepts this pure-rename commit and records it. After the commit, run
+this skill again for the new agent.
