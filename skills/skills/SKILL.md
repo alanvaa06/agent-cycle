@@ -35,6 +35,9 @@ skills subtract capability; a clean "none" is a success.
 
 ## Workflow
 
+0. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md` (one
+   question when several agents match); every path below is relative to it and
+   this skill writes only inside it.
 1. Read `references/entry-test.md`; run the test per capability; record the
    table.
 2. Decision none → write skills.md (table, why, re-visit triggers) → gate.

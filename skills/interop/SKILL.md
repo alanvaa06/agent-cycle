@@ -39,6 +39,9 @@ success — authored interop without a flagged relationship is ceremony.
 
 ## Workflow
 
+0. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md` (one
+   question when several agents match); every path below is relative to it and
+   this skill writes only inside it.
 1. Read `references/entry-test.md`; inventory relationships; run the test;
    record the table.
 2. Decision skip → interop.md (table, why, re-visit triggers) → gate.

@@ -36,6 +36,9 @@ red before green, at agent level.
 
 ## Workflow
 
+0. Resolve AGENT_ROOT per the agent-cycle plugin's `references/agent-root.md` (one
+   question when several agents match); every path below is relative to it and
+   this skill writes only inside it.
 1. Read `references/suite-guide.md`; run steps 0→8 in order.
 2. Formats come from `references/golden-format.md` — schema deviations are
    bugs, not creativity.
