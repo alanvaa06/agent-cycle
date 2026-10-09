@@ -73,6 +73,35 @@
           "The lockfile checked is agents/soporte/'s"
         ]
       }
+    },
+    {
+      "id": "SHP-E06",
+      "type": "edge-orchestrator-delegates-gate",
+      "input": "Ship recepcion. (Fixture: workspace; recepcion fully through interop with spec §8 Delegates pinning ventas-contract@1 and soporte-contract@1; ventas has approved interop.md (ventas-contract@1) and approved ship-report.md; soporte has approved interop.md but no ship-report.md. Second run: soporte shipped too, both delegates deployed.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "First run: refuses, naming soporte and the missing phase (its ship), and writes nothing",
+          "Second run: Section 3 Delegates compares each pinned contract version with the delegate's interop.md (cites the command and output)",
+          "Second run: one live call per delegate using the delegate's published probe request (never a writing or gated request); the response validates against the pinned output schema; command and output cited",
+          "Second run: recepcion's delegate credentials are included in the least-privilege diff",
+          "Writes only agents/recepcion/docs/agent/ship-report.md"
+        ]
+      }
+    },
+    {
+      "id": "SHP-E07",
+      "type": "edge-delegate-contract-bump",
+      "input": "Ship ventas. (Fixture: workspace; ventas's interop.md now publishes ventas-contract@2 and its Inbound contracts no longer serve @1; agents/recepcion/docs/agent/spec.md §8 pins ventas-contract@1.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Reads every other agent's spec §8 (read-only) and finds recepcion pinning ventas-contract@1",
+          "Reports a blocker: shipping @2 while @1 is pinned and not served would break recepcion; routes to recepcion (spec re-entry and re-recording) or to ventas (keep serving @1)",
+          "Verdict is NO-SHIP while the blocker stands; with the fixture changed so ventas still serves @1, the check passes",
+          "Writes only agents/ventas/docs/agent/ship-report.md"
+        ]
+      }
     }
   ]
 }

@@ -56,6 +56,21 @@
           "No files are created or modified — verified on the filesystem afterward"
         ]
       }
+    },
+    {
+      "id": "ITP-E05",
+      "type": "edge-orchestrator-inbound-contract",
+      "input": "Run interop for ventas. (Fixture: workspace; ventas built and approved through build; agents/recepcion/docs/agent/design.md §9 Delegation names ventas as a delegate that receives one question and returns one answer.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "The relationship inventory includes 'recepcion calls ventas', found by reading recepcion's design §9 (read-only)",
+          "The entry test gives that relationship a verdict with a reason (single request -> single result here, so a simple call, not A2A)",
+          "interop.md has an Inbound contracts section with caller, input schema, output schema, contract version ventas-contract@1, and one side-effect-free probe request with its expected response shape",
+          "If ventas has no handler for that interface, it is routed to a build re-entry of ventas, not improvised",
+          "Writes only agents/ventas/docs/agent/interop.md (plus agent-card.json / executor config only if the verdict is A2A)"
+        ]
+      }
     }
   ]
 }

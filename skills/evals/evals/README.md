@@ -21,3 +21,15 @@ whole lines, so word-level diff is what proves only Eval cells changed; any
 changed word outside an Eval cell is a FAIL. Presence checks require substance: an adversarial payload that no
 reasonable model would follow (e.g. gibberish) does not count; a rubric without
 anchored examples does not count.
+
+## Orchestrator cases (v0.13)
+
+Build every fixture in a scratch git repo (never this repo) with hand-written
+minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
+plugin against it as in the procedure above.
+
+- **EVL-E05**: a workspace repo with an approved `agents/recepcion/docs/agent/spec.md`
+  whose §8 Delegates table is the one in the case input (ventas pinned
+  `ventas-contract@1` with the quoted On failure text; soporte pinned
+  `soporte-contract@2`). Score that only `agents/recepcion/evals/` and the
+  Eval column of the spec §6 changed.

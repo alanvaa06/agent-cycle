@@ -29,3 +29,16 @@ Scoring anchors: the entry-test check requires one row per external system
 named in the spec's tools/security sections (for the real agent: Calendar,
 Notion, Supabase, Meta WhatsApp) — a missing row is a FAIL. The GOTO-problem
 check (E02) requires the words to appear with the reasoning, not as decoration.
+
+## Orchestrator cases (v0.13)
+
+Build every fixture in a scratch git repo (never this repo) with hand-written
+minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
+plugin against it as in the procedure above.
+
+- **ITP-E05**: a workspace repo with ventas built and approved: its
+  `design.md`, `spec.md` and `build.md` hand-written and approved under
+  `agents/ventas/docs/agent/`; and `agents/recepcion/docs/agent/design.md`
+  with a §9 Delegation naming ventas as a delegate (one question in, one
+  answer out). Score that only `agents/ventas/docs/agent/interop.md` (plus
+  agent-card/executor config if the verdict is A2A) was written.

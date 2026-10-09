@@ -45,3 +45,21 @@ against it as in the procedure above.
   `evals/` and `src/` at the root, no `agent-cycle.yaml`, working tree clean.
   Score the "nothing created or modified" check with `git status --porcelain`
   after the run (it must be empty).
+
+## Orchestrator cases (v0.13)
+
+Build every fixture in a scratch git repo (never this repo) with hand-written
+minimal artifacts; do NOT use the pipeline skills to author fixtures. Run the
+plugin against it as in the procedure above.
+
+- **DES-E09**: a workspace repo. `agent-cycle.yaml` at the root contains
+  `layout: workspace` and `agents: [ventas, soporte]`; each of `agents/ventas/`
+  and `agents/soporte/` holds an approved trivial `docs/agent/design.md`.
+  Commit it. Score with `git status --porcelain` after the run: nothing outside
+  `agents/recepcion/` and the `agent-cycle.yaml` line may change. For the
+  "router without an LLM" verdict, nothing at all may change.
+- **DES-E10**: same workspace as DES-E09 (`agents: [ventas, soporte]`), plus
+  `agents/ventas/docs/agent/build.md` approved and an `agents/ventas/docs/agent/interop.md`
+  without an Inbound contracts section; `agents/soporte/` keeps only its
+  approved design. Score that only `agents/recepcion/docs/agent/design.md`
+  and the `agent-cycle.yaml` line changed.
