@@ -58,6 +58,21 @@
           "No files are created or modified — verified on the filesystem afterward"
         ]
       }
+    },
+    {
+      "id": "SHP-E05",
+      "type": "edge-workspace-ship",
+      "input": "Run the ship audit for soporte. (Fixture: workspace; ventas commits interleaved with soporte's build range; one commit in the range touches agents/soporte/src/ and agents/ventas/src/ together; one earlier 'agent-cycle: workspace move' pure-rename commit.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "The anti-gaming diff covers only agents/soporte/evals/, docs/agent/design.md and docs/agent/spec.md (plus their pre-move root paths when a workspace-move commit is in range), command cited",
+          "Commits touching only agents/ventas/ are ignored",
+          "The commit touching both agents is a finding routed to build",
+          "The pure-rename workspace-move commit is accepted as sanctioned and recorded",
+          "The lockfile checked is agents/soporte/'s"
+        ]
+      }
     }
   ]
 }

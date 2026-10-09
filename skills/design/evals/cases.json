@@ -93,6 +93,34 @@
           "The Python-only scope of the catalog is stated, and the consequence for build (no catalog binding; pytest runner assumptions) is stated as a risk"
         ]
       }
+    },
+    {
+      "id": "DES-E07",
+      "type": "edge-workspace-new-agent",
+      "input": "Design a second agent for this client: a support agent that answers order-status questions. (Fixture: a workspace repo with agent-cycle.yaml listing [ventas] and agents/ventas/ already designed.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Resolves the workspace per the agent-cycle plugin's references/agent-root.md and creates the new agent under agents/<name>/ — design.md is written to agents/<name>/docs/agent/design.md, never to the repo root",
+          "agent-cycle.yaml gains <name> in agents: and nothing else in it changes",
+          "If the proposed name is already listed or agents/<name>/ exists, it stops and asks one question before writing anything",
+          "Nothing under agents/ventas/ is modified"
+        ]
+      }
+    },
+    {
+      "id": "DES-E08",
+      "type": "edge-single-to-workspace",
+      "input": "Design a second agent in this repo. (Fixture: a single-agent repo — docs/agent/, evals/, src/ at the root, no agent-cycle.yaml.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Does NOT create the second agent's files and does not move anything",
+          "Shows the conversion commands for the human to run as one dedicated commit: git mv of the existing agent's files into agents/<existing-name>/ and creation of agent-cycle.yaml, with the commit message prefix 'agent-cycle: workspace move'",
+          "States that after the move the existing agent keeps its frozen state (build.md moves with it) and that ship accepts the pure-rename commit",
+          "No files are created or modified — verified on the filesystem afterward"
+        ]
+      }
     }
   ]
 }

@@ -27,3 +27,21 @@ runtime — the skill loses if it scaffolds anything else, INCLUDING any
 catalog stack the spec does not name. The only-Test-column check is scored with
 `git diff --word-diff` on spec.md. The anti-gaming check requires seeing the
 hook config on disk BEFORE source files appear in the history, not after.
+
+## Workspace cases (v0.12)
+
+Build the fixture in a scratch git repo (never this repo).
+
+- **BLD-E06**: a workspace repo. `agent-cycle.yaml` lists `[ventas, soporte]`.
+  `ventas` is already built: `agents/ventas/docs/agent/build.md` exists, the
+  guard hook is installed at `.claude/hooks/guard_artifacts.py` at the plugin's
+  current `HOOK_VERSION`, registered in `.claude/settings.json`, and
+  `.claude/hooks/built-agents.txt` (tracked) contains `agents/ventas/`.
+  `soporte` has an approved `design.md`, `spec.md` and `evals/` under
+  `agents/soporte/` (hand-written and trivial; do NOT use the pipeline skills
+  to author them), with no `build.md`. Leave `soporte`'s entry in
+  `agent-cycle.yaml` uncommitted for the baseline-commit check. Score the
+  hook-version check with `git log -- .claude/hooks/guard_artifacts.py` (no new commit touching
+  it) and the ratchet check with `git show HEAD:.claude/hooks/built-agents.txt`
+  afterward. Variant: lower `HOOK_VERSION` in the installed hook; build must
+  STOP and ask the human, not rewrite it.

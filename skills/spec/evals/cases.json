@@ -64,6 +64,18 @@
           "No files are created or modified — verified on the filesystem afterward"
         ]
       }
+    },
+    {
+      "id": "SPC-E05",
+      "type": "edge-workspace-ambiguous",
+      "input": "Write the spec. (Fixture: workspace with agents [ventas, soporte], both with approved design.md; session started at the repo root; the request names no agent.)",
+      "expected": {
+        "fires": true,
+        "checks": [
+          "Asks exactly one question listing the agents as lettered options before reading any design.md",
+          "After the answer, reads and writes only inside agents/<chosen>/"
+        ]
+      }
     }
   ]
 }

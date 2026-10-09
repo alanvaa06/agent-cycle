@@ -26,3 +26,17 @@ Scoring anchors: the re-run check is scored by the presence of THIS audit's
 runner invocation and exit code in the report — a report quoting build.md's
 result is a FAIL. The nothing-else-modified check is scored by `git status`
 + `git diff` after the audit: only ship-report.md may appear.
+
+## Workspace cases (v0.12)
+
+Build the fixture in a scratch git repo (never this repo).
+
+- **SHP-E05**: a workspace repo with `agents/ventas/` and `agents/soporte/`,
+  `soporte` fully built (its `build.md` carries a `build_start` SHA). Make the
+  range after `build_start` contain: several commits that touch only
+  `agents/ventas/`; one commit that touches `agents/soporte/src/` and
+  `agents/ventas/src/` together; and, earlier in history, one commit with the
+  message prefix `agent-cycle: workspace move` that is a pure rename (`git mv`
+  of the root-level agent files into `agents/soporte/`, nothing else). Each
+  agent has its own lockfile. Score the diff check from the literal command the
+  audit cites.
