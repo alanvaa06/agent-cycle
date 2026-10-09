@@ -124,7 +124,8 @@ agents' specs); a glob that expands to nothing is the error above.
   block (input schema, output schema, probe request, sample probe response)
   per version on its `Served:` line. Missing → finding routed to this
   agent's design re-entry (design, then spec, evals, build, then interop
-  publishes); on this built agent that re-entry is the human's, from their
+  publishes) when the caller is not yet in its design, else to a spec
+  re-entry (spec, evals, build, then interop); on this built agent that re-entry is the human's, from their
   own terminal with the hook off (the build skill's
   `references/forge-delegation.md` re-entry steps), deleting or moving its
   `docs/agent/build.md` and removing its line from

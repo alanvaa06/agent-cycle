@@ -15,7 +15,9 @@ red before green, at agent level.
    design_version is stale vs the design. Write nothing. Name the gate.
    Orchestrators: a spec §8 row with `Contract: pending` → stop, write
    nothing, name the delegate (its interop must publish the contract and a
-   spec re-entry pins it first).
+   spec re-entry pins it first; after this agent's build that re-entry is the
+   human's, hook off, deleting or moving build.md and removing its ratchet
+   line so build re-runs).
 2. The spec is settled law. Evals test the spec — they never reinterpret it.
    An ambiguous BHV is a dispute for the re-entry ladder, not a creative eval.
    On an agent whose build has started, the hook blocks Claude's edits to its

@@ -8,7 +8,8 @@ If the spec's `design_version` no longer matches the design's `version`, stop �
 staleness goes to the re-entry ladder, not into a suite built on sand.
 Orchestrators: if any spec §8 row reads `Contract: pending`, stop and name the
 delegate — recordings need a pinned contract. Pinning it is a spec re-entry
-(after this agent's build, the human's: spec, then evals, then build).
+(after this agent's build, the human's, hook off: spec, then evals, then
+build, with build.md deleted or moved and its ratchet line removed).
 
 ## Step 1 — Inventory (no interview)
 
