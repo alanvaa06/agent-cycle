@@ -260,7 +260,7 @@ def test_workspace_shell_write_in_other_agent_src_allowed(tmp_path: Path) -> Non
 # --- agent-cycle.yaml is append-only
 
 @pytest.mark.parametrize(("content", "allowed"), [
-    ("layout: workspace\nagents: [agent-a, agent-b, nuevo]\n", True),
+    ("layout: workspace\nagents: [agent-a, agent-b, agent-c]\n", True),
     ("layout: workspace\nagents: [agent-a]\n", False),
     ("layout: single\nagents: [agent-a, agent-b]\n", False),
     ("layout: workspace\nagents: [agent-a, agent-b]\nowner: x\n", False),
@@ -275,13 +275,13 @@ def test_marker_is_append_only(tmp_path: Path, content: str, allowed: bool) -> N
 def test_marker_creation_blocked_in_built_single_repo(tmp_path: Path) -> None:
     make_agent(tmp_path, status="draft")
     assert run(tmp_path, "Write", file_path=str(tmp_path / "agent-cycle.yaml"),
-               content="layout: workspace\nagents: [nuevo]\n")
+               content="layout: workspace\nagents: [agent-c]\n")
 
 
 def test_marker_creation_allowed_in_unbuilt_single_repo(tmp_path: Path) -> None:
     make_agent(tmp_path)
     hits = run(tmp_path, "Write", file_path=str(tmp_path / "agent-cycle.yaml"),
-               content="layout: workspace\nagents: [nuevo]\n")
+               content="layout: workspace\nagents: [agent-c]\n")
     assert hits == []
 
 
