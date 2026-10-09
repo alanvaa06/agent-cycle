@@ -47,11 +47,16 @@ Prices are dated inputs, not truths — stale rows invalidate totals, not the me
 | Infra (<target>) | ... | ... | ... |
 | Channel fees | ... | ... | ... |
 | Third-party | ... | ... | ... |
+| Delegates (orchestrators: calls per turn x delegate cost per call) | ... | ... | ... |
 | **Total (band)** | **$X–Y** | ... | ... |
 
 Tokens are modeled FIRST — they usually dominate (70–90% in multi-user
 agents). At very low volume, flat infra can rival or exceed them: the model
 STATES which line dominates and why, rather than assuming.
+
+Orchestrators: each delegate's cost per call comes from that delegate's own
+economics artifact when present (read-only); otherwise it is an assumption in
+§1.
 
 ## 4. Sensitivity
 

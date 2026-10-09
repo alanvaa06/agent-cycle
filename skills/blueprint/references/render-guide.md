@@ -25,6 +25,8 @@ architecture, numbers, or status. Per artifact:
   recorded DoD status + date. The blueprint does NOT re-run the suite — it
   reports build.md's record, labeled with its date.
 - skills/interop: their decisions (none/skip render as one-line states).
+- delegates (orchestrators): spec §8 rows (delegate, contract version, On
+  failure) and design §9 verdict.
 - economics: the scenario table, total bands, dominant-line statement, alarm
   threshold — verbatim numbers, never recomputed.
 - ship-report: verdict + date.
@@ -36,7 +38,10 @@ Inline SVG (preferred) or pure HTML/CSS boxes. Pre-build: the spec's flow
 "intended (spec vN)". Post-build: the built topology — build.md's recorded runtime/target bound
 onto the pipeline's invariant 5-binding shape (ingress → queue → worker →
 state → egress, per the build skill's adapter-bindings) plus the spec's
-tools — labeled "built (build vN)". Keep it under ~15 nodes; tiers color the tool nodes
+tools — labeled "built (build vN)".
+Orchestrators: each delegate is one external node labeled with its contract
+version, connected from the tools that call it.
+Keep it under ~15 nodes; tiers color the tool nodes
 (safe green / reversible amber / destructive red). No JavaScript — ever.
 Collapsible detail uses native <details><summary>.
 
