@@ -398,6 +398,57 @@ def test_device_prefix_is_stripped(tmp_path: Path) -> None:
     assert run(tmp_path, "Write", {"file_path": "//?/" + (tmp_path / "evals/config.yaml").as_posix(), "content": "x\n"})
 
 
+# === round 3: Windows UNC and device file-tool paths are refused as unsafe
+
+@pytest.mark.parametrize(("raw", "unsafe"), [
+    ("\\\\server\\share\\evals\\config.yaml", True),    # a plain UNC share
+    ("//server/share/evals/config.yaml", True),          # a UNC share, forward slashes
+    ("\\\\.\\C:\\repo\\evals\\config.yaml", True),       # a device namespace path
+    ("\\\\.\\NUL", True),                                 # a device
+    ("\\\\?\\UNC\\server\\share\\x", True),              # a UNC path through the device namespace
+    ("\\\\wsl$\\Ubuntu\\home\\x", True),                 # a UNC share (WSL)
+    ("\\\\?\\C:\\repo\\evals\\config.yaml", False),      # a \\?\ long drive path: not UNC
+    ("C:\\repo\\evals\\config.yaml", False),
+    ("evals/config.yaml", False),
+    ("/home/x/evals/config.yaml", False),
+])
+def test_device_or_unc_classification(raw: str, unsafe: bool) -> None:
+    assert (guard.DEVICE_OR_UNC.match(raw) is not None) is unsafe
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+@pytest.mark.parametrize("raw", [
+    "\\\\server\\share\\x\\evals\\config.yaml",
+    "\\\\.\\C:\\repo\\evals\\config.yaml",
+    "\\\\?\\UNC\\server\\share\\evals\\config.yaml",
+    "\\\\wsl$\\Ubuntu\\home\\user\\src\\a.py",
+])
+def test_unc_and_device_file_tool_paths_blocked(tmp_path: Path, raw: str) -> None:
+    make_agent(tmp_path, status="draft")
+    hits = run(tmp_path, "Write", {"file_path": raw, "content": "x\n"})
+    assert hits and "unsafe path" in hits[0]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_admin_share_alias_of_a_frozen_file_blocked(tmp_path: Path) -> None:
+    # \\localhost\C$\<repo>\evals\config.yaml is the same file as <repo>\evals\config.yaml, but the
+    # in-repo check saw it as outside and let the write through. It is now refused as unsafe.
+    make_agent(tmp_path, status="draft")
+    drive = str(tmp_path)[0]
+    alias = "\\\\localhost\\" + drive + "$\\" + str(tmp_path)[3:] + "\\evals\\config.yaml"
+    hits = run(tmp_path, "Write", {"file_path": alias, "content": "x\n"})
+    assert hits and "unsafe path" in hits[0]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_long_drive_path_still_judged_not_refused(tmp_path: Path) -> None:
+    make_agent(tmp_path, status="draft")
+    # \\?\ before a drive letter is a normal long path: stripped and judged, not refused as unsafe.
+    frozen = run(tmp_path, "Write", {"file_path": "\\\\?\\" + str(tmp_path / "evals" / "config.yaml"), "content": "x\n"})
+    assert frozen and "unsafe path" not in frozen[0]
+    assert run(tmp_path, "Write", {"file_path": "\\\\?\\" + str(tmp_path / "src" / "a.py"), "content": "x\n"}) == []
+
+
 def test_file_tool_paths_are_not_variable_expanded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     make_agent(tmp_path, status="draft")
     monkeypatch.setenv("GUARD_NESTED", "a/b")

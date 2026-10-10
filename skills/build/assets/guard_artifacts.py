@@ -246,6 +246,17 @@ def alternate_stream(raw: str) -> bool:
     return ":" in re.sub(r"^[a-zA-Z]:", "", path)
 
 
+# A UNC share (\\server\share), a device namespace (\\.\...) or a UNC device path (\\?\UNC\...);
+# NOT a \\?\C:\ long-path, which strip_device_prefix turns into a plain drive path.
+DEVICE_OR_UNC = re.compile(r"[\\/]{2}(?:[.][\\/]|[?][\\/]unc(?=[\\/])|(?![.?][\\/]))", re.IGNORECASE)
+
+
+def win_unsafe_path(raw: str) -> bool:
+    """On Windows, a file-tool path naming a UNC share or a device: realpath keeps its form, so the
+    guard cannot canonicalise and compare it. It is refused as unsafe rather than judged."""
+    return os.name == "nt" and DEVICE_OR_UNC.match(raw) is not None
+
+
 def file_tool_path(raw: str, cwd: str) -> str:
     """A file tool takes its path literally: no $VAR or ~ expansion."""
     path = win_trim(posix_drive(strip_device_prefix(raw.replace("\\", "/"))))
@@ -626,7 +637,7 @@ def file_hits(call: Call, snap: Snapshot) -> list[str]:
             continue
         if not isinstance(raw, str):
             raise ValueError(f"{key} is not a string")
-        if alternate_stream(raw):
+        if alternate_stream(raw) or win_unsafe_path(raw):
             hits.append("unsafe path " + raw)
             continue
         path = file_tool_path(raw, call.cwd)
