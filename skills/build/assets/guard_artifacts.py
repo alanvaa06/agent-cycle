@@ -46,6 +46,7 @@ import io
 import json
 import os
 import re
+import subprocess
 import sys
 import tempfile
 from collections.abc import Iterable, Iterator, Mapping, Sequence
@@ -130,6 +131,24 @@ GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namesp
 GIT_TREE_VERBS = frozenset({"apply", "am", "revert", "cherry-pick", "merge", "pull", "rebase"})
 STASH_ACTIONS = frozenset({"push", "save", "pop", "apply", "branch", "drop", "list", "show", "clear",
                            "create", "store"})
+STASH_RESTORES = frozenset({"pop", "apply", "branch"})
+# git subcommands that write the working tree whole from the index or another commit: the human's.
+GIT_OWNER_VERBS = frozenset({"checkout-index", "filter-branch", "filter-repo"})
+GIT_HARD_RESET = re.compile(r"--(?:hard|keep|merge)$")
+# A -c key / git config key that runs a command or points git at another tree, hook or index.
+GIT_CONFIG_OWNED = re.compile(
+    r"alias\."
+    r"|core\.(?:worktree|hookspath|fsmonitor|pager|editor|sshcommand|askpass)$"
+    r"|filter\..+\.(?:smudge|clean|process)$"
+    r"|diff\.(?:external$|.+\.(?:textconv|command)$)"
+    r"|merge\..+\.driver$"
+    r"|(?:include\.path$|includeif\.)"
+    r"|sequence\.editor$", re.IGNORECASE)
+# .git internals that run commands or redirect git: hooks, config, info, a submodule's config.
+GITDIR_PROTECTED = re.compile(r"(?:^|/)\.git/(?:hooks/|config$|info/|modules/.+/config$)", re.IGNORECASE)
+# A pathspec that reaches across the repository rather than naming one folder.
+PATHSPEC_MAGIC = re.compile(r"^:|[*?\[]")
+GIT_SUBPROCESS_TIMEOUT = 3
 
 
 class Rule(Enum):
@@ -393,6 +412,9 @@ def take_snapshot(root: str) -> Snapshot:
 
 def classify(rel: str, snap: Snapshot) -> Rule:
     if under(rel, HOOKS_DIR):
+        return Rule.FROZEN
+    # While an agent is built, .git internals that run commands or redirect git are the human's.
+    if snap.any_built and GITDIR_PROTECTED.search(rel):
         return Rule.FROZEN
     if rel in SETTINGS:
         return Rule.SETTINGS
@@ -846,40 +868,144 @@ def verb_writes(verb: str, args: Sequence[Word]) -> tuple[list[Word], bool, bool
     return [], False, False
 
 
+# --- git revision comparisons (only run for a tree-moving verb while an agent is built)
+
+def protected_git_paths(snap: Snapshot) -> list[str]:
+    """Repo-relative paths a checked-out revision must not move: the guard folder, the settings and
+    every built agent's evals, design, spec and build record."""
+    paths = [HOOKS_DIR, *SETTINGS]
+    for agent in snap.agents:
+        if agent.built:
+            paths += [agent.folder + EVALS_DIR, agent.folder + DESIGN_MD,
+                      agent.folder + SPEC_MD, agent.folder + BUILD_MD]
+    return paths
+
+
+def run_git(root: str, args: Sequence[str]) -> int | None:
+    """git's exit code, or None when git cannot run (missing, timed out)."""
+    try:
+        result = subprocess.run(["git", "-C", root, *args], capture_output=True,
+                                timeout=GIT_SUBPROCESS_TIMEOUT, check=False)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    return result.returncode
+
+
+def git_is_repo(root: str) -> bool:
+    return run_git(root, ["rev-parse", "--git-dir"]) == 0
+
+
+def rev_moves_protected(root: str, snap: Snapshot, rev: str) -> str:
+    """"same"/"differ" when the revision's protected paths equal/differ from HEAD's, "error" when
+    the comparison cannot run (git missing, a bad revision, not a repository)."""
+    code = run_git(root, ["diff", "--quiet", "HEAD", rev, "--", *protected_git_paths(snap)])
+    if code == 0:
+        return "same"
+    if code == 1:
+        return "differ"
+    return "error"
+
+
+def index_moves_protected(root: str, snap: Snapshot) -> bool:
+    code = run_git(root, ["diff", "--cached", "--quiet", "HEAD", "--", *protected_git_paths(snap)])
+    if code in (0, 1):
+        return code == 1
+    return git_is_repo(root)           # error: suspicious only when it is a repository
+
+
+def resolve_commit(root: str, word: str) -> str | None:
+    """The form of `word` that names a commit, read as git does (itself, then origin/<word>, and -
+    as @{-1}); None when none resolves. Tells a one-word checkout from a pathspec."""
+    candidates = ["@{-1}"] if word in ("-", "@{-1}") else [word, "origin/" + word]
+    for candidate in candidates:
+        if run_git(root, ["rev-parse", "--verify", "-q", candidate + "^{commit}"]) == 0:
+            return candidate
+    return None
+
+
+def current_branch(root: str) -> str | None:
+    try:
+        result = subprocess.run(["git", "-C", root, "symbolic-ref", "--short", "-q", "HEAD"],
+                                capture_output=True, text=True, timeout=GIT_SUBPROCESS_TIMEOUT, check=False)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+    return result.stdout.strip() if result.returncode == 0 else None
+
+
+def rev_target_block(snap: Snapshot, sub: str, target: str) -> list[str]:
+    """The owner-only block for a verb that moves HEAD, the branch or the index/tree to `target`:
+    none when its protected paths equal HEAD's, a block when they differ or the tree cannot be read
+    (while it is a repository). Not a repository means there is nothing to rewrite, so it passes."""
+    mapped = "@{-1}" if target == "-" else target
+    cmp = rev_moves_protected(snap.root, snap, mapped)
+    if cmp == "error" and "/" not in mapped:
+        cmp = rev_moves_protected(snap.root, snap, "origin/" + mapped)
+    if cmp == "same":
+        return []
+    if cmp == "differ":
+        return [f"git {sub} {target} moves to a revision whose frozen files differ from HEAD "
+                "(the human runs it)"]
+    if git_is_repo(snap.root):
+        return [f"git {sub} {target}: its tree cannot be compared with HEAD (the human runs it)"]
+    return []
+
+
+def git_operands(rest: Sequence[Word], valued: re.Pattern[str] | None = None) -> list[Word]:
+    """The path words of a git subcommand: neither an option, an option's value, nor `--`."""
+    out: list[Word] = []
+    for i, word in enumerate(rest):
+        if word.text == "--" or word.text.startswith("-"):
+            continue
+        if valued is not None and i > 0 and valued.fullmatch(rest[i - 1].text):
+            continue
+        out.append(word)
+    return out
+
+
 def git_tree_and_paths(sub: str, before: Sequence[Word], after: Sequence[Word],
-                       dashdash: bool) -> tuple[bool, list[Word]]:
-    """(reads from another commit, pathspec) of git checkout / restore."""
-    tree, branching, positional = False, False, []
+                       dashdash: bool, snap: Snapshot) -> tuple[bool, list[Word], bool, str | None]:
+    """(reads from another commit, pathspec, full move with no pathspec, source revision) of
+    git checkout / restore."""
+    tree, positional, source = False, [], None
     i = 0
     while i < len(before):
         text = before[i].text
         if sub == "restore" and text in ("--source", "-s"):
+            source = before[i + 1].text if i + 1 < len(before) else None
             tree, i = True, i + 2
             continue
         if sub == "restore" and text.startswith("--source="):
-            tree = True
-        elif sub == "checkout" and text in ("-b", "-B", "--orphan"):
-            branching, i = True, i + 2
-            continue
+            source, tree = text.split("=", 1)[1], True
+        elif sub == "restore" and text.startswith("-s") and len(text) > 2:
+            source, tree = text[2:], True
         elif not text.startswith("-") or text == "-":
             positional.append(before[i])
         i += 1
     if sub == "restore":
-        return tree, positional + list(after)
+        return tree, positional + list(after), False, source
     if dashdash:
-        return bool(positional), positional[1:] + list(after)
-    if branching:
-        return True, []
+        src = positional[0].text if positional else None
+        paths = positional[1:] + list(after)
+        return src is not None, paths, src is not None and not paths, src
     if len(positional) >= 2:
-        return True, positional[1:]
-    return False, positional       # one word: a branch or a path; judged as a path
+        return True, positional[1:], False, positional[0].text
+    if len(positional) == 1 and snap.any_built and resolve_commit(snap.root, positional[0].text) is not None:
+        return True, [], True, positional[0].text
+    return False, positional, False, None       # one word that is not a commit: judged as a path
 
 
 def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[list[Word], bool, list[str]]:
     """(write targets, destructive, outright blocks) of one git command."""
-    i = 0
+    i, config_sets, rerouted = 0, [], False
     while i < len(args) and args[i].text.startswith("-"):
-        i += 2 if args[i].text in GIT_VALUE_OPTIONS else 1
+        text = args[i].text
+        if text == "-c" and i + 1 < len(args):
+            config_sets.append(args[i + 1].text.split("=", 1)[0])
+            i += 2
+            continue
+        if text.startswith("--git-dir") or text.startswith("--work-tree"):
+            rerouted = True
+        i += 2 if text in GIT_VALUE_OPTIONS else 1
     if i >= len(args):
         return [], False, []
     sub, rest = args[i].text.lower(), args[i + 1:]
@@ -888,35 +1014,131 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
     before = rest[:texts.index("--")] if dashdash else rest
     after = rest[texts.index("--") + 1:] if dashdash else ()
     flags = [w.text for w in before if w.text.startswith("-")]
-    human = [f"git {sub} while an agent is built (the human runs it)"] if snap.any_built else []
+
+    def owner(text: str) -> list[str]:
+        return [text] if snap.any_built else []
+
+    human = owner(f"git {sub} while an agent is built (the human runs it)")
+    # A --git-dir/--work-tree, or a -c that sets a command-running or tree-redirecting config entry,
+    # points git at another tree or program: the human's while an agent is built.
+    if rerouted and snap.any_built:
+        return [], False, [f"git {sub} with a --git-dir or --work-tree option points at another tree "
+                           "(the human runs it)"]
+    owned_c = next((key for key in config_sets if GIT_CONFIG_OWNED.search(key)), None)
+    if owned_c is not None:
+        return [], False, owner(f"git -c {owned_c} sets an entry that can run a command or redirect git")
+    if sub == "config":
+        key = next((w.text for w in rest if not w.text.startswith("-")), None)
+        if key is not None and GIT_CONFIG_OWNED.search(key):
+            return [], False, owner(f"git config {key} sets an entry that can run a command or redirect git")
+        return [], False, []
     if sub in ("rm", "mv"):
         return [w for w in rest if not w.text.startswith("-")], True, []
     if sub == "clean":                 # path-less: the current directory
         paths = list(after) or [w for k, w in enumerate(before) if not w.text.startswith("-")
                                 and (k == 0 or before[k - 1].text not in ("-e", "--exclude"))]
+        if any(w.text.startswith(":") for w in paths):
+            return [], False, owner("git clean with a magic pathspec can reach across the repository")
         return paths or [DOT], True, []
     if sub == "stash":
         words = [w for k, w in enumerate(before) if not w.text.startswith("-")
                  and (k == 0 or before[k - 1].text not in ("-m", "--message"))]
         action = words[0].text.lower() if words and words[0].text.lower() in STASH_ACTIONS else "push"
-        if action in ("pop", "apply", "branch"):
+        if action in STASH_RESTORES:
             return [], False, human
         if action not in ("push", "save"):
             return [], False, []
+        paths = list(after) or [w for w in words if w.text.lower() not in ("push", "save")]
+        if any(w.text.startswith(":") for w in paths):
+            return [], False, owner("git stash with a magic pathspec can reach across the repository")
         untracked = any(f in ("--include-untracked", "--all") or re.fullmatch(r"-[a-zA-Z]*[ua][a-zA-Z]*", f)
                         for f in flags)
         return (list(after) or [DOT]) if untracked else list(after), untracked, []
     if sub == "reset":
-        if "--hard" in flags:
+        if any(GIT_HARD_RESET.fullmatch(f) for f in flags):
             return [DOT], True, human
-        return [w for w in before if not w.text.startswith("-")] + list(after), False, []
+        if not snap.any_built:
+            return [], False, []
+        non_flag = [w for w in before if not w.text.startswith("-")]
+        commit = (non_flag[0].text if non_flag and resolve_commit(snap.root, non_flag[0].text) is not None
+                  else "HEAD")
+        return [], False, rev_target_block(snap, sub, commit)
+    if sub == "switch":
+        if not snap.any_built:
+            return [], False, []
+        positional = [w for w in rest if w.text == "-" or not w.text.startswith("-")]
+        create = any(re.fullmatch(r"-c|-C|--create", w.text) for w in rest)
+        target = (positional[1].text if len(positional) >= 2 else None) if create \
+            else (positional[0].text if positional else None)
+        return ([], False, rev_target_block(snap, sub, target)) if target is not None else ([], False, [])
     if sub in ("checkout", "restore"):
-        tree, pathspec = git_tree_and_paths(sub, before, after, dashdash)
-        if tree and snap.any_built and any(
-                w.text.startswith(":") or target_hits(w, dirs, snap, destructive=True) for w in pathspec):
+        if any(re.fullmatch(r"-p|--patch|--pathspec-from-file(=.*)?", t) for t in texts):
+            return [], False, owner(f"git {sub} -p/--patch or --pathspec-from-file can rewrite frozen files")
+        if sub == "checkout":           # checkout -b/-B/--orphan <name> [<start>]: the start moves the tree
+            at = next((k for k, w in enumerate(rest) if w.text in ("-b", "-B", "--orphan")), None)
+            if at is not None:
+                non_flag = [w for w in rest[at + 1:] if w.text != "--" and not w.text.startswith("-")]
+                start = non_flag[1].text if len(non_flag) >= 2 else None
+                if start is not None and snap.any_built:
+                    return [], False, rev_target_block(snap, sub, start)
+                return [], False, []
+        tree, pathspec, full, source = git_tree_and_paths(sub, before, after, dashdash, snap)
+        reaches = any(w.text.startswith(":") or target_hits(w, dirs, snap, destructive=True) for w in pathspec)
+        if full and source is not None and snap.any_built:
+            return [], False, rev_target_block(snap, sub, source)
+        if tree and snap.any_built and reaches:
             return [], False, [f"git {sub} from another commit over protected paths while an agent is "
                                "built (the human runs it)"]
+        # from the index into the working tree: the human's only when the index differs there
+        if not tree and snap.any_built and reaches and index_moves_protected(snap.root, snap):
+            return [], False, [f"git {sub} writes the working tree from an index that differs from HEAD "
+                               "at a protected path (the human runs it)"]
         return pathspec, False, []
+    if sub == "read-tree":
+        if not snap.any_built:
+            return [], False, []
+        trees = [w for w in rest if not w.text.startswith("-")]
+        return ([], False, rev_target_block(snap, sub, trees[0].text)) if trees else ([], False, [])
+    if sub == "update-ref":
+        if not snap.any_built:
+            return [], False, []
+        vals = git_operands(rest)
+        return ([], False, rev_target_block(snap, sub, vals[1].text)) if len(vals) >= 2 else ([], False, [])
+    if sub == "symbolic-ref":
+        if not snap.any_built:
+            return [], False, []
+        vals = git_operands(rest)
+        if len(vals) >= 2 and vals[0].text == "HEAD":
+            return [], False, rev_target_block(snap, sub, vals[1].text)
+        return [], False, []
+    if sub == "branch":
+        if not snap.any_built or not any(re.fullmatch(r"-f|--force|-M|-C", w.text) for w in rest):
+            return [], False, []
+        vals = git_operands(rest)
+        if len(vals) >= 2 and vals[0].text == current_branch(snap.root):
+            return [], False, rev_target_block(snap, sub, vals[1].text)
+        return [], False, []
+    if sub == "update-index":
+        flag = next((w.text for w in rest if re.fullmatch(r"--cacheinfo|--index-info|--add", w.text)), None)
+        if flag is None:
+            return [], False, []
+        if flag == "--index-info":
+            return [], False, owner("git update-index --index-info stages paths from stdin (the human runs it)")
+        return git_operands(rest), True, []
+    if sub == "worktree":
+        operands = git_operands(rest, re.compile(r"-b|-B"))
+        return (operands[1:2], True, []) if operands and operands[0].text.lower() == "add" else ([], False, [])
+    if sub == "submodule":
+        operands = git_operands(rest, re.compile(r"-b|--branch|--reference|--name|--depth"))
+        return (operands[2:3], True, []) if operands and operands[0].text.lower() == "add" else ([], False, [])
+    if sub == "clone":
+        operands = git_operands(rest)
+        return (operands[1:2], True, []) if len(operands) >= 2 else ([], False, [])
+    if sub == "init":
+        operands = git_operands(rest)
+        return (operands[:1], True, []) if operands else ([], False, [])
+    if sub in GIT_OWNER_VERBS:
+        return [], False, owner(f"git {sub} writes the working tree from the index or another commit")
     if sub in GIT_TREE_VERBS:
         return [], False, human
     return [], False, []
