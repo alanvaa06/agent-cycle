@@ -3,6 +3,49 @@
 All notable changes to the agent-cycle plugin. Semver: minor = new pipeline
 skill or new pipeline capability, patch = fixes.
 
+## [0.13.1] — 2026-10-12
+
+### Fixed
+- **Anti-gaming hook, round 3** (`skills/build/assets/guard_artifacts.py`,
+  `HOOK_VERSION` 3; the routes were found and first closed by Eduardo Ramos
+  in PRs #6, #7 and #8, then reviewed and completed here). The full rules are
+  in `build/references/forge-delegation.md`.
+  - Shell: a copy into a folder is judged where it lands
+    (`cp x docs/agent/`), including `install`, `scp`, `cp -rT`,
+    `rsync src/ dest/` and every spelling of `-Destination`. An extraction
+    (`tar x`, `unzip`, `7z x`, `Expand-Archive`) is judged by the folder it
+    fills. The literal text of an echo/printf that a shell runs
+    (`echo '...' | sh`, `sh <<< '...'`, `source <(echo ...)`,
+    `eval "$(echo ...)"`) is read as a command, and one whose text cannot be
+    read (a `$`, a `printf` format, a backslash escape, another command in
+    between) is blocked while an agent is built.
+  - Git: a move to another revision (`checkout`, `switch`, `reset`,
+    `read-tree`, a ref update of what is checked out) passes only when that
+    revision's hook folder, settings, evals and design.md equal HEAD's; a
+    draft build's build.md and the spec's Test column may differ. A rewrite
+    of the working tree from HEAD or the index (`checkout -f`, `stash`,
+    `restore .`) passes only when the frozen files on disk and in the index
+    are HEAD's. Config entries, options and `GIT_*` variables that run a
+    command or point git at another tree are the human's, and so are
+    `.git/hooks`, `config`, `info`, `HEAD` and the refs. A comparison that
+    cannot run blocks.
+  - Windows: a write path that names a UNC share or a device is refused, in
+    file tools and in the shell, unless the repository itself lives on that
+    UNC path.
+
+### Upgrade notes
+- `HOOK_VERSION` goes from 2 to 3: on the next build, a repository with the
+  older hook is asked to upgrade it from the human's terminal (rename to
+  `guard_artifacts.py.off`, copy the plugin's file, rename back, commit with
+  a subject starting `agent-cycle: hook upgrade`).
+- Newly blocked while an agent is built, by design: `git switch`/`checkout`
+  to a branch whose evals, design, hook folder or settings differ from HEAD
+  (for example a branch from before the hook was installed), an extraction
+  with no destination from the repo root (`tar xf a.tar`; use `-C <folder>`),
+  and writes to UNC paths outside a UNC-hosted repository.
+- Not judged, as before: a script a shell reads from a file or the network
+  (`curl ... | sh`), the same as `sh script.sh`.
+
 ## [0.13.0] — 2026-10-08
 
 ### Added
