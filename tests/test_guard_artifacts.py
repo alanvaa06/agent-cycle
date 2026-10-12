@@ -728,6 +728,203 @@ def test_strip_device_prefix(raw: str, expected: str) -> None:
     assert guard.strip_device_prefix(raw) == expected
 
 
+# === round 3: git routes (tree-move comparison, config entry points, .git internals, pathspecs)
+
+# --- a -c or `git config` that runs a command or redirects git, and .git internals
+
+@pytest.mark.parametrize("command", [
+    "git -c alias.x='!rm -rf evals' x",
+    "git -c core.hooksPath=/tmp/h status",
+    "git -c core.worktree=/tmp status",
+    "git -c core.pager='rm -rf evals' log",
+    "git -c core.sshCommand=evil fetch",
+    "git -c filter.lfs.clean=evil add .",
+    "git -c include.path=/tmp/evil.cfg status",
+    "git config core.hooksPath /tmp/h",
+    "git config alias.co 'checkout HEAD~1 -- evals'",
+    "git config --global core.editor evil",
+    "git --git-dir=/other/.git --work-tree=. checkout HEAD",
+    "git --work-tree=/tmp/evil status",
+    "git checkout-index -a -f",
+    "git filter-branch --force HEAD",
+    "git filter-repo --path evals",
+    "git update-index --index-info",
+])
+def test_git_config_and_internals_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "git config user.name Edgar",
+    "git config --global user.email a@b.c",
+    "git -c core.autocrlf=false status",
+    "git add .",
+    "git status",
+])
+def test_everyday_git_config_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_git_config_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Bash", {"command": "git -c alias.x='!rm -rf evals' x"}) == []
+    assert run(tmp_path, "Bash", {"command": "git config core.hooksPath /tmp/h"}) == []
+
+
+@pytest.mark.parametrize(("path", "tool"), [
+    (".git/hooks/pre-commit", "Write"),
+    (".git/config", "Write"),
+    (".git/info/exclude", "Write"),
+])
+def test_git_internals_file_tool_blocked(tmp_path: Path, path: str, tool: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, tool, {"file_path": str(tmp_path / path), "content": "x\n"})
+
+
+@pytest.mark.parametrize("command", [
+    "echo x > .git/hooks/pre-commit",
+    "cp /tmp/evil .git/config",
+])
+def test_git_internals_shell_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+def test_git_internals_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / ".git/hooks/pre-commit"), "content": "x\n"}) == []
+
+
+# --- git commands that create files in a destination folder
+
+@pytest.mark.parametrize("command", [
+    "git worktree add agents/agent-a/evals/w weak",
+    "git clone https://x/y.git agents/agent-a/evals/c",
+    "git submodule add https://x/y.git agents/agent-a/evals/s",
+    "git init agents/agent-a/evals/x",
+    "git update-index --cacheinfo 100644 abc123 agents/agent-a/evals/config.yaml",
+])
+def test_git_destination_in_a_frozen_folder_blocked(tmp_path: Path, command: str) -> None:
+    make_workspace(tmp_path, {"agent-a": "draft"})
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "git worktree add /tmp/w HEAD",
+    "git worktree add agents/agent-b/evals/w HEAD",
+    "git clone https://x/y.git vendor/y",
+    "git submodule add https://x/y.git vendor/y",
+    "git init src/sub",
+    "git update-index --cacheinfo 100644 abc123 src/app.py",
+])
+def test_git_destination_in_a_free_folder_allowed(tmp_path: Path, command: str) -> None:
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+# --- magic pathspecs reach across the repository
+
+@pytest.mark.parametrize("command", [
+    "git clean -fdx -- ':/'",
+    "git clean -fdx ':(top)'",
+    "git stash push -u -- ':/'",
+    "git stash push -- ':(exclude)src'",
+])
+def test_magic_pathspec_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+# --- a revision that moves the protected tree is the human's (needs a real git repository)
+
+_HAS_GIT = subprocess.run(["git", "--version"], capture_output=True, check=False).returncode == 0
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+
+
+def _real_repo(tmp_path: Path) -> Path:
+    """A built single-agent repo on main (HEAD), a `weak` branch whose evals differ, a `same`
+    branch equal to main."""
+    repo = tmp_path / "repo"
+    make_agent(repo, status="draft")
+    (repo / "src").mkdir(exist_ok=True)
+    (repo / "src/app.py").write_text("x = 1\n", encoding="utf-8")
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "t")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "baseline")
+    _git(repo, "checkout", "-q", "-b", "weak")
+    (repo / "evals/config.yaml").write_text("k: 9\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "weaker evals")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "branch", "same")
+    return repo
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", [
+    "git checkout -b x weak",
+    "git checkout -B x weak",
+    "git read-tree -m -u weak",
+    "git read-tree weak",
+    "git switch weak",
+    "git switch -c x weak",
+    "git reset --soft weak",
+    "git reset --mixed weak",
+    "git update-ref refs/heads/main weak",
+    "git symbolic-ref HEAD refs/heads/weak",
+    "git branch -f main weak",
+    "git checkout weak",
+])
+def test_revision_moving_protected_tree_blocked(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    assert run(repo, "Bash", {"command": command})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", [
+    "git checkout -b x same",
+    "git read-tree HEAD",
+    "git read-tree same",
+    "git switch main",
+    "git switch -c x same",
+    "git reset --soft same",
+    "git reset HEAD",
+    "git update-ref refs/heads/main same",
+    "git symbolic-ref HEAD refs/heads/same",
+    "git checkout main",
+    "git checkout same",
+    "git checkout -b feature",
+    "git restore src/app.py",
+    "git switch -c feature",
+])
+def test_revision_with_equal_protected_tree_allowed(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    assert run(repo, "Bash", {"command": command}) == []
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_revision_moves_free_before_build(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    make_agent(repo)                      # build not started
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "t")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "baseline")
+    _git(repo, "checkout", "-q", "-b", "weak")
+    (repo / "evals/config.yaml").write_text("k: 9\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "weaker")
+    _git(repo, "checkout", "-q", "main")
+    assert run(repo, "Bash", {"command": "git checkout -b x weak"}) == []
+    assert run(repo, "Bash", {"command": "git reset --soft weak"}) == []
+
+
 # === round 2: second security re-review
 
 # --- C1: path-less destructive git verbs act on the current directory
