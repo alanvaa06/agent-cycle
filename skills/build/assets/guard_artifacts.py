@@ -27,14 +27,27 @@ What is frozen is decided from each agent's state on disk at call time:
   and the env key may not change, disableAllHooks may not be set.
 - While any agent is built, git verbs that rewrite the working tree from
   another commit (apply, am, revert, cherry-pick, merge, pull, rebase,
-  reset --hard, stash pop/apply, checkout/restore from a tree-ish over a
-  protected path) are the human's.
+  bisect, reset --hard, stash pop/apply, checkout/restore from a tree-ish
+  over a protected path) are the human's. A move to another revision
+  (checkout, switch, reset, read-tree, a ref update of what is checked out)
+  passes only when that revision's frozen files equal HEAD's, and a rewrite
+  of the working tree from HEAD or the index (checkout -f, stash, restore .)
+  only when the frozen files on disk and in the index are HEAD's: git itself
+  is asked, and a comparison that cannot run is a block.
+- While any agent is built, git config entries, options and GIT_* variables
+  that run a command or point git at another tree are the human's, and so
+  are .git/hooks, config, info, HEAD and the refs.
+- On Windows a write path that names a UNC share or a device is refused,
+  unless the repository itself lives on that UNC path.
 
 Shell commands are read heuristically: per command, the writing verb and its
 write targets are parsed from the words; sources that are only read are not
-judged. Known blind spots (ship's diff from build_start and ship's re-run of
-the suite from the committed tree cover them; the ratchet covers build.md):
-a script that writes (python fix.py, python -c), paths assembled in
+judged. A copy into a folder is judged where it lands, an extraction by the
+folder it fills, and the literal text of an echo/printf that a shell runs is
+read as a command. Known blind spots (ship's diff from build_start and
+ship's re-run of the suite from the committed tree cover them; the ratchet
+covers build.md): a script that writes (python fix.py, python -c) or that a
+shell reads from a file or the network (curl ... | sh), paths assembled in
 variables, backslash escapes inside names, brace expansion, encoded
 commands, tools that rewrite files in place (ruff format ., prettier --write).
 """
@@ -132,29 +145,55 @@ COPY_VERBS = frozenset({"cp", "copy", "copy-item", "cpi", "install", "xcopy", "r
                         "scp"})
 # Copies that drop a source folder's contents into the destination, not the folder itself.
 CONTENT_COPIES = frozenset({"xcopy", "robocopy"})
+PS_COPIES = frozenset({"copy", "copy-item", "cpi"})
 CP_RECURSIVE = re.compile(r"-[a-z]*[rRa][a-z]*|--recursive|--archive", re.IGNORECASE)
 PS_RECURSE = re.compile(r"-r(?:e(?:c(?:u(?:r(?:s(?:e)?)?)?)?)?)?$", re.IGNORECASE)
-TARGET_DIR_FLAG = re.compile(r"-t|--target-directory", re.IGNORECASE)
+TARGET_DIR_FLAG = re.compile(r"-t|--target-directory")
+# cp -T: the destination is not a folder to drop the source into, it becomes the source itself.
+NO_TARGET_DIR_FLAG = re.compile(r"-[a-zA-Z]*T[a-zA-Z]*|--no-target-directory")
+INSTALL_DIRS_FLAG = re.compile(r"-[a-zA-Z]*d[a-zA-Z]*|--directory")
 # Archive tools that unpack into a destination folder (judged at holder level), by each one's mode.
 EXTRACTORS = frozenset({"tar", "bsdtar", "jar", "unzip", "7z", "7za", "7zr", "cpio",
                         "expand-archive"})
-TAR_EXTRACT = re.compile(r"--extract$|-?[a-z]*x[a-z]*$", re.IGNORECASE)
+# tar's mode: the first word when it is a bundle of letters (tar xzf), else a dash option.
+TAR_BUNDLE_EXTRACT = re.compile(r"[A-Za-z]*x[A-Za-z]*")
+TAR_OPTION_EXTRACT = re.compile(r"--extract|--get|-[A-Za-z]*x[A-Za-z]*")
 # A shell word that, run as the destination, means "the folder in effect": a trailing slash, . or ..
 FOLDER_WORD = re.compile(r".*/$|(?:^|/)\.\.?$")
 HERESTRING = re.compile(r"<<<\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"'|&;<>()]+))")
-# Commands that run the text they are given (on a pipe, a <<< here-string, a <(...) or $(...)): a
-# shell, source/. and the eval verbs. The output of an echo/printf of literal words is rescanned.
-SCRIPT_CONSUMERS = frozenset({*SHELLS, "source", ".", *EVAL_VERBS})
+# Commands that run the text another command prints: a shell reading its standard input (a pipe, a
+# <<< here-string, a <(...)), source/. and the eval verbs over a <(...), $(...) or backticks. Only
+# an echo/printf is read as that text: literal words are rescanned, text that cannot be read (a $,
+# a backtick, a printf format, a backslash escape) is refused while an agent is built. Any other
+# producer (cat, curl, base64) is a script the hook cannot see, like `sh script.sh`.
+SOURCE_VERBS = frozenset({"source", "."})
+INLINE_PRODUCERS = frozenset({"echo", "printf"})
+STDIN_FILES = frozenset({"-", "/dev/stdin", "/dev/fd/0", "/proc/self/fd/0"})
+SUBSTITUTION = re.compile(r"<\(|\$\(|`")
 ECHO_FLAG = re.compile(r"-[neE]+")
 # git: global options that take a value; verbs that rewrite the tree (the human's once built).
-GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace"})
-GIT_TREE_VERBS = frozenset({"apply", "am", "revert", "cherry-pick", "merge", "pull", "rebase"})
+GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--config-env"})
+GIT_TREE_VERBS = frozenset({"apply", "am", "revert", "cherry-pick", "merge", "pull", "rebase", "bisect",
+                            "sparse-checkout"})
 STASH_ACTIONS = frozenset({"push", "save", "pop", "apply", "branch", "drop", "list", "show", "clear",
                            "create", "store"})
 STASH_RESTORES = frozenset({"pop", "apply", "branch"})
 # git subcommands that write the working tree whole from the index or another commit: the human's.
 GIT_OWNER_VERBS = frozenset({"checkout-index", "filter-branch", "filter-repo"})
 GIT_HARD_RESET = re.compile(r"--(?:hard|keep|merge)$")
+# checkout/switch options that throw local changes away: the tree is rewritten from HEAD.
+GIT_DISCARD = re.compile(r"-f|--force|--discard-changes")
+# Options that take a value, per subcommand: the value is not an operand.
+GIT_VALUED: dict[str, re.Pattern[str]] = {
+    "update-ref": re.compile(r"-m"),
+    "symbolic-ref": re.compile(r"-m"),
+    "worktree": re.compile(r"-b|-B|--reason"),
+    "submodule": re.compile(r"-b|--branch|--reference|--name|--depth"),
+    "clone": re.compile(r"-b|--branch|-o|--origin|-u|--upload-pack|--reference|--reference-if-able"
+                        r"|--separate-git-dir|--depth|--shallow-since|--shallow-exclude|-c|--config"
+                        r"|--template|-j|--jobs|--filter|--bundle-uri|--server-option|--revision"),
+    "init": re.compile(r"-b|--initial-branch|--template|--separate-git-dir|--object-format|--ref-format"),
+}
 # A -c key / git config key that runs a command or points git at another tree, hook or index.
 GIT_CONFIG_OWNED = re.compile(
     r"alias\."
@@ -163,11 +202,38 @@ GIT_CONFIG_OWNED = re.compile(
     r"|diff\.(?:external$|.+\.(?:textconv|command)$)"
     r"|merge\..+\.driver$"
     r"|(?:include\.path$|includeif\.)"
-    r"|sequence\.editor$", re.IGNORECASE)
-# .git internals that run commands or redirect git: hooks, config, info, a submodule's config.
-GITDIR_PROTECTED = re.compile(r"(?:^|/)\.git/(?:hooks/|config$|info/|modules/.+/config$)", re.IGNORECASE)
-# A pathspec that reaches across the repository rather than naming one folder.
-PATHSPEC_MAGIC = re.compile(r"^:|[*?\[]")
+    r"|sequence\.editor$"
+    r"|pager\."
+    r"|credential\.(?:.+\.)?helper$"
+    r"|gpg\.(?:.+\.)?program$"
+    r"|core\.gitproxy$"
+    r"|(?:difftool|mergetool)\..+\.cmd$"
+    r"|init\.templatedir$", re.IGNORECASE)
+# Entries whose value is a program: a known viewer or editor with dash options (cat, less -FRX,
+# true) is free. Any other name is not: an interpreter would run the file git hands it.
+GIT_CONFIG_PROGRAM = re.compile(r"core\.(?:pager|editor)|pager\..+|sequence\.editor", re.IGNORECASE)
+PLAIN_PROGRAM = re.compile(
+    r"(?:true|false|cat|less|more|vi|vim|nvim|nano|emacs|code|notepad|ed|)(?: --?[A-Za-z-]+)*|:")
+# git config: forms that only read, forms that write, options that take a value.
+GIT_CONFIG_READ_FLAG = re.compile(r"--get(?:-all|-regexp|-urlmatch|-color|-colorbool)?|-l|--list")
+GIT_CONFIG_READ_ACTIONS = frozenset({"get", "list"})
+GIT_CONFIG_WRITE_FLAG = re.compile(r"--add|--replace-all|--unset|--unset-all|--rename-section"
+                                   r"|--remove-section|-e|--edit")
+GIT_CONFIG_WRITE_ACTIONS = frozenset({"set", "unset", "rename-section", "remove-section", "edit"})
+GIT_CONFIG_VALUED = re.compile(r"-f|--file|--blob|-t|--type|--default|--comment|--value")
+# Environment variables that do what the options above do: point git at another tree, index,
+# config or program. Judged on any unquoted NAME=value word (a prefix, export, env, $env:).
+GIT_ENV_OWNED = re.compile(
+    r"(?:\$env:)?(GIT_DIR|GIT_WORK_TREE|GIT_INDEX_FILE|GIT_COMMON_DIR|GIT_OBJECT_DIRECTORY"
+    r"|GIT_ALTERNATE_OBJECT_DIRECTORIES|GIT_NAMESPACE|GIT_CONFIG(?!_NOSYSTEM)\w*|GIT_EXTERNAL_DIFF"
+    r"|GIT_SSH|GIT_SSH_COMMAND|GIT_ASKPASS|GIT_PROXY_COMMAND|GIT_EXEC_PATH|GIT_TEMPLATE_DIR)=",
+    re.IGNORECASE)
+GIT_ENV_PROGRAM = re.compile(r"(?:\$env:)?(GIT_EDITOR|GIT_SEQUENCE_EDITOR|GIT_PAGER)=(.*)",
+                             re.IGNORECASE | re.DOTALL)
+# .git internals that run commands, redirect git or say what is checked out: hooks, config, info,
+# a submodule's config, HEAD and the refs.
+GITDIR_PROTECTED = re.compile(
+    r"(?:^|/)\.git/(?:hooks/|config$|info/|modules/.+/config$|HEAD$|packed-refs$|refs/)", re.IGNORECASE)
 GIT_SUBPROCESS_TIMEOUT = 3
 
 
@@ -290,10 +356,15 @@ def alternate_stream(raw: str) -> bool:
 DEVICE_OR_UNC = re.compile(r"[\\/]{2}(?:[.][\\/]|[?][\\/]unc(?=[\\/])|(?![.?][\\/]))", re.IGNORECASE)
 
 
-def win_unsafe_path(raw: str) -> bool:
-    """On Windows, a file-tool path naming a UNC share or a device: realpath keeps its form, so the
-    guard cannot canonicalise and compare it. It is refused as unsafe rather than judged."""
-    return os.name == "nt" and DEVICE_OR_UNC.match(raw) is not None
+def win_unsafe_path(raw: str, base: str, root: str) -> bool:
+    """On Windows, a write path naming a UNC share or a device: realpath keeps its form, so the
+    guard cannot canonicalise it and compare it with a drive path. It is refused as unsafe rather
+    than judged, unless the repository itself lives on a UNC path and this is one of its files."""
+    if os.name != "nt" or DEVICE_OR_UNC.match(raw) is None:
+        return False
+    if DEVICE_OR_UNC.match(root) is None:
+        return True
+    return rel_to_repo(canonical(os.path.join(base, raw.replace("\\", "/"))), root) is None
 
 
 def file_tool_path(raw: str, cwd: str) -> str:
@@ -679,7 +750,7 @@ def file_hits(call: Call, snap: Snapshot) -> list[str]:
             continue
         if not isinstance(raw, str):
             raise ValueError(f"{key} is not a string")
-        if alternate_stream(raw) or win_unsafe_path(raw):
+        if alternate_stream(raw) or win_unsafe_path(raw, call.cwd, snap.root):
             hits.append("unsafe path " + raw)
             continue
         path = file_tool_path(raw, call.cwd)
@@ -871,6 +942,12 @@ def verb_writes(verb: str, args: Sequence[Word]) -> tuple[list[Word], bool, bool
         return named_values(named, PATH_FLAGS) or positional[:1], False, True
     if verb == "cp":
         return cp_target(args), False, True
+    if verb == "install":
+        if any(INSTALL_DIRS_FLAG.fullmatch(w.text) for w in args if not w.quoted):
+            return [w for w in args if not (w.text.startswith("-") and len(w.text) > 1)], False, True
+        return cp_target(args), False, True
+    if verb == "scp":
+        return [w for w in args if not (w.text.startswith("-") and len(w.text) > 1)][-1:], False, True
     if verb in ("copy", "copy-item", "cpi", "xcopy"):
         positional, named = ps_args(args)
         positional = [w for w in positional if not CMD_FLAG.fullmatch(w.text)]
@@ -899,49 +976,134 @@ def verb_writes(verb: str, args: Sequence[Word]) -> tuple[list[Word], bool, bool
     return [], False, False
 
 
-# --- git revision comparisons (only run for a tree-moving verb while an agent is built)
+# --- git comparisons (only run for a tree-moving verb while an agent is built)
 
-def protected_git_paths(snap: Snapshot) -> list[str]:
-    """Repo-relative paths a checked-out revision must not move: the guard folder, the settings and
-    every built agent's evals, design, spec and build record."""
-    paths = [HOOKS_DIR, *SETTINGS]
+class Cmp(Enum):
+    """What comparing the frozen files of two sides of a repository found."""
+    SAME = auto()
+    DIFFER = auto()
+    NO_REPO = auto()      # not a git repository: there is nothing for git to rewrite
+    UNKNOWN = auto()      # git could not run, or a side could not be read: never a pass
+
+
+def run_git(root: str, args: Sequence[str]) -> subprocess.CompletedProcess[str] | None:
+    """The finished git process, or None when git cannot run (missing, timed out)."""
+    try:
+        return subprocess.run(["git", "-C", root, *args], capture_output=True, encoding="utf-8",
+                              errors="replace", timeout=GIT_SUBPROCESS_TIMEOUT, check=False)
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return None
+
+
+def git_code(root: str, args: Sequence[str]) -> int | None:
+    done = run_git(root, args)
+    return None if done is None else done.returncode
+
+
+def repo_state(root: str) -> Cmp | None:
+    """NO_REPO outside a repository, UNKNOWN when git could not run, None inside one."""
+    code = git_code(root, ["rev-parse", "--git-dir"])
+    if code is None:
+        return Cmp.UNKNOWN
+    return None if code == 0 else Cmp.NO_REPO
+
+
+def frozen_whole(snap: Snapshot) -> list[str]:
+    """Paths of built agents that no build step changes: evals and design always, the spec and the
+    build record once the build is no longer a draft."""
+    paths: list[str] = []
     for agent in snap.agents:
         if agent.built:
-            paths += [agent.folder + EVALS_DIR, agent.folder + DESIGN_MD,
-                      agent.folder + SPEC_MD, agent.folder + BUILD_MD]
+            paths += [agent.folder + EVALS_DIR, agent.folder + DESIGN_MD]
+            if agent.status != "draft":
+                paths += [agent.folder + SPEC_MD, agent.folder + BUILD_MD]
     return paths
 
 
-def run_git(root: str, args: Sequence[str]) -> int | None:
-    """git's exit code, or None when git cannot run (missing, timed out)."""
-    try:
-        result = subprocess.run(["git", "-C", root, *args], capture_output=True,
-                                timeout=GIT_SUBPROCESS_TIMEOUT, check=False)
-    except (OSError, ValueError, subprocess.SubprocessError):
-        return None
-    return result.returncode
+def draft_specs(snap: Snapshot) -> list[str]:
+    """Specs whose Test column a draft build may still fill: compared cell by cell."""
+    return [agent.folder + SPEC_MD for agent in snap.agents if agent.status == "draft"]
 
 
-def git_is_repo(root: str) -> bool:
-    return run_git(root, ["rev-parse", "--git-dir"]) == 0
+def side_text(root: str, side: str | None, path: str) -> str | None:
+    """A file's text on one side: a revision, "" for the index, None for the working tree. None
+    when the file is absent there; raises Unreadable when it cannot be read."""
+    if side is None:
+        return read_text(os.path.join(root, path))
+    done = run_git(root, ["show", f"{side}:./{path}"])
+    if done is None:
+        raise Unreadable("git could not run")
+    return done.stdout.replace("\r\n", "\n").removeprefix("\ufeff") if done.returncode == 0 else None
 
 
-def rev_moves_protected(root: str, snap: Snapshot, rev: str) -> str:
-    """"same"/"differ" when the revision's protected paths equal/differ from HEAD's, "error" when
-    the comparison cannot run (git missing, a bad revision, not a repository)."""
-    code = run_git(root, ["diff", "--quiet", "HEAD", rev, "--", *protected_git_paths(snap)])
+def compare(snap: Snapshot, diff_args: Sequence[str], whole: Sequence[str],
+            left: str | None, right: str | None) -> Cmp:
+    """Compare two sides of the repository (as `git diff <diff_args>` names them; `left`/`right`
+    name the same sides for side_text): the `whole` paths byte for byte, each draft spec outside
+    its Test column. Assumes a repository."""
+    root, specs = snap.root, draft_specs(snap)
+    code = git_code(root, ["diff", "--quiet", *diff_args, "--", *whole, *specs])
     if code == 0:
-        return "same"
-    if code == 1:
-        return "differ"
-    return "error"
+        return Cmp.SAME
+    if code != 1:
+        return Cmp.UNKNOWN
+    code = git_code(root, ["diff", "--quiet", *diff_args, "--", *whole])
+    if code != 0:
+        return Cmp.DIFFER if code == 1 else Cmp.UNKNOWN
+    try:
+        for path in specs:
+            old, new = side_text(root, left, path), side_text(root, right, path)
+            if old != new and (old is None or new is None or not only_test_cells(old, new)):
+                return Cmp.DIFFER
+    except Unreadable:
+        return Cmp.UNKNOWN
+    return Cmp.SAME
 
 
-def index_moves_protected(root: str, snap: Snapshot) -> bool:
-    code = run_git(root, ["diff", "--cached", "--quiet", "HEAD", "--", *protected_git_paths(snap)])
-    if code in (0, 1):
-        return code == 1
-    return git_is_repo(root)           # error: suspicious only when it is a repository
+def rev_state(snap: Snapshot, rev: str) -> Cmp:
+    """HEAD against a revision: the guard folder, the settings and the built agents' frozen files."""
+    return compare(snap, ["HEAD", rev], [HOOKS_DIR, *SETTINGS, *frozen_whole(snap)], "HEAD", rev)
+
+
+def frozen_at_rest(snap: Snapshot) -> Cmp:
+    """SAME when the frozen files on disk and in the index are HEAD's: a git command that rewrites
+    the working tree from HEAD or the index then changes none of them, whatever moved HEAD. The
+    ratchet (the hook updates it) and the settings (free keys may change) are left out."""
+    outside = repo_state(snap.root)
+    if outside is not None:
+        return outside
+    steady = [HOOKS_DIR, ":(exclude)" + RATCHET, *frozen_whole(snap)]
+    on_disk = compare(snap, ["HEAD"], steady, "HEAD", None)
+    return on_disk if on_disk is not Cmp.SAME else compare(snap, ["--cached", "HEAD"], steady, "HEAD", "")
+
+
+def tree_write_block(snap: Snapshot, what: str) -> list[str]:
+    """The owner-only block for a git command that rewrites the working tree from HEAD or the index."""
+    state = frozen_at_rest(snap)
+    if state in (Cmp.SAME, Cmp.NO_REPO):
+        return []
+    if state is Cmp.DIFFER:
+        return [f"{what} would rewrite frozen files: on disk or in the index they differ from HEAD "
+                "(the human runs it)"]
+    return [f"{what}: git could not compare the frozen files with HEAD (the human runs it)"]
+
+
+def rev_target_block(snap: Snapshot, sub: str, target: str) -> list[str]:
+    """The owner-only block for a verb that moves HEAD, the branch or the index/tree to `target`:
+    none when its frozen files equal HEAD's or this is not a repository, a block when they differ
+    or cannot be compared."""
+    state = repo_state(snap.root)
+    if state is None:
+        mapped = "@{-1}" if target == "-" else target
+        state = rev_state(snap, mapped)
+        if state is Cmp.UNKNOWN and "/" not in mapped:
+            state = rev_state(snap, "origin/" + mapped)
+    if state in (Cmp.SAME, Cmp.NO_REPO):
+        return []
+    if state is Cmp.DIFFER:
+        return [f"git {sub} {target} moves to a revision whose frozen files differ from HEAD "
+                "(the human runs it)"]
+    return [f"git {sub} {target}: its tree cannot be compared with HEAD (the human runs it)"]
 
 
 def resolve_commit(root: str, word: str) -> str | None:
@@ -949,36 +1111,37 @@ def resolve_commit(root: str, word: str) -> str | None:
     as @{-1}); None when none resolves. Tells a one-word checkout from a pathspec."""
     candidates = ["@{-1}"] if word in ("-", "@{-1}") else [word, "origin/" + word]
     for candidate in candidates:
-        if run_git(root, ["rev-parse", "--verify", "-q", candidate + "^{commit}"]) == 0:
+        if git_code(root, ["rev-parse", "--verify", "-q", candidate + "^{commit}"]) == 0:
             return candidate
     return None
 
 
-def current_branch(root: str) -> str | None:
-    try:
-        result = subprocess.run(["git", "-C", root, "symbolic-ref", "--short", "-q", "HEAD"],
-                                capture_output=True, text=True, timeout=GIT_SUBPROCESS_TIMEOUT, check=False)
-    except (OSError, ValueError, subprocess.SubprocessError):
+def moves_head(root: str, ref: str) -> bool:
+    """Does writing `ref` move what is checked out: HEAD itself or the branch it points at. True
+    when git cannot say."""
+    if ref == "HEAD":
+        return True
+    done = run_git(root, ["symbolic-ref", "-q", "HEAD"])
+    if done is None:
+        return True
+    return done.returncode == 0 and done.stdout.strip() == ref
+
+
+def git_toplevel(folder: str) -> str | None:
+    done = run_git(folder, ["rev-parse", "--show-toplevel"])
+    if done is None or done.returncode != 0:
         return None
-    return result.stdout.strip() if result.returncode == 0 else None
+    return os.path.normcase(canonical(done.stdout.strip()))
 
 
-def rev_target_block(snap: Snapshot, sub: str, target: str) -> list[str]:
-    """The owner-only block for a verb that moves HEAD, the branch or the index/tree to `target`:
-    none when its protected paths equal HEAD's, a block when they differ or the tree cannot be read
-    (while it is a repository). Not a repository means there is nothing to rewrite, so it passes."""
-    mapped = "@{-1}" if target == "-" else target
-    cmp = rev_moves_protected(snap.root, snap, mapped)
-    if cmp == "error" and "/" not in mapped:
-        cmp = rev_moves_protected(snap.root, snap, "origin/" + mapped)
-    if cmp == "same":
-        return []
-    if cmp == "differ":
-        return [f"git {sub} {target} moves to a revision whose frozen files differ from HEAD "
-                "(the human runs it)"]
-    if git_is_repo(snap.root):
-        return [f"git {sub} {target}: its tree cannot be compared with HEAD (the human runs it)"]
-    return []
+def elsewhere(snap: Snapshot, dirs: Sequence[str]) -> bool:
+    """The git command runs in another repository than the project's (git -C x, cd x): its
+    revisions and its tree are not this repository's."""
+    here = dirs[-1]
+    if os.path.normcase(here) == os.path.normcase(snap.root):
+        return False
+    top = git_toplevel(here)
+    return top is not None and top != git_toplevel(snap.root)
 
 
 def git_operands(rest: Sequence[Word], valued: re.Pattern[str] | None = None) -> list[Word]:
@@ -1025,16 +1188,46 @@ def git_tree_and_paths(sub: str, before: Sequence[Word], after: Sequence[Word],
     return False, positional, False, None       # one word that is not a commit: judged as a path
 
 
+def config_entry_owned(key: str, value: str | None) -> bool:
+    """A config entry that runs a command or redirects git. An editor or pager entry set to a
+    plain program name (cat, less -FRX, true) is not."""
+    if not GIT_CONFIG_OWNED.search(key):
+        return False
+    return not (GIT_CONFIG_PROGRAM.fullmatch(key) and value is not None and PLAIN_PROGRAM.fullmatch(value))
+
+
+def git_config_writes(rest: Sequence[Word], snap: Snapshot) -> tuple[list[Word], bool, list[str]]:
+    """git config: a read is free; a write of an owned key is the human's while an agent is built;
+    a write to a named file (-f/--file) is a write on that file."""
+    operands = git_operands(rest, GIT_CONFIG_VALUED)
+    flags = [w.text for w in rest if w.text.startswith("-")]
+    writing = any(GIT_CONFIG_WRITE_FLAG.fullmatch(f) for f in flags)
+    if any(GIT_CONFIG_READ_FLAG.fullmatch(f) for f in flags) or not operands \
+            or operands[0].text.lower() in GIT_CONFIG_READ_ACTIONS or (len(operands) == 1 and not writing):
+        return [], False, []
+    key = operands[1].text if operands[0].text.lower() in GIT_CONFIG_WRITE_ACTIONS and len(operands) > 1 \
+        else operands[0].text
+    if GIT_CONFIG_OWNED.search(key) and snap.any_built:
+        return [], False, [f"git config {key} sets an entry that can run a command or redirect git"]
+    files = [rest[k + 1] for k, w in enumerate(rest[:-1]) if w.text in ("-f", "--file")]
+    files += [Word(w.text.split("=", 1)[1], w.quoted) for w in rest if w.text.startswith("--file=")]
+    return files, False, []
+
+
 def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[list[Word], bool, list[str]]:
     """(write targets, destructive, outright blocks) of one git command."""
-    i, config_sets, rerouted = 0, [], False
+    i, rerouted = 0, False
+    config_sets: list[tuple[str, str | None]] = []
     while i < len(args) and args[i].text.startswith("-"):
         text = args[i].text
-        if text == "-c" and i + 1 < len(args):
-            config_sets.append(args[i + 1].text.split("=", 1)[0])
+        if text in ("-c", "--config-env") and i + 1 < len(args):
+            key, _, value = args[i + 1].text.partition("=")
+            config_sets.append((key, value if text == "-c" else None))
             i += 2
             continue
-        if text.startswith("--git-dir") or text.startswith("--work-tree"):
+        if text.startswith("--config-env="):
+            config_sets.append((text.split("=", 2)[1], None))
+        if text.startswith(("--git-dir", "--work-tree", "--exec-path=")):
             rerouted = True
         i += 2 if text in GIT_VALUE_OPTIONS else 1
     if i >= len(args):
@@ -1049,20 +1242,21 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
     def owner(text: str) -> list[str]:
         return [text] if snap.any_built else []
 
+    def foreign() -> bool:
+        return elsewhere(snap, dirs)
+
     human = owner(f"git {sub} while an agent is built (the human runs it)")
-    # A --git-dir/--work-tree, or a -c that sets a command-running or tree-redirecting config entry,
-    # points git at another tree or program: the human's while an agent is built.
+    # A --git-dir/--work-tree/--exec-path, or a -c/--config-env that sets a command-running or
+    # tree-redirecting config entry, points git at another tree or program: the human's while an
+    # agent is built.
     if rerouted and snap.any_built:
-        return [], False, [f"git {sub} with a --git-dir or --work-tree option points at another tree "
-                           "(the human runs it)"]
-    owned_c = next((key for key in config_sets if GIT_CONFIG_OWNED.search(key)), None)
+        return [], False, [f"git {sub} with a --git-dir, --work-tree or --exec-path option points at "
+                           "another tree or program (the human runs it)"]
+    owned_c = next((key for key, value in config_sets if config_entry_owned(key, value)), None)
     if owned_c is not None:
         return [], False, owner(f"git -c {owned_c} sets an entry that can run a command or redirect git")
     if sub == "config":
-        key = next((w.text for w in rest if not w.text.startswith("-")), None)
-        if key is not None and GIT_CONFIG_OWNED.search(key):
-            return [], False, owner(f"git config {key} sets an entry that can run a command or redirect git")
-        return [], False, []
+        return git_config_writes(rest, snap)
     if sub in ("rm", "mv"):
         return [w for w in rest if not w.text.startswith("-")], True, []
     if sub == "clean":                 # path-less: the current directory
@@ -1079,9 +1273,16 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
             return [], False, human
         if action not in ("push", "save"):
             return [], False, []
-        paths = list(after) or [w for w in words if w.text.lower() not in ("push", "save")]
+        # push takes a pathspec; save takes a message
+        paths = [] if action == "save" else list(after) or [w for w in words if w.text.lower() != "push"]
         if any(w.text.startswith(":") for w in paths):
             return [], False, owner("git stash with a magic pathspec can reach across the repository")
+        # a stash puts the stashed paths back to HEAD
+        if snap.any_built and not foreign() and (
+                not paths or any(target_hits(w, dirs, snap, destructive=True) for w in paths)):
+            blocked = tree_write_block(snap, "git stash")
+            if blocked:
+                return [], False, blocked
         untracked = any(f in ("--include-untracked", "--all") or re.fullmatch(r"-[a-zA-Z]*[ua][a-zA-Z]*", f)
                         for f in flags)
         return (list(after) or [DOT]) if untracked else list(after), untracked, []
@@ -1090,6 +1291,8 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
             return [DOT], True, human
         if not snap.any_built:
             return [], False, []
+        if foreign():
+            return [DOT], False, []
         non_flag = [w for w in before if not w.text.startswith("-")]
         commit = (non_flag[0].text if non_flag and resolve_commit(snap.root, non_flag[0].text) is not None
                   else "HEAD")
@@ -1097,6 +1300,12 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
     if sub == "switch":
         if not snap.any_built:
             return [], False, []
+        if foreign():
+            return [DOT], False, []
+        if any(GIT_DISCARD.fullmatch(t) for t in texts):
+            blocked = tree_write_block(snap, "git switch --force")
+            if blocked:
+                return [], False, blocked
         positional = [w for w in rest if w.text == "-" or not w.text.startswith("-")]
         create = any(re.fullmatch(r"-c|-C|--create", w.text) for w in rest)
         target = (positional[1].text if len(positional) >= 2 else None) if create \
@@ -1105,6 +1314,12 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
     if sub in ("checkout", "restore"):
         if any(re.fullmatch(r"-p|--patch|--pathspec-from-file(=.*)?", t) for t in texts):
             return [], False, owner(f"git {sub} -p/--patch or --pathspec-from-file can rewrite frozen files")
+        if snap.any_built and foreign():
+            return [DOT], False, []
+        if sub == "checkout" and snap.any_built and any(GIT_DISCARD.fullmatch(f) for f in flags):
+            blocked = tree_write_block(snap, "git checkout --force")
+            if blocked:
+                return [], False, blocked
         if sub == "checkout":           # checkout -b/-B/--orphan <name> [<start>]: the start moves the tree
             at = next((k for k, w in enumerate(rest) if w.text in ("-b", "-B", "--orphan")), None)
             if at is not None:
@@ -1120,34 +1335,54 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
         if tree and snap.any_built and reaches:
             return [], False, [f"git {sub} from another commit over protected paths while an agent is "
                                "built (the human runs it)"]
-        # from the index into the working tree: the human's only when the index differs there
-        if not tree and snap.any_built and reaches and index_moves_protected(snap.root, snap):
-            return [], False, [f"git {sub} writes the working tree from an index that differs from HEAD "
-                               "at a protected path (the human runs it)"]
+        # from the index into the working tree: the human's unless the frozen files are HEAD's
+        if not tree and snap.any_built and reaches:
+            blocked = tree_write_block(snap, f"git {sub}")
+            if blocked:
+                return [], False, blocked
         return pathspec, False, []
     if sub == "read-tree":
         if not snap.any_built:
             return [], False, []
+        if foreign():
+            return [DOT], False, []
         trees = [w for w in rest if not w.text.startswith("-")]
-        return ([], False, rev_target_block(snap, sub, trees[0].text)) if trees else ([], False, [])
+        blocked = rev_target_block(snap, sub, trees[0].text) if trees else []
+        if not blocked and any(re.fullmatch(r"-u|--reset", t) for t in texts):
+            blocked = tree_write_block(snap, "git read-tree -u")
+        return [], False, blocked
     if sub == "update-ref":
-        if not snap.any_built:
+        if not snap.any_built or foreign():
             return [], False, []
-        vals = git_operands(rest)
-        return ([], False, rev_target_block(snap, sub, vals[1].text)) if len(vals) >= 2 else ([], False, [])
+        if "--stdin" in texts:
+            return [], False, ["git update-ref --stdin moves refs named on its input (the human runs it)"]
+        vals = git_operands(rest, GIT_VALUED[sub])
+        if len(vals) >= 2 and moves_head(snap.root, vals[0].text):
+            return [], False, rev_target_block(snap, sub, vals[1].text)
+        return [], False, []
     if sub == "symbolic-ref":
-        if not snap.any_built:
+        if not snap.any_built or foreign():
             return [], False, []
-        vals = git_operands(rest)
+        vals = git_operands(rest, GIT_VALUED[sub])
         if len(vals) >= 2 and vals[0].text == "HEAD":
             return [], False, rev_target_block(snap, sub, vals[1].text)
         return [], False, []
     if sub == "branch":
-        if not snap.any_built or not any(re.fullmatch(r"-f|--force|-M|-C", w.text) for w in rest):
+        if not snap.any_built or not any(re.fullmatch(r"-f|--force|-M|-C", w.text) for w in rest) or foreign():
             return [], False, []
         vals = git_operands(rest)
-        if len(vals) >= 2 and vals[0].text == current_branch(snap.root):
+        if len(vals) >= 2 and moves_head(snap.root, "refs/heads/" + vals[0].text):
             return [], False, rev_target_block(snap, sub, vals[1].text)
+        return [], False, []
+    if sub == "fetch":
+        if any(re.fullmatch(r"-[a-zA-Z]*u[a-zA-Z]*|--update-head-ok", f) for f in flags):
+            return [], False, owner("git fetch --update-head-ok can move the checked-out branch "
+                                    "(the human runs it)")
+        return [], False, []
+    if sub == "replace":
+        if git_operands(rest) or any(re.fullmatch(r"-d|--delete|--graft|--edit|--convert-graft-file", f)
+                                     for f in flags):
+            return [], False, owner("git replace changes what a revision names (the human runs it)")
         return [], False, []
     if sub == "update-index":
         flag = next((w.text for w in rest if re.fullmatch(r"--cacheinfo|--index-info|--add", w.text)), None)
@@ -1157,16 +1392,16 @@ def git_writes(args: Sequence[Word], dirs: list[str], snap: Snapshot) -> tuple[l
             return [], False, owner("git update-index --index-info stages paths from stdin (the human runs it)")
         return git_operands(rest), True, []
     if sub == "worktree":
-        operands = git_operands(rest, re.compile(r"-b|-B"))
+        operands = git_operands(rest, GIT_VALUED[sub])
         return (operands[1:2], True, []) if operands and operands[0].text.lower() == "add" else ([], False, [])
     if sub == "submodule":
-        operands = git_operands(rest, re.compile(r"-b|--branch|--reference|--name|--depth"))
+        operands = git_operands(rest, GIT_VALUED[sub])
         return (operands[2:3], True, []) if operands and operands[0].text.lower() == "add" else ([], False, [])
     if sub == "clone":
-        operands = git_operands(rest)
+        operands = git_operands(rest, GIT_VALUED[sub])
         return (operands[1:2], True, []) if len(operands) >= 2 else ([], False, [])
     if sub == "init":
-        operands = git_operands(rest)
+        operands = git_operands(rest, GIT_VALUED[sub])
         return (operands[:1], True, []) if operands else ([], False, [])
     if sub in GIT_OWNER_VERBS:
         return [], False, owner(f"git {sub} writes the working tree from the index or another commit")
@@ -1204,6 +1439,9 @@ def target_hits(word: Word, dirs: list[str], snap: Snapshot, destructive: bool) 
         texts.append(word.text.split("=", 1)[1])        # --file=evals/x
     for folder in dirs:
         for text in texts:
+            if win_unsafe_path(text, folder, snap.root):
+                hits.append("unsafe path " + text)
+                continue
             for path in shell_paths(text, folder):
                 link = hard_link_hit(path, snap)
                 if link is not None:
@@ -1223,24 +1461,38 @@ def basename_of(text: str) -> str:
     return text.rstrip("/").rsplit("/", 1)[-1]
 
 
-def copy_landing(verb: str, args: Sequence[Word], dirs: list[str], snap: Snapshot) -> list[tuple[Word, bool]]:
-    """Where a copy or move lands besides the destination word itself: when the destination is a
-    folder, <destination>/<basename of each source>, judged at holder level for a recursive copy or
-    a glob. A recursive copy that would create the destination, or a content copy (xcopy, robocopy),
-    judges the destination itself at holder level too. Reading a source is never judged here."""
+def ps_destination(verb: str, text: str) -> tuple[bool, str | None]:
+    """(is a PowerShell -Destination flag in any abbreviation, its attached -Destination:value)."""
+    name, colon, _ = text.lower().partition(":")
+    if verb not in PS_COPIES or len(name) < 2 or not any(flag.startswith(name) for flag in DEST_FLAGS):
+        return False, None
+    return True, text[len(name) + 1:] if colon else None
+
+
+def copy_landing(verb: str, args: Sequence[Word], dirs: list[str]) -> list[tuple[Word, bool]]:
+    """Where a copy lands besides the destination word itself: when the destination is a folder,
+    <destination>/<basename of each source>, judged at holder level for a recursive copy or a
+    glob. A recursive copy that would create the destination, or a copy of a folder's contents
+    (xcopy, robocopy, cp -T, an rsync source ending in /), judges the destination itself at holder
+    level too. Reading a source is never judged here."""
     if verb not in COPY_VERBS:
         return []
     dest: Word | None = None
     flagged = False
     recursive = verb in CONTENT_COPIES
+    content = verb in CONTENT_COPIES
     operands: list[Word] = []
     i = 0
     while i < len(args):
         word = args[i]
         text = word.text
         if not word.quoted:
-            if (TARGET_DIR_FLAG.fullmatch(text) or text.lower() in ("-destination", "-dest")) \
-                    and i + 1 < len(args):
+            ps_flag, attached = ps_destination(verb, text)
+            if attached is not None:
+                dest = Word(attached, quoted=False)
+                i += 1
+                continue
+            if (TARGET_DIR_FLAG.fullmatch(text) or ps_flag) and i + 1 < len(args):
                 dest = args[i + 1]
                 flagged = flagged or TARGET_DIR_FLAG.fullmatch(text) is not None
                 i += 2
@@ -1251,6 +1503,8 @@ def copy_landing(verb: str, args: Sequence[Word], dirs: list[str], snap: Snapsho
                 continue
             if CP_RECURSIVE.fullmatch(text) or PS_RECURSE.fullmatch(text):
                 recursive = True
+            if verb == "cp" and NO_TARGET_DIR_FLAG.fullmatch(text):
+                content = True
             if (text.startswith("-") and len(text) > 1) or CMD_FLAG.fullmatch(text):
                 i += 1
                 continue
@@ -1271,7 +1525,7 @@ def copy_landing(verb: str, args: Sequence[Word], dirs: list[str], snap: Snapsho
         return []
     base = dest.text
     on_disk = any(os.path.isdir(p) for folder in dirs for p in shell_paths(base, folder))
-    content = verb in CONTENT_COPIES
+    content = content or (verb == "rsync" and any(source.text.endswith("/") for source in sources))
     extra: list[tuple[Word, bool]] = []
     if content or (recursive and not on_disk):
         extra.append((Word(base, quoted=True), True))
@@ -1299,7 +1553,9 @@ def is_extracting(verb: str, args: Sequence[Word]) -> bool:
         return any(re.fullmatch(r"[xe]", t, re.IGNORECASE) for t in texts)
     if verb == "cpio":
         return any(re.match(r"--extract$|-[a-z]*i", t, re.IGNORECASE) for t in texts)
-    return any(TAR_EXTRACT.fullmatch(t) for t in texts)       # tar, bsdtar, jar: an x mode
+    # tar, bsdtar, jar: an x in the mode, never in an operand (tar cf a.tar index creates)
+    return (bool(texts) and TAR_BUNDLE_EXTRACT.fullmatch(texts[0]) is not None) \
+        or any(TAR_OPTION_EXTRACT.fullmatch(t) for t in texts)
 
 
 def extract_dest(verb: str, args: Sequence[Word]) -> str:
@@ -1326,38 +1582,67 @@ def extract_dest(verb: str, args: Sequence[Word]) -> str:
     return "."
 
 
-def extraction_writes(verb: str, args: Sequence[Word], dirs: list[str]) -> list[tuple[Word, bool]]:
+def extraction_writes(verb: str, args: Sequence[Word]) -> list[tuple[Word, bool]]:
     if verb not in EXTRACTORS or not is_extracting(verb, args):
         return []
     return [(Word(extract_dest(verb, args), quoted=True), True)]
 
 
 def reads_stdin_script(verb: str, args: Sequence[Word]) -> bool:
-    """A shell that runs its standard input as a script: no -c/-Command and no script-file word."""
+    """A shell that runs its standard input as a script: no -c/-Command and no script-file word
+    other than a name for standard input itself."""
     if verb not in SHELLS:
         return False
     for word in args:
-        if word.text.lower() in SHELL_FLAGS or not word.text.startswith("-"):
+        if word.text.lower() in SHELL_FLAGS:
+            return False
+        if not word.text.startswith("-") and word.text not in STDIN_FILES:
             return False
     return True
 
 
-def producer_script(words: Sequence[Word]) -> tuple[str | None, bool]:
-    """(script, opaque) of a command whose output is run: an echo/printf of literal words prints
-    them, to be rescanned; any other producer, or one holding $ or a backtick, is opaque."""
+def runs_substitution(verb: str, args: Sequence[Word]) -> bool:
+    """A command that runs what a <(...), $(...) or backtick substitution prints."""
+    return verb in SOURCE_VERBS or verb in EVAL_VERBS or reads_stdin_script(verb, args)
+
+
+def producer_script(words: Sequence[Word], escaped: bool) -> tuple[str | None, bool]:
+    """(script to rescan, unreadable) of a command whose output a shell runs. An echo/printf of
+    literal words prints them; one whose text cannot be known here (a $ or a backtick, a printf
+    format, a backslash escape somewhere in the command) is unreadable. Any other producer is
+    neither: (None, False)."""
     verb, args, _ = split_command(words)
-    if verb not in ("echo", "printf"):
-        return None, True
+    if verb not in INLINE_PRODUCERS:
+        return None, False
     vals = [w for w in args if w.quoted or not ECHO_FLAG.fullmatch(w.text)]
-    if verb == "printf" and vals and "%" in vals[0].text:
-        vals = vals[1:]
-    if any("$" in w.text or "`" in w.text for w in vals):
+    if escaped or any("$" in w.text or "`" in w.text for w in vals) \
+            or (verb == "printf" and bool(vals) and "%" in vals[0].text):
         return None, True
     return " ".join(w.text for w in vals), False
 
 
-def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
+def git_env_hits(words: Sequence[Word]) -> list[str]:
+    """Blocks for words that set an environment variable redirecting git or naming a program it
+    runs (an editor or pager set to a plain program name is free)."""
+    hits: list[str] = []
+    for word in words:
+        if word.quoted:
+            continue
+        owned, program = GIT_ENV_OWNED.match(word.text), GIT_ENV_PROGRAM.fullmatch(word.text)
+        name = owned.group(1) if owned else (
+            program.group(1) if program and not PLAIN_PROGRAM.fullmatch(program.group(2)) else None)
+        if name is not None:
+            hits.append(f"{name.upper()} points git at another tree, config or program (the human runs it)")
+    return hits
+
+
+def command_hits(command: str, dirs: list[str], snap: Snapshot, escaped: bool = False,
+                 substituted: bool = False) -> list[str]:
+    """Why the command would touch a protected path. `escaped`: an enclosing command held a
+    backslash, so the text an echo/printf prints is not the text read here. `substituted`: the
+    command is eval's argument, so what its $(...) prints is run."""
     command = re.sub(r"\\\r?\n|`\r?\n", "", command)       # line continuations
+    escaped = escaped or "\\" in command
     command = command.replace("\\", "/")
     # A here-document body is data (a commit message, build.md's text), unless
     # it feeds a shell or an interpreter, where it is code.
@@ -1368,27 +1653,41 @@ def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
     for segment in segments(command):
         segment_dirs(segment, dirs)
         writes: list[tuple[Word, bool]] = [(word, False) for word in segment.targets]
+        parsed = [split_command(c) for c in segment.commands]
         herestring_shell = any(
-            split_command(c)[0] in SHELLS
-            and not any(w.text.lower() in SHELL_FLAGS for w in split_command(c)[1])
-            for c in segment.commands)
-        for idx, words in enumerate(segment.commands):
-            verb, args, fed = split_command(words)
-            # A shell that runs its standard input treats the previous pipe stage as a command.
-            if reads_stdin_script(verb, args) and idx > 0:
-                script, opaque = producer_script(segment.commands[idx - 1])
-                if script is not None:
-                    hits += command_hits(script, dirs, snap)
-                elif snap.any_built:
-                    hits.append("a shell write built from the output of an opaque command piped into "
-                                + verb)
+            verb in SHELLS and not any(w.text.lower() in SHELL_FLAGS for w in args)
+            for verb, args, _ in parsed)
+        # The echo/printf commands whose output this segment runs: the stage piped into a shell
+        # that reads its standard input, and every one inside a substitution that a shell,
+        # source/. or eval runs (also when eval's own argument is that substitution).
+        stdin_shells = [idx for idx, (verb, args, _) in enumerate(parsed)
+                        if idx > 0 and reads_stdin_script(verb, args)]
+        produced = {idx - 1 for idx in stdin_shells}
+        # An echo/printf further up the pipe reaches the shell through another command (cat, rev,
+        # base64 -d): what arrives is not the text read here.
+        if snap.any_built and any(verb in INLINE_PRODUCERS
+                                  for idx in stdin_shells for verb, _, _ in parsed[:idx - 1]):
+            hits.append("a shell runs the output of an echo/printf passed through another command")
+        if SUBSTITUTION.search(segment.raw) and (
+                substituted or any(runs_substitution(verb, args) for verb, args, _ in parsed)):
+            produced |= {idx for idx, (verb, _, _) in enumerate(parsed) if verb in INLINE_PRODUCERS}
+        for idx in sorted(produced):
+            script, unreadable = producer_script(segment.commands[idx], escaped)
+            if script is not None:
+                hits += command_hits(script, dirs, snap, escaped)
+            elif unreadable and snap.any_built:
+                hits.append("a shell runs the output of an echo/printf whose text cannot be read "
+                            "(a $, a backtick, a printf format or a backslash escape)")
+        if snap.any_built:
+            hits += git_env_hits(segment.words)
+        for words, (verb, args, fed) in zip(segment.commands, parsed, strict=True):
             if verb in SHELLS:                         # bash -c "...", pwsh -Command "..."
                 flag = next((j for j, w in enumerate(args) if w.text.lower() in SHELL_FLAGS), None)
                 if flag is not None and flag + 1 < len(args):
-                    hits += command_hits(args[flag + 1].text, dirs, snap)
+                    hits += command_hits(args[flag + 1].text, dirs, snap, escaped)
                 continue
             if verb in EVAL_VERBS:
-                hits += command_hits(" ".join(w.text for w in args), dirs, snap)
+                hits += command_hits(" ".join(w.text for w in args), dirs, snap, escaped, substituted=True)
                 continue
             if verb == "git":
                 targets, destructive, blocked = git_writes(args, dirs, snap)
@@ -1396,8 +1695,8 @@ def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
                 is_write = bool(targets)
             else:
                 targets, destructive, is_write = verb_writes(verb, args)
-                writes += copy_landing(verb, args, dirs, snap)
-                writes += extraction_writes(verb, args, dirs)
+                writes += copy_landing(verb, args, dirs)
+                writes += extraction_writes(verb, args)
             if is_write and (fed or not targets):      # targets arrive through a pipe or (...)
                 others = [w for other in segment.commands if other is not words for w in other]
                 targets = [*targets, *others, *([DOT] if destructive else [])]
@@ -1410,7 +1709,7 @@ def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
                     if snap.any_built:
                         hits.append("a shell write built from an opaque here-string")
                 elif literal:
-                    hits += command_hits(literal, dirs, snap)
+                    hits += command_hits(literal, dirs, snap, escaped)
         dotnet = DOTNET.search(segment.raw)
         if dotnet is not None:
             removing = dotnet.group(1).lower() in ("delete", "move")
