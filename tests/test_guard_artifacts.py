@@ -1,6 +1,7 @@
 """Tests for skills/build/assets/guard_artifacts.py -- the anti-gaming hook."""
 import json
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Mapping
@@ -398,6 +399,57 @@ def test_device_prefix_is_stripped(tmp_path: Path) -> None:
     assert run(tmp_path, "Write", {"file_path": "//?/" + (tmp_path / "evals/config.yaml").as_posix(), "content": "x\n"})
 
 
+# === round 3: Windows UNC and device file-tool paths are refused as unsafe
+
+@pytest.mark.parametrize(("raw", "unsafe"), [
+    ("\\\\server\\share\\evals\\config.yaml", True),    # a plain UNC share
+    ("//server/share/evals/config.yaml", True),          # a UNC share, forward slashes
+    ("\\\\.\\C:\\repo\\evals\\config.yaml", True),       # a device namespace path
+    ("\\\\.\\NUL", True),                                 # a device
+    ("\\\\?\\UNC\\server\\share\\x", True),              # a UNC path through the device namespace
+    ("\\\\wsl$\\Ubuntu\\home\\x", True),                 # a UNC share (WSL)
+    ("\\\\?\\C:\\repo\\evals\\config.yaml", False),      # a \\?\ long drive path: not UNC
+    ("C:\\repo\\evals\\config.yaml", False),
+    ("evals/config.yaml", False),
+    ("/home/x/evals/config.yaml", False),
+])
+def test_device_or_unc_classification(raw: str, unsafe: bool) -> None:
+    assert (guard.DEVICE_OR_UNC.match(raw) is not None) is unsafe
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+@pytest.mark.parametrize("raw", [
+    "\\\\server\\share\\x\\evals\\config.yaml",
+    "\\\\.\\C:\\repo\\evals\\config.yaml",
+    "\\\\?\\UNC\\server\\share\\evals\\config.yaml",
+    "\\\\wsl$\\Ubuntu\\home\\user\\src\\a.py",
+])
+def test_unc_and_device_file_tool_paths_blocked(tmp_path: Path, raw: str) -> None:
+    make_agent(tmp_path, status="draft")
+    hits = run(tmp_path, "Write", {"file_path": raw, "content": "x\n"})
+    assert hits and "unsafe path" in hits[0]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_admin_share_alias_of_a_frozen_file_blocked(tmp_path: Path) -> None:
+    # \\localhost\C$\<repo>\evals\config.yaml is the same file as <repo>\evals\config.yaml, but the
+    # in-repo check saw it as outside and let the write through. It is now refused as unsafe.
+    make_agent(tmp_path, status="draft")
+    drive = str(tmp_path)[0]
+    alias = "\\\\localhost\\" + drive + "$\\" + str(tmp_path)[3:] + "\\evals\\config.yaml"
+    hits = run(tmp_path, "Write", {"file_path": alias, "content": "x\n"})
+    assert hits and "unsafe path" in hits[0]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_long_drive_path_still_judged_not_refused(tmp_path: Path) -> None:
+    make_agent(tmp_path, status="draft")
+    # \\?\ before a drive letter is a normal long path: stripped and judged, not refused as unsafe.
+    frozen = run(tmp_path, "Write", {"file_path": "\\\\?\\" + str(tmp_path / "evals" / "config.yaml"), "content": "x\n"})
+    assert frozen and "unsafe path" not in frozen[0]
+    assert run(tmp_path, "Write", {"file_path": "\\\\?\\" + str(tmp_path / "src" / "a.py"), "content": "x\n"}) == []
+
+
 def test_file_tool_paths_are_not_variable_expanded(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     make_agent(tmp_path, status="draft")
     monkeypatch.setenv("GUARD_NESTED", "a/b")
@@ -728,6 +780,203 @@ def test_strip_device_prefix(raw: str, expected: str) -> None:
     assert guard.strip_device_prefix(raw) == expected
 
 
+# === round 3: git routes (tree-move comparison, config entry points, .git internals, pathspecs)
+
+# --- a -c or `git config` that runs a command or redirects git, and .git internals
+
+@pytest.mark.parametrize("command", [
+    "git -c alias.x='!rm -rf evals' x",
+    "git -c core.hooksPath=/tmp/h status",
+    "git -c core.worktree=/tmp status",
+    "git -c core.pager='rm -rf evals' log",
+    "git -c core.sshCommand=evil fetch",
+    "git -c filter.lfs.clean=evil add .",
+    "git -c include.path=/tmp/evil.cfg status",
+    "git config core.hooksPath /tmp/h",
+    "git config alias.co 'checkout HEAD~1 -- evals'",
+    "git config --global core.editor evil",
+    "git --git-dir=/other/.git --work-tree=. checkout HEAD",
+    "git --work-tree=/tmp/evil status",
+    "git checkout-index -a -f",
+    "git filter-branch --force HEAD",
+    "git filter-repo --path evals",
+    "git update-index --index-info",
+])
+def test_git_config_and_internals_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "git config user.name Edgar",
+    "git config --global user.email a@b.c",
+    "git -c core.autocrlf=false status",
+    "git add .",
+    "git status",
+])
+def test_everyday_git_config_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_git_config_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Bash", {"command": "git -c alias.x='!rm -rf evals' x"}) == []
+    assert run(tmp_path, "Bash", {"command": "git config core.hooksPath /tmp/h"}) == []
+
+
+@pytest.mark.parametrize(("path", "tool"), [
+    (".git/hooks/pre-commit", "Write"),
+    (".git/config", "Write"),
+    (".git/info/exclude", "Write"),
+])
+def test_git_internals_file_tool_blocked(tmp_path: Path, path: str, tool: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, tool, {"file_path": str(tmp_path / path), "content": "x\n"})
+
+
+@pytest.mark.parametrize("command", [
+    "echo x > .git/hooks/pre-commit",
+    "cp /tmp/evil .git/config",
+])
+def test_git_internals_shell_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+def test_git_internals_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Write", {"file_path": str(tmp_path / ".git/hooks/pre-commit"), "content": "x\n"}) == []
+
+
+# --- git commands that create files in a destination folder
+
+@pytest.mark.parametrize("command", [
+    "git worktree add agents/agent-a/evals/w weak",
+    "git clone https://x/y.git agents/agent-a/evals/c",
+    "git submodule add https://x/y.git agents/agent-a/evals/s",
+    "git init agents/agent-a/evals/x",
+    "git update-index --cacheinfo 100644 abc123 agents/agent-a/evals/config.yaml",
+])
+def test_git_destination_in_a_frozen_folder_blocked(tmp_path: Path, command: str) -> None:
+    make_workspace(tmp_path, {"agent-a": "draft"})
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "git worktree add /tmp/w HEAD",
+    "git worktree add agents/agent-b/evals/w HEAD",
+    "git clone https://x/y.git vendor/y",
+    "git submodule add https://x/y.git vendor/y",
+    "git init src/sub",
+    "git update-index --cacheinfo 100644 abc123 src/app.py",
+])
+def test_git_destination_in_a_free_folder_allowed(tmp_path: Path, command: str) -> None:
+    make_workspace(tmp_path, {"agent-a": "draft", "agent-b": None})
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+# --- magic pathspecs reach across the repository
+
+@pytest.mark.parametrize("command", [
+    "git clean -fdx -- ':/'",
+    "git clean -fdx ':(top)'",
+    "git stash push -u -- ':/'",
+    "git stash push -- ':(exclude)src'",
+])
+def test_magic_pathspec_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+# --- a revision that moves the protected tree is the human's (needs a real git repository)
+
+_HAS_GIT = shutil.which("git") is not None
+
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(["git", "-C", str(repo), *args], check=True, capture_output=True)
+
+
+def _real_repo(tmp_path: Path) -> Path:
+    """A built single-agent repo on main (HEAD), a `weak` branch whose evals differ, a `same`
+    branch equal to main."""
+    repo = tmp_path / "repo"
+    make_agent(repo, status="draft")
+    (repo / "src").mkdir(exist_ok=True)
+    (repo / "src/app.py").write_text("x = 1\n", encoding="utf-8")
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "t")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "baseline")
+    _git(repo, "checkout", "-q", "-b", "weak")
+    (repo / "evals/config.yaml").write_text("k: 9\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "weaker evals")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "branch", "same")
+    return repo
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", [
+    "git checkout -b x weak",
+    "git checkout -B x weak",
+    "git read-tree -m -u weak",
+    "git read-tree weak",
+    "git switch weak",
+    "git switch -c x weak",
+    "git reset --soft weak",
+    "git reset --mixed weak",
+    "git update-ref refs/heads/main weak",
+    "git symbolic-ref HEAD refs/heads/weak",
+    "git branch -f main weak",
+    "git checkout weak",
+])
+def test_revision_moving_protected_tree_blocked(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    assert run(repo, "Bash", {"command": command})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", [
+    "git checkout -b x same",
+    "git read-tree HEAD",
+    "git read-tree same",
+    "git switch main",
+    "git switch -c x same",
+    "git reset --soft same",
+    "git reset HEAD",
+    "git update-ref refs/heads/main same",
+    "git symbolic-ref HEAD refs/heads/same",
+    "git checkout main",
+    "git checkout same",
+    "git checkout -b feature",
+    "git restore src/app.py",
+    "git switch -c feature",
+])
+def test_revision_with_equal_protected_tree_allowed(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    assert run(repo, "Bash", {"command": command}) == []
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_revision_moves_free_before_build(tmp_path: Path) -> None:
+    repo = tmp_path / "repo"
+    make_agent(repo)                      # build not started
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "t")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "baseline")
+    _git(repo, "checkout", "-q", "-b", "weak")
+    (repo / "evals/config.yaml").write_text("k: 9\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "weaker")
+    _git(repo, "checkout", "-q", "main")
+    assert run(repo, "Bash", {"command": "git checkout -b x weak"}) == []
+    assert run(repo, "Bash", {"command": "git reset --soft weak"}) == []
+
+
 # === round 2: second security re-review
 
 # --- C1: path-less destructive git verbs act on the current directory
@@ -1021,3 +1270,495 @@ def test_repo_settings_env_rule_unchanged(tmp_path: Path) -> None:
     make_agent(tmp_path)
     path = _settings(tmp_path, "settings.json", {"env": {"FOO": "1"}})
     assert run(tmp_path, "Write", {"file_path": str(path), "content": json.dumps({"env": {"FOO": "1", "BAR": "2"}})})
+
+
+# === round 3: shell write routes (copies and moves into holders, extraction, strings to a shell)
+
+# --- a copy or move whose destination is a folder also lands <dest>/<basename of each source>
+
+@pytest.mark.parametrize("command", [
+    "cp /tmp/spec.md docs/agent/",
+    "cp -r /tmp/hooks .claude/",
+    "cp /tmp/design.md docs/agent",
+    "cp -t docs/agent /tmp/design.md",
+    "cp --target-directory=docs/agent /tmp/spec.md",
+    "copy /tmp/spec.md docs/agent/",
+    "Copy-Item /tmp/spec.md -Destination docs/agent/",
+    "cp -r /tmp/evals evals/..",
+    "install -m 644 /tmp/spec.md docs/agent/",
+])
+def test_copy_into_a_holder_folder_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    (tmp_path / "docs/agent/spec.md").write_text(SPEC, encoding="utf-8")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+def test_recursive_copy_recreating_hooks_blocked(tmp_path: Path) -> None:
+    make_agent(tmp_path, status="draft")
+    (tmp_path / ".claude/hooks").mkdir(parents=True, exist_ok=True)
+    assert run(tmp_path, "Bash", {"command": "cp -r /tmp/hooks .claude/"})
+
+
+@pytest.mark.parametrize("command", [
+    "cp evals/config.yaml /tmp/",
+    "cp -r evals /tmp/evals-copy",
+    "cp README.md docs/",
+    "cp /tmp/notes.md docs/agent/notes.md",
+    "cp /tmp/a.py src/",
+    "install -m 755 bin/tool /usr/local/bin/",
+    "cp /tmp/x.md free/",
+])
+def test_copy_not_touching_frozen_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    (tmp_path / "free").mkdir()
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_copy_into_holder_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    # docs/agent/spec.md is not frozen until the build starts; .claude/hooks always is.
+    assert run(tmp_path, "Bash", {"command": "cp /tmp/spec.md docs/agent/"}) == []
+    assert run(tmp_path, "Bash", {"command": "cp -r /tmp/hooks .claude/"})
+
+
+# --- extraction fills a destination folder
+
+@pytest.mark.parametrize("command", [
+    "tar xf a.tar -C evals",
+    "tar -xzf a.tgz --directory evals",
+    "tar -xzf a.tgz -Cevals",
+    "bsdtar xf a.tar -C docs/agent",
+    "unzip a.zip -d evals",
+    "unzip a.zip -devals",
+    "7z x a.7z -oevals",
+    "jar xf a.jar -C evals",
+    "cpio -idv -C evals",
+    "Expand-Archive a.zip -DestinationPath evals",
+    "cd evals && tar xf a.tar",
+])
+def test_extraction_into_a_frozen_folder_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "tar xf a.tar -C /tmp/out",
+    "tar xf a.tar -C src",
+    "unzip a.zip -d build",
+    "tar tzf a.tgz",
+    "unzip -l a.zip",
+])
+def test_extraction_into_a_free_folder_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    (tmp_path / "build").mkdir()
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_extraction_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Bash", {"command": "tar xf a.tar -C evals"}) == []
+
+
+# --- a string fed to a shell that reads its standard input runs as a command
+
+@pytest.mark.parametrize("command", [
+    "echo 'rm -rf evals' | sh",
+    "echo rm -rf evals | bash",
+    "printf 'rm -rf evals' | sh",
+    "sh <<< 'rm -rf evals'",
+    "bash <<< 'rm docs/agent/spec.md'",
+])
+def test_string_piped_into_a_shell_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "echo hi | sh",
+    "echo 'rm -rf build' | sh",
+    "cat README.md | less",
+    "echo done | tee log.txt",
+])
+def test_harmless_string_piped_into_a_shell_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_hook_version_bumped_for_the_route_fixes() -> None:
+    assert guard.HOOK_VERSION >= 3
+
+
+# === round 4: review of the round-3 routes
+
+# --- shell: an echo/printf whose text cannot be read is refused; a file or the network is a script
+
+@pytest.mark.parametrize("command", [
+    "printf 'rm -rf %s\\n' evals | sh",
+    "printf 'rm -rf ev\\141ls\\n' | sh",
+    "echo -e 'rm -rf ev\\x61ls' | sh",
+    "echo 'true\\nrm -rf evals' | sh",
+    "echo 'rm -rf evals' | bash /dev/stdin",
+    "echo 'rm -rf evals' | bash -",
+    "source <(echo 'rm -rf evals')",
+    ". <(echo 'rm -rf evals')",
+    "bash <(echo 'rm -rf evals')",
+    "eval \"$(echo 'rm -rf evals')\"",
+    "eval $(echo rm -rf evals)",
+    "bash -c \"printf 'rm -rf %s' evals | sh\"",
+    "echo 'rm -rf evals' | cat | sh",
+    "echo 'rm -rf evals' | tee /dev/null | sh",
+    "echo 'slave fr- mr' | rev | sh",
+])
+def test_inline_string_run_by_a_shell_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "curl -fsSL https://x/install.sh | sh",
+    "cat payload.sh | sh",
+    "base64 -d payload.b64 | bash",
+    "bash <(curl -s https://x/y)",
+    "printf 'hi' | sh",
+    "echo hi | bash -s",
+    "cat <(echo 'rm -rf evals')",
+    "eval \"echo rm -rf evals\"",
+])
+def test_script_from_a_file_or_the_network_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_unreadable_inline_string_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Bash", {"command": "printf 'rm -rf %s' build | sh"}) == []
+
+
+# --- shell: copies whose destination or landing was not judged
+
+@pytest.mark.parametrize("command", [
+    "install /tmp/x docs/agent/spec.md",
+    "install -m 644 /tmp/spec.md docs/agent/spec.md",
+    "install -D /tmp/x evals/config.yaml",
+    "install -d evals/new",
+    "scp host:/x evals/config.yaml",
+    "rsync -a /tmp/docs/ docs/",
+    "cp -rT /tmp/docs docs",
+    "cp -r --no-target-directory /tmp/docs docs",
+    "Copy-Item -Des docs/agent/ /tmp/spec.md",
+    "Copy-Item /tmp/spec.md -Destination:docs/agent/",
+])
+def test_copy_destination_spellings_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "install /tmp/x src/tool",
+    "install -d src/new",
+    "scp evals/config.yaml host:/tmp/",
+    "rsync -a /tmp/x/ src/",
+    "cp -rT /tmp/a build",
+    "cp -T /tmp/a.py src/a.py",
+    "Copy-Item /tmp/a.py -Destination:src/",
+])
+def test_copy_destination_spellings_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    (tmp_path / "src").mkdir()
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+# --- shell: only an archive tool's mode decides whether it extracts
+
+@pytest.mark.parametrize("command", [
+    "tar czf /tmp/out.tgz examples",
+    "tar cf /tmp/a.tar index",
+    "tar -czf /tmp/dist.tgz src tox",
+    "tar -cf /tmp/a.tar -X excludes src",
+    "jar cf /tmp/app.jar box",
+])
+def test_archive_creation_is_not_an_extraction(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+@pytest.mark.parametrize("command", [
+    "tar -x -f a.tar -C evals",
+    "tar --extract --file a.tar -C evals",
+    "tar xvf a.tar",
+    "jar -xf a.jar",
+])
+def test_archive_extraction_modes_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+# --- git: options that take a value, config spellings, environment variables
+
+@pytest.mark.parametrize("command", [
+    "git clone --depth 1 https://x/y.git evals/c",
+    "git clone -b main https://x/y.git evals/c",
+    "git init -b main evals/x",
+    "git update-ref --stdin",
+    "git replace HEAD weak",
+    "git fetch -u . weak:main",
+    "git config set alias.x '!rm -rf evals'",
+    "git config -f .git/config alias.x '!rm -rf evals'",
+    "git config --file other.cfg alias.x y",
+    "git config -f .claude/settings.json a.b c",
+    "git --config-env=alias.x=EVIL x",
+    "git --config-env alias.x=EVIL x",
+    "git -c pager.status='rm -rf evals' status",
+    "git -c credential.helper='!rm -rf evals' fetch",
+    "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=alias.x GIT_CONFIG_VALUE_0='!rm -rf evals' git x",
+    "GIT_DIR=/tmp/o/.git GIT_WORK_TREE=. git checkout -f",
+    "export GIT_DIR=/tmp/o/.git",
+    "env GIT_WORK_TREE=/tmp git status",
+    "GIT_SSH_COMMAND='sh -c evil' git fetch",
+    "GIT_EDITOR='rm -rf evals' git commit",
+    "GIT_EDITOR=sh git commit --amend",
+    "git -c core.editor=bash commit --amend",
+    "git bisect start HEAD weak",
+    "git sparse-checkout set src",
+    "echo 'ref: refs/heads/weak' > .git/HEAD",
+    "cp .git/refs/heads/weak .git/refs/heads/main",
+    "echo x > .git/packed-refs",
+])
+def test_git_other_spellings_blocked(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command})
+
+
+@pytest.mark.parametrize("command", [
+    "git config --get core.editor",
+    "git config core.hooksPath",
+    "git config --get-regexp alias",
+    "git config get alias.x",
+    "git config --list",
+    "git -c core.pager=cat log",
+    "GIT_PAGER=cat git log",
+    "GIT_EDITOR=true git commit --amend",
+    "git -c core.editor='code --wait' commit",
+    "git -c core.pager='less -FRX' log",
+    "GIT_AUTHOR_NAME=t git commit -m x",
+    "GIT_TERMINAL_PROMPT=0 git fetch",
+    "git stash save ':tada: wip'",
+    "git commit -m 'GIT_DIR=/tmp explained'",
+    "git clone --depth 1 https://x/y.git vendor/y",
+])
+def test_git_reads_and_harmless_settings_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+def test_git_environment_free_before_build(tmp_path: Path) -> None:
+    make_agent(tmp_path)
+    assert run(tmp_path, "Bash", {"command": "GIT_DIR=/tmp/o/.git git status"}) == []
+
+
+# --- git: the step that writes the tree is judged, whatever moved HEAD or the index
+
+_TREE_WRITES = [
+    "git checkout -f",
+    "git checkout --force",
+    "git stash",
+    "git stash push",
+    "git restore .",
+    "git checkout -- .",
+    "git checkout .",
+    "git switch -f main",
+    "git switch --discard-changes main",
+    "git read-tree -u --reset HEAD",
+]
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", _TREE_WRITES)
+def test_tree_write_blocked_after_head_moved(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    _git(repo, "update-ref", "-m", "x", "HEAD", "weak")    # HEAD moved by a route the hook did not see
+    assert run(repo, "Bash", {"command": command})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", ["git restore .", "git checkout -- .", "git checkout -f", "git stash"])
+def test_tree_write_blocked_after_head_and_index_moved(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    _git(repo, "update-ref", "-m", "x", "HEAD", "weak")
+    _git(repo, "reset", "-q")                               # the index follows HEAD; the files do not
+    assert run(repo, "Bash", {"command": command})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", _TREE_WRITES)
+def test_tree_write_allowed_when_frozen_files_are_at_head(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    # the build's own drift: build.md edited and staged, a source file changed
+    (repo / "docs/agent/build.md").write_text("---\nstatus: draft\n---\n# build\n- step 1\n", encoding="utf-8")
+    _git(repo, "add", "docs/agent/build.md")
+    (repo / "src/app.py").write_text("x = 2\n", encoding="utf-8")
+    assert run(repo, "Bash", {"command": command}) == []
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", [
+    "git update-ref -m x HEAD weak",
+    "git symbolic-ref -m x HEAD refs/heads/weak",
+    "git update-ref -m x refs/heads/main weak",
+])
+def test_ref_move_with_a_reason_blocked(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    assert run(repo, "Bash", {"command": command})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_ref_that_is_not_checked_out_allowed(tmp_path: Path) -> None:
+    repo = _real_repo(tmp_path)
+    assert run(repo, "Bash", {"command": "git update-ref refs/heads/backup weak"}) == []
+
+
+# --- git: what a draft build changes is not a frozen difference between branches
+
+def _commit_build_progress(repo: Path) -> None:
+    """On a new branch `feat`: build.md advanced and the spec's Test column filled, as a build does."""
+    _git(repo, "checkout", "-q", "-b", "feat")
+    (repo / "docs/agent/build.md").write_text("---\nstatus: draft\n---\n# build\n- step 1\n", encoding="utf-8")
+    spec = repo / "docs/agent/spec.md"
+    spec.write_text(spec.read_text(encoding="utf-8").replace(TEST_FILL["old_string"], TEST_FILL["new_string"]),
+                    encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "build progress")
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", ["git switch main", "git checkout main", "git switch -"])
+def test_switch_between_branches_of_a_draft_build_allowed(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    _commit_build_progress(repo)
+    assert run(repo, "Bash", {"command": command}) == []
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_switch_to_a_branch_with_another_spec_blocked(tmp_path: Path) -> None:
+    repo = _real_repo(tmp_path)
+    _git(repo, "checkout", "-q", "-b", "respec")
+    spec = repo / "docs/agent/spec.md"
+    spec.write_text(spec.read_text(encoding="utf-8").replace("| answer |", "| reply |"), encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "another capability")
+    _git(repo, "checkout", "-q", "main")
+    assert run(repo, "Bash", {"command": "git switch respec"})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_switch_to_another_build_record_blocked_once_approved(tmp_path: Path) -> None:
+    repo = _real_repo(tmp_path)
+    _git(repo, "branch", "reopened")
+    (repo / "docs/agent/build.md").write_text("---\nstatus: approved\n---\n# build\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "approve")
+    assert run(repo, "Bash", {"command": "git switch reopened"})
+
+
+# --- git: a command aimed at another repository is not compared with this one
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", [
+    "git -C ../other switch feature",
+    "cd ../other && git reset --soft HEAD",
+    "git -C ../other checkout -f",
+])
+def test_git_in_another_repository_allowed(tmp_path: Path, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    other = tmp_path / "other"
+    other.mkdir()
+    _git(other, "init", "-q", "-b", "main")
+    assert run(repo, "Bash", {"command": command}) == []
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+def test_git_in_a_repository_nested_in_a_frozen_folder_blocked(tmp_path: Path) -> None:
+    repo = _real_repo(tmp_path)
+    nested = repo / "evals/sub"
+    nested.mkdir()
+    _git(nested, "init", "-q", "-b", "main")
+    assert run(repo, "Bash", {"command": "git -C evals/sub switch feature"})
+
+
+# --- git: a comparison that cannot run is a block, not a pass
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", ["git switch weak", "git reset --soft weak", "git checkout -f", "git stash"])
+def test_git_that_cannot_run_blocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, command: str) -> None:
+    repo = _real_repo(tmp_path)
+    monkeypatch.setattr(guard, "run_git", lambda root, args: None)
+    assert run(repo, "Bash", {"command": command})
+
+
+@pytest.mark.skipif(not _HAS_GIT, reason="needs git")
+@pytest.mark.parametrize("command", ["git switch weak", "git checkout -f", "git stash"])
+def test_git_outside_a_repository_allowed(tmp_path: Path, command: str) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": command}) == []
+
+
+@pytest.mark.parametrize(("path", "blocked"), [
+    (".git/HEAD", True),
+    (".git/packed-refs", True),
+    (".git/refs/heads/main", True),
+    (".git/COMMIT_EDITMSG", False),
+    (".git/description", False),
+])
+def test_git_ref_files_frozen_while_built(tmp_path: Path, path: str, blocked: bool) -> None:
+    make_agent(tmp_path, status="draft")
+    hits = run(tmp_path, "Write", {"file_path": str(tmp_path / path), "content": "x\n"})
+    assert bool(hits) is blocked
+
+
+# --- Windows: a UNC alias through the shell, and a repository that lives on a UNC path
+
+def _unc(path: Path) -> str:
+    """The \\\\localhost\\<drive>$ administrative-share spelling of a local path."""
+    real = os.path.realpath(path)
+    return "\\\\localhost\\" + real[0] + "$\\" + real[3:]
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+@pytest.mark.parametrize("template", [
+    'echo x > "{posix}"',
+    "cp /tmp/evil '{posix}'",
+    "Set-Content -Path '{win}' -Value x",
+])
+def test_unc_alias_of_a_frozen_file_blocked_in_the_shell(tmp_path: Path, template: str) -> None:
+    make_agent(tmp_path, status="draft")
+    win = _unc(tmp_path / "evals" / "config.yaml")
+    hits = run(tmp_path, "Bash", {"command": template.format(win=win, posix=win.replace("\\", "/"))})
+    assert hits and any("unsafe path" in hit for hit in hits)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_unc_source_that_is_only_read_allowed(tmp_path: Path) -> None:
+    make_agent(tmp_path, status="draft")
+    assert run(tmp_path, "Bash", {"command": "cp '//server/share/data.zip' src/"}) == []
+
+
+def _unc_root(tmp_path: Path) -> Path:
+    make_agent(tmp_path, status="draft")
+    (tmp_path / "src").mkdir()
+    root = Path(_unc(tmp_path))
+    if not root.is_dir():
+        pytest.skip("the administrative share is not reachable")
+    return root
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_repository_on_a_unc_path_is_judged_not_refused(tmp_path: Path) -> None:
+    root = _unc_root(tmp_path)
+    assert run(root, "Write", {"file_path": str(root / "src" / "a.py"), "content": "x\n"}) == []
+    frozen = run(root, "Write", {"file_path": str(root / "evals" / "config.yaml"), "content": "x\n"})
+    assert frozen == ["evals/config.yaml"]
+    assert run(root, "Bash", {"command": "cp /tmp/x '" + (root / "src" / "b.py").as_posix() + "'"}) == []
+
+
+@pytest.mark.skipif(os.name != "nt", reason="UNC and device paths are a Windows concern")
+def test_another_unc_path_refused_from_a_unc_repository(tmp_path: Path) -> None:
+    root = _unc_root(tmp_path)
+    hits = run(root, "Write", {"file_path": "\\\\server\\share\\x.md", "content": "x\n"})
+    assert hits and "unsafe path" in hits[0]

@@ -138,9 +138,17 @@ Always:
   blocked.
 - **Shell writes.** The hook judges only write targets, parsed per command:
   - the verb is the word's basename, so `/bin/rm`, `rm.exe` and `"rm"` count;
-  - the target is the destination of `cp`, `Copy-Item` or `robocopy`, the
-    `-Path` of `Set-Content`, a redirect's target, or every argument of `rm`,
-    `mv`, `touch` and `tee`.
+  - the target is the destination of `cp`, `install`, `scp`, `Copy-Item` or
+    `robocopy`, the `-Path` of `Set-Content`, a redirect's target, or every
+    argument of `rm`, `mv`, `touch` and `tee`;
+  - a copy into a folder also lands `<folder>/<name of each source>`
+    (`cp x docs/agent/` writes `docs/agent/x`). A recursive copy, a glob, or
+    a copy of a folder's contents (`cp -rT`, `rsync src/ dest/`, `xcopy`,
+    `robocopy`) is judged like a destructive verb on the destination;
+  - an extraction (`tar x`, `unzip`, `7z x`, `jar x`, `cpio -i`,
+    `Expand-Archive`) is judged like a destructive verb on the folder it
+    fills: its `-C`/`-d`/`-o`/`-DestinationPath`, else the current directory.
+    Creating an archive is not a write on its sources.
 
   Reading a frozen file is not a write. Blocked:
   - a write whose target is a frozen path;
@@ -150,16 +158,84 @@ Always:
     `docs/agent` or `evals`;
   - a glob that reaches one by depth: a protected file at its own depth, a
     protected folder at its depth or deeper, a holder at its depth or above.
+- **Text a shell runs.** `echo '...' | sh`, `sh <<< '...'`,
+  `source <(echo ...)` and `eval "$(echo ...)"` run what the echo/printf
+  prints, so its literal words are read as a command. While any agent is
+  built, an echo/printf whose text cannot be read is blocked: a `$`, a
+  backtick, a `printf` format, a backslash escape anywhere in the command, or
+  another command between it and the shell (`echo ... | rev | sh`).
 - **Git (the human runs these while any agent is built).** Blocked outright:
-  - `git apply`, `am`, `revert`, `cherry-pick`, `merge`, `pull`, `rebase`;
-  - `git reset --hard`, `git stash pop`/`apply`/`branch`;
+  - `git apply`, `am`, `revert`, `cherry-pick`, `merge`, `pull`, `rebase`,
+    `bisect`, `sparse-checkout`, `checkout-index`, `filter-branch`,
+    `filter-repo`, `replace`;
+  - `git reset --hard`/`--keep`/`--merge`, `git stash pop`/`apply`/`branch`;
   - `git checkout`/`restore` from another commit (`<tree-ish> --`,
-    `--source`/`-s`) over `.`, a `:` magic pathspec, a holder or a protected path.
+    `--source`/`-s`) over `.`, a `:` magic pathspec, a holder or a protected
+    path; `checkout`/`restore` with `-p` or `--pathspec-from-file`;
+  - `git update-ref --stdin`, `git update-index --index-info`,
+    `git fetch -u`/`--update-head-ok`;
+  - a `:` magic pathspec in `git clean` or `git stash push`.
+
+  Compared with HEAD instead of listed (the hook runs `git diff`):
+  - **A move to another revision** passes when that revision's hook folder,
+    settings, evals and design.md equal HEAD's: `git checkout <rev>`,
+    `checkout -b x <start>`, `switch`, `reset --soft`/`--mixed <rev>`,
+    `read-tree`, `symbolic-ref HEAD`, and `update-ref` or `branch -f` on the
+    checked-out branch. While the build is a draft, build.md may differ and
+    spec.md may differ in its Test column; once approved both must be equal.
+    Any other difference is the human's. That includes switching to a branch
+    from before the hook was installed.
+  - **A rewrite of the working tree from HEAD or the index** passes when the
+    frozen files on disk and in the index are HEAD's: `git checkout -f`,
+    `switch -f`/`--discard-changes`, `stash`, `read-tree -u`, and `checkout`
+    or `restore` of `.`, a holder or a protected path. Whatever moved HEAD,
+    this is the step where a frozen file would change.
+  - A comparison that cannot run (git missing, a 3-second timeout) blocks.
+    Outside a git repository nothing is compared. A command aimed at another
+    repository (`git -C ../other`, `cd ../other && git ...`) is judged only
+    by where that repository sits.
+
+  Config and environment:
+  - `-c`, `--config-env` and `git config` writes are blocked for entries that
+    run a command or redirect git: `alias.*`, `core.hooksPath`,
+    `core.worktree`, `core.fsmonitor`, `core.sshCommand`, `core.askpass`,
+    `core.gitProxy`, `filter.*`, `diff.external`, `diff.*.textconv`,
+    `merge.*.driver`, `include.path`, `includeIf.*`, `credential.helper`,
+    `gpg.program`, `difftool.*.cmd`, `mergetool.*.cmd`, `init.templateDir`.
+    Reading one (`git config --get`, `git config <key>`) is free;
+  - an editor or pager given with `-c` or a variable (`core.editor`,
+    `core.pager`, `pager.*`, `sequence.editor`, `GIT_EDITOR`,
+    `GIT_SEQUENCE_EDITOR`, `GIT_PAGER`) is free when its value is a known
+    viewer or editor with dash options (`cat`, `less -FRX`, `true`, `vim`,
+    `code --wait`), blocked otherwise. `git config` never writes one;
+  - `--git-dir`, `--work-tree`, `--exec-path=`, and the variables that do the
+    same in any unquoted `NAME=value` word: `GIT_DIR`, `GIT_WORK_TREE`,
+    `GIT_INDEX_FILE`, `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`,
+    `GIT_CONFIG_*`, `GIT_EXTERNAL_DIFF`, `GIT_SSH`, `GIT_SSH_COMMAND`,
+    `GIT_ASKPASS`, `GIT_EXEC_PATH`, `GIT_TEMPLATE_DIR`;
+  - `git config -f <file>` is a write on that file.
+
+  `.git` internals: writes to `.git/hooks/`, `.git/config`, `.git/info/`,
+  `.git/HEAD`, `.git/packed-refs` and `.git/refs/` are blocked, in file tools
+  and in the shell.
+
+  Destinations: `git clone`, `init`, `worktree add`, `submodule add` and
+  `update-index --add`/`--cacheinfo` are judged by the folder or path they
+  write.
 
   Path-less `git clean`, `git stash -u`/`-a` and `git reset --hard` act on the
   current directory, so they are blocked at the root and in an agent folder.
-  Still allowed: `git checkout <branch>`, `git checkout -b`, `git switch`,
-  `git restore src/app.py`, `git checkout -- src/x`, `git clean -fd src`.
+  Still allowed: `git checkout -b`, `git switch -c`, `git checkout <branch>`
+  and `git switch <branch>` between branches whose frozen files are equal,
+  `git restore src/app.py`, `git checkout -- src/x`, `git clean -fd src`,
+  `git config user.name x`, `git -c core.pager=cat log`.
+- **Windows paths.** A write path that names a UNC share (`\\server\share`,
+  `\\wsl$\...`) or a device (`\\.\...`, `\\?\UNC\...`) is refused as
+  unsafe, in file tools and as a shell write target: it can be another name
+  for a frozen file, and the hook cannot compare it with a drive path. A
+  repository that itself lives on a UNC path is judged as usual, and any
+  other UNC spelling is refused from it. A `\\?\C:\` long path is judged
+  normally.
 - **Here-documents.** Their bodies are data, except when they feed a shell or
   interpreter.
 - **Unreadable calls** are blocked.
@@ -183,9 +259,18 @@ Still blocked:
   destructive command fed by xargs is judged against the current directory
   chain), and give `git clean` a path (`git clean -fd src`).
 - the git verbs above while built.
+- an extraction with no destination, from the root or after a `cd` out of
+  it: `tar xf a.tar`, `cd src && tar xf ../a.tar` (the whole directory chain
+  is judged). Name the folder: `tar xf a.tar -C src`.
 
 What it cannot see:
 - a script that writes (`python fix.py`, `python -c`);
+- a script a shell reads from a file or the network (`curl ... | sh`,
+  `cat x.sh | sh`, `sh < x.sh`, `bash <(curl ...)`): the same as
+  `sh script.sh`;
+- `EDITOR`, `VISUAL` and `PAGER` (only the `GIT_` forms are judged), and git
+  config that was already in place before the build;
+- on a repository hosted on a UNC path, a drive-letter spelling of its files;
 - a path assembled in a variable, backslash escapes inside a name, brace
   expansion, encoded commands;
 - a tool that rewrites files in place (`ruff format .`, `prettier --write .`

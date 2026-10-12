@@ -199,7 +199,7 @@ Semver, driven by `.claude-plugin/plugin.json`:
 
 See `CHANGELOG.md` for release history.
 
-**Status:** v0.13.0 — all 7 phases + 3 transversals + refresh. 11 skills. Built
+**Status:** v0.13.1 — all 7 phases + 3 transversals + refresh. 11 skills. Built
 skill-by-skill, each dogfooded on a real agent.
 
 ## License
