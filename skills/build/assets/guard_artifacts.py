@@ -53,7 +53,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import cast
 
-HOOK_VERSION = 2
+HOOK_VERSION = 3
 HOOK_FILE = "guard_artifacts.py"
 GUARD_MATCHER = "Edit|Write|MultiEdit|NotebookEdit|Bash|PowerShell"
 GUARD_COMMAND = 'python -I -S "$CLAUDE_PROJECT_DIR/.claude/hooks/guard_artifacts.py"'
@@ -125,6 +125,26 @@ PS_SWITCHES = frozenset({"-force", "-append", "-noclobber", "-nonewline", "-pass
                          "-confirm", "-recurse", "-container", "-asbytestream"})
 PATH_FLAGS = ("-path", "-literalpath", "-filepath", "-pspath", "-lp")
 DEST_FLAGS = ("-destination",)
+# Copy/move verbs that land a source in a destination: the destination is judged, and when it is a
+# folder, <destination>/<basename of each source> too (a recursive copy or a move at holder level).
+COPY_VERBS = frozenset({"cp", "copy", "copy-item", "cpi", "install", "xcopy", "robocopy", "rsync",
+                        "scp"})
+# Copies that drop a source folder's contents into the destination, not the folder itself.
+CONTENT_COPIES = frozenset({"xcopy", "robocopy"})
+CP_RECURSIVE = re.compile(r"-[a-z]*[rRa][a-z]*|--recursive|--archive", re.IGNORECASE)
+PS_RECURSE = re.compile(r"-r(?:e(?:c(?:u(?:r(?:s(?:e)?)?)?)?)?)?$", re.IGNORECASE)
+TARGET_DIR_FLAG = re.compile(r"-t|--target-directory", re.IGNORECASE)
+# Archive tools that unpack into a destination folder (judged at holder level), by each one's mode.
+EXTRACTORS = frozenset({"tar", "bsdtar", "jar", "unzip", "7z", "7za", "7zr", "cpio",
+                        "expand-archive"})
+TAR_EXTRACT = re.compile(r"--extract$|-?[a-z]*x[a-z]*$", re.IGNORECASE)
+# A shell word that, run as the destination, means "the folder in effect": a trailing slash, . or ..
+FOLDER_WORD = re.compile(r".*/$|(?:^|/)\.\.?$")
+HERESTRING = re.compile(r"<<<\s*(?:\"([^\"]*)\"|'([^']*)'|([^\s\"'|&;<>()]+))")
+# Commands that run the text they are given (on a pipe, a <<< here-string, a <(...) or $(...)): a
+# shell, source/. and the eval verbs. The output of an echo/printf of literal words is rescanned.
+SCRIPT_CONSUMERS = frozenset({*SHELLS, "source", ".", *EVAL_VERBS})
+ECHO_FLAG = re.compile(r"-[neE]+")
 # git: global options that take a value; verbs that rewrite the tree (the human's once built).
 GIT_VALUE_OPTIONS = frozenset({"-C", "-c", "--git-dir", "--work-tree", "--namespace"})
 GIT_TREE_VERBS = frozenset({"apply", "am", "revert", "cherry-pick", "merge", "pull", "rebase"})
@@ -965,6 +985,144 @@ def target_hits(word: Word, dirs: list[str], snap: Snapshot, destructive: bool) 
     return hits
 
 
+def basename_of(text: str) -> str:
+    """The last path component of a shell word (slashes already '/'); '' when empty."""
+    return text.rstrip("/").rsplit("/", 1)[-1]
+
+
+def copy_landing(verb: str, args: Sequence[Word], dirs: list[str], snap: Snapshot) -> list[tuple[Word, bool]]:
+    """Where a copy or move lands besides the destination word itself: when the destination is a
+    folder, <destination>/<basename of each source>, judged at holder level for a recursive copy or
+    a glob. A recursive copy that would create the destination, or a content copy (xcopy, robocopy),
+    judges the destination itself at holder level too. Reading a source is never judged here."""
+    if verb not in COPY_VERBS:
+        return []
+    dest: Word | None = None
+    flagged = False
+    recursive = verb in CONTENT_COPIES
+    operands: list[Word] = []
+    i = 0
+    while i < len(args):
+        word = args[i]
+        text = word.text
+        if not word.quoted:
+            if (TARGET_DIR_FLAG.fullmatch(text) or text.lower() in ("-destination", "-dest")) \
+                    and i + 1 < len(args):
+                dest = args[i + 1]
+                flagged = flagged or TARGET_DIR_FLAG.fullmatch(text) is not None
+                i += 2
+                continue
+            if text.startswith("--target-directory="):
+                dest, flagged = Word(text.split("=", 1)[1], word.quoted), True
+                i += 1
+                continue
+            if CP_RECURSIVE.fullmatch(text) or PS_RECURSE.fullmatch(text):
+                recursive = True
+            if (text.startswith("-") and len(text) > 1) or CMD_FLAG.fullmatch(text):
+                i += 1
+                continue
+        operands.append(word)
+        i += 1
+    if dest is None:
+        if verb in ("robocopy", "xcopy"):
+            dest, sources = (operands[1], operands[:1]) if len(operands) >= 2 else (None, [])
+        elif len(operands) == 1 and verb in ("copy-item", "cpi"):
+            dest, flagged, sources = DOT, True, operands
+        elif len(operands) >= 2:
+            dest, sources = operands[-1], operands[:-1]
+        else:
+            dest, sources = None, []
+    else:
+        sources = operands
+    if dest is None:
+        return []
+    base = dest.text
+    on_disk = any(os.path.isdir(p) for folder in dirs for p in shell_paths(base, folder))
+    content = verb in CONTENT_COPIES
+    extra: list[tuple[Word, bool]] = []
+    if content or (recursive and not on_disk):
+        extra.append((Word(base, quoted=True), True))
+    folder_dest = flagged or FOLDER_WORD.match(base) is not None or on_disk or len(sources) > 1
+    if folder_dest:
+        stem = base.rstrip("/") or base
+        for source in sources:
+            name = basename_of(source.text)
+            if not name:
+                continue
+            if GLOB.search(name):
+                extra.append((Word(stem + "/*", quoted=True), True))
+            else:
+                extra.append((Word(stem + "/" + name, quoted=True), recursive))
+    return extra
+
+
+def is_extracting(verb: str, args: Sequence[Word]) -> bool:
+    texts = [a.text for a in args]
+    if verb == "expand-archive":
+        return True
+    if verb == "unzip":
+        return not any(re.match(r"-[ltvz]", t, re.IGNORECASE) for t in texts)
+    if verb in ("7z", "7za", "7zr"):
+        return any(re.fullmatch(r"[xe]", t, re.IGNORECASE) for t in texts)
+    if verb == "cpio":
+        return any(re.match(r"--extract$|-[a-z]*i", t, re.IGNORECASE) for t in texts)
+    return any(TAR_EXTRACT.fullmatch(t) for t in texts)       # tar, bsdtar, jar: an x mode
+
+
+def extract_dest(verb: str, args: Sequence[Word]) -> str:
+    """The folder an extraction fills: a -C/-d/-o/--directory/-DestinationPath value, separate or
+    attached, else '.', the folder in effect, into which the archive unpacks."""
+    tar = verb in ("tar", "bsdtar")
+    seven = verb in ("7z", "7za", "7zr")
+    for i, word in enumerate(args):
+        text = word.text
+        if tar and (text == "-C" or re.fullmatch(r"--directory", text, re.IGNORECASE)) and i + 1 < len(args):
+            return args[i + 1].text
+        if verb == "unzip" and text == "-d" and i + 1 < len(args):
+            return args[i + 1].text
+        if verb == "expand-archive" and re.fullmatch(r"-destinationpath", text, re.IGNORECASE) \
+                and i + 1 < len(args):
+            return args[i + 1].text
+        attached = ((tar and re.fullmatch(r"-C(.+)", text))
+                    or (tar and re.fullmatch(r"--directory=(.+)", text, re.IGNORECASE))
+                    or (verb == "unzip" and re.fullmatch(r"-d(.+)", text))
+                    or (seven and re.fullmatch(r"-o(.+)", text, re.IGNORECASE))
+                    or (verb == "expand-archive" and re.fullmatch(r"-destinationpath[:=](.+)", text, re.IGNORECASE)))
+        if attached:
+            return attached.group(1)
+    return "."
+
+
+def extraction_writes(verb: str, args: Sequence[Word], dirs: list[str]) -> list[tuple[Word, bool]]:
+    if verb not in EXTRACTORS or not is_extracting(verb, args):
+        return []
+    return [(Word(extract_dest(verb, args), quoted=True), True)]
+
+
+def reads_stdin_script(verb: str, args: Sequence[Word]) -> bool:
+    """A shell that runs its standard input as a script: no -c/-Command and no script-file word."""
+    if verb not in SHELLS:
+        return False
+    for word in args:
+        if word.text.lower() in SHELL_FLAGS or not word.text.startswith("-"):
+            return False
+    return True
+
+
+def producer_script(words: Sequence[Word]) -> tuple[str | None, bool]:
+    """(script, opaque) of a command whose output is run: an echo/printf of literal words prints
+    them, to be rescanned; any other producer, or one holding $ or a backtick, is opaque."""
+    verb, args, _ = split_command(words)
+    if verb not in ("echo", "printf"):
+        return None, True
+    vals = [w for w in args if w.quoted or not ECHO_FLAG.fullmatch(w.text)]
+    if verb == "printf" and vals and "%" in vals[0].text:
+        vals = vals[1:]
+    if any("$" in w.text or "`" in w.text for w in vals):
+        return None, True
+    return " ".join(w.text for w in vals), False
+
+
 def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
     command = re.sub(r"\\\r?\n|`\r?\n", "", command)       # line continuations
     command = command.replace("\\", "/")
@@ -977,8 +1135,20 @@ def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
     for segment in segments(command):
         segment_dirs(segment, dirs)
         writes: list[tuple[Word, bool]] = [(word, False) for word in segment.targets]
-        for words in segment.commands:
+        herestring_shell = any(
+            split_command(c)[0] in SHELLS
+            and not any(w.text.lower() in SHELL_FLAGS for w in split_command(c)[1])
+            for c in segment.commands)
+        for idx, words in enumerate(segment.commands):
             verb, args, fed = split_command(words)
+            # A shell that runs its standard input treats the previous pipe stage as a command.
+            if reads_stdin_script(verb, args) and idx > 0:
+                script, opaque = producer_script(segment.commands[idx - 1])
+                if script is not None:
+                    hits += command_hits(script, dirs, snap)
+                elif snap.any_built:
+                    hits.append("a shell write built from the output of an opaque command piped into "
+                                + verb)
             if verb in SHELLS:                         # bash -c "...", pwsh -Command "..."
                 flag = next((j for j, w in enumerate(args) if w.text.lower() in SHELL_FLAGS), None)
                 if flag is not None and flag + 1 < len(args):
@@ -993,10 +1163,21 @@ def command_hits(command: str, dirs: list[str], snap: Snapshot) -> list[str]:
                 is_write = bool(targets)
             else:
                 targets, destructive, is_write = verb_writes(verb, args)
+                writes += copy_landing(verb, args, dirs, snap)
+                writes += extraction_writes(verb, args, dirs)
             if is_write and (fed or not targets):      # targets arrive through a pipe or (...)
                 others = [w for other in segment.commands if other is not words for w in other]
                 targets = [*targets, *others, *([DOT] if destructive else [])]
             writes += [(target, destructive) for target in targets]
+        # A <<< here-string fed to a shell that reads its input runs as a command.
+        if herestring_shell:
+            for match in HERESTRING.finditer(segment.raw):
+                literal = match.group(1) or match.group(2) or match.group(3) or ""
+                if "$" in literal or "`" in literal:
+                    if snap.any_built:
+                        hits.append("a shell write built from an opaque here-string")
+                elif literal:
+                    hits += command_hits(literal, dirs, snap)
         dotnet = DOTNET.search(segment.raw)
         if dotnet is not None:
             removing = dotnet.group(1).lower() in ("delete", "move")
